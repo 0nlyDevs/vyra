@@ -1,17 +1,20 @@
-# Base de données locale : Postgres 17 avec pgvector (recherche par le sens).
-# `make db` la lance ; les données restent dans le volume `db-data` entre deux lancements.
-# Identifiants de développement, utilisés seulement sur ce PC (pas un secret).
+# Tout le projet en une commande, sur Mac, Linux et Windows : `docker compose up --build`.
+#   web        Next.js        http://localhost:3000
+#   processing FastAPI        http://127.0.0.1:8000 (santé : /health)
+#   db         Postgres 17 + pgvector, port 5433 côté PC
+# Le code est monté depuis le dossier : une modification est prise en compte sans relancer.
+
 services:
   db:
     image: pgvector/pgvector:pg17
-    container_name: mindstack-devfest-db
+    # Identifiants de développement, utilisés seulement sur ce PC (pas un secret).
     environment:
       POSTGRES_USER: mindstack
       POSTGRES_PASSWORD: mindstack
       POSTGRES_DB: mindstack
     # 5433 côté PC : le port 5432 est souvent déjà pris par un Postgres installé à la main.
     ports:
-      - "5433:5432"
+      - "127.0.0.1:5433:5432"
     volumes:
       - db-data:/var/lib/postgresql/data
       - ./docker/initdb:/docker-entrypoint-initdb.d:ro
@@ -21,5 +24,44 @@ services:
       timeout: 3s
       retries: 30
 
+  processing:
+    build: ./processing
+    # Clé Gemini et réglages : processing/.env (facultatif, modèle : processing/.env.example).
+    env_file:
+      - path: ./processing/.env
+        required: false
+    volumes:
+      - ./processing:/app
+    ports:
+      - "127.0.0.1:8000:8000"
+
+  web:
+    build: ./web
+    # Installe les paquets si besoin, met les tables à jour, crée les données de démo si la base
+    # est vide, puis lance Next.js (voir web/scripts/docker-dev.sh).
+    command: ["sh", "scripts/docker-dev.sh"]
+    environment:
+      DATABASE_URL: postgres://mindstack:mindstack@db:5432/mindstack
+      PROCESSING_URL: http://processing:8000
+      # Dernier recours si les modifications ne sont pas vues (Windows hors WSL) : voir README.
+      WATCH_POLL_INTERVAL_MS: ${WATCH_POLL_INTERVAL_MS:-}
+    volumes:
+      - ./web:/app
+      # Dans des volumes Docker, pas dans le dossier : plus rapide sur Mac et Windows, et sans
+      # conflit avec un node_modules installé hors Docker.
+      - web-node-modules:/app/node_modules
+      - web-next:/app/.next
+    ports:
+      - "3000:3000"
+      # Drizzle Studio (make studio).
+      - "127.0.0.1:4983:4983"
+    depends_on:
+      db:
+        condition: service_healthy
+      processing:
+        condition: service_started
+
 volumes:
   db-data:
+  web-node-modules:
+  web-next:

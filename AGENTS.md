@@ -24,14 +24,19 @@ cas limites qu'on ne montrera pas. Des données simulées sont acceptées.
 
 ## Commandes
 
+Tout tourne dans Docker (`docker compose up --build`) : Node et Python ne sont pas
+forcément installés sur le PC. Les commandes passent par `docker compose exec`.
+
 | Besoin | Commande (depuis la racine) |
 |---|---|
-| Tout vérifier | `make check` |
+| Tout vérifier | `make check` (Windows : les commandes de la cible `check` du `Makefile`) |
 | Corriger le style | `make lint-fix` |
 | Après un changement du schéma | `make db-push` |
 | Données de démo à zéro | `make seed` |
+| Ajouter un paquet (avec accord) | `docker compose exec web npm install <paquet>` |
 
 Une tâche n'est terminée que si `make check` passe et que la page concernée s'affiche.
+L'équipe travaille sur Mac, Linux et Windows : pas de commande ni de chemin propre à un système.
 
 ## Obligatoire
 
