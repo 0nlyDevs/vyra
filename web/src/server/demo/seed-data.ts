@@ -17,6 +17,11 @@ const DEMO_NOTES = [
   { profileId: 'hery', content: 'Finir l’écran principal pour le projecteur.' },
 ];
 
+export async function hasDemoData(database: Database) {
+  const [profile] = await database.select({ id: profiles.id }).from(profiles).limit(1);
+  return profile !== undefined;
+}
+
 export async function resetDemoData(database: Database) {
   await database.transaction(async (tx) => {
     await tx.delete(notes);

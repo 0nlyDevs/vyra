@@ -1,7 +1,7 @@
 """Création de l'application FastAPI : routeurs et gestion d'erreurs. Rien d'autre.
 
-Le service écoute sur 127.0.0.1 seulement (voir le Makefile) : seul le serveur Next.js
-du même PC l'appelle, d'où l'absence de clé interne.
+Le port n'est ouvert que sur 127.0.0.1 côté PC (docker-compose.yml) : seul le serveur
+Next.js du même PC l'appelle, d'où l'absence de clé interne.
 """
 
 from fastapi import FastAPI

@@ -3,30 +3,69 @@
 Projet de l'équipe **MindStack** au hackathon du DevFest Antananarivo (21 et 22 novembre 2026).
 Tout tourne en local sur un PC : le jury juge la **démo en direct** et la présentation.
 
-## Démarrer (3 commandes)
+## Démarrer : une seule commande, sur Mac, Linux et Windows
 
-Prérequis : **Node 22**, **Python 3.12**, **Docker Desktop lancé**, `make`.
-`uv` est conseillé pour Python (`brew install uv`), sinon `venv` + `pip` sont utilisés.
+Prérequis : **Git** et **Docker** (Docker Desktop sur Mac et Windows). Rien d'autre : Node,
+Python et Postgres tournent dans Docker.
 
 ```bash
-make install   # paquets web + processing, et fichiers .env
-make db        # Postgres + pgvector dans Docker, tables, données de démo
-make dev       # web sur http://localhost:3000, processing sur http://127.0.0.1:8000
+git clone git@github.com:mahery-oniniaina/mindstack-devfest-2026.git
+cd mindstack-devfest-2026
+docker compose up --build
 ```
 
-Pour l'IA : mettre une clé Gemini (gratuite, https://aistudio.google.com/apikey) dans
-`processing/.env` (`GEMINI_API_KEY=`). Sans clé, l'application marche avec les réponses de secours.
+Puis ouvrir **http://localhost:3000**. Le premier lancement télécharge et installe tout
+(5 à 10 minutes selon le réseau) : **le faire avant d'arriver au DevFest**. Les suivants
+démarrent en quelques secondes. `Ctrl+C` arrête tout ; les données sont gardées.
 
-## Commandes utiles
+Une modification du code est prise en compte toute seule, sans relancer.
 
-| Besoin | Commande |
-|---|---|
-| Voir toutes les commandes | `make` |
-| Remettre les données de démo à zéro | `make seed` (ou le bouton « Réinitialiser la démo ») |
-| Après un changement de `web/src/server/db/schema.ts` | `make db-push` |
-| Voir les données | `make db-studio` |
-| Tout vérifier avant de pousser | `make check` |
-| Ajouter un composant shadcn | `cd web && npm run ui:add <nom>` |
+### Windows : cloner dans WSL
+
+Sous Windows, ouvrir un terminal **Ubuntu (WSL 2)** et cloner le dépôt **dans WSL**
+(`~/…`), pas dans `C:\…`. Sinon Docker voit mal les modifications et tout est lent.
+Docker Desktop doit avoir l'intégration WSL activée (Settings → Resources → WSL integration).
+VS Code s'ouvre sur ce dossier avec `code .` depuis le terminal Ubuntu.
+
+Dernier recours si le dépôt reste dans `C:\…` et que les modifications ne s'affichent pas :
+créer un fichier `.env` à la racine avec `WATCH_POLL_INTERVAL_MS=1000`, puis relancer.
+
+### L'IA (Gemini)
+
+Copier `processing/.env.example` en `processing/.env` et y mettre une clé gratuite
+(https://aistudio.google.com/apikey) : `GEMINI_API_KEY=…`. Puis `docker compose restart processing`.
+Sans clé, l'application marche avec les réponses de secours.
+Vérifier : http://127.0.0.1:8000/health doit afficher `"ai": "gemini"`.
+
+## Les commandes
+
+Avec `make` (Mac, Linux) ou la commande complète (partout, y compris Windows) :
+
+| Besoin | `make` | Commande complète |
+|---|---|---|
+| Tout lancer | `make up` | `docker compose up --build` |
+| Tout arrêter | `make down` | `docker compose down` |
+| Données de démo à zéro | `make seed` | `docker compose exec web npm run db:seed` |
+| Après un changement de `web/src/server/db/schema.ts` | `make db-push` | `docker compose exec web npm run db:push` |
+| Voir les données | `make studio` | `docker compose exec web npm run db:studio` |
+| Tout vérifier avant de pousser | `make check` | voir le `Makefile` (cible `check`) |
+| Corriger le style | `make lint-fix` | voir le `Makefile` (cible `lint-fix`) |
+| Ajouter un paquet npm | — | `docker compose exec web npm install <paquet>` |
+| Ajouter un composant shadcn | — | `docker compose exec web npm run ui:add <nom>` |
+| Après un changement de `processing/requirements*.txt` | `make up` | `docker compose up --build` |
+| Repartir de zéro (efface les données) | `make clean` | `docker compose down -v` |
+
+Les commandes `exec` demandent que `docker compose up` tourne dans un autre terminal.
+
+### Autocomplétion dans l'éditeur
+
+Les paquets de web sont installés dans Docker, pas dans le dossier. Pour que l'éditeur
+connaisse les types (React, Next.js…), installer Node 22 et lancer une fois `npm install`
+dans `web/`. Facultatif : l'application tourne sans.
+
+### Option : web hors Docker (plus rapide sur Mac)
+
+Avec Node 22 installé : `make web-local` (base et processing restent dans Docker).
 
 ## Où lire quoi
 

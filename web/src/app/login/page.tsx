@@ -25,7 +25,7 @@ export default async function LoginPage() {
       {profiles === null && (
         <ErrorState
           title="La base de données ne répond pas."
-          description="Lancez « make db » à la racine du dépôt, puis rechargez la page."
+          description="Lancez « docker compose up --build » à la racine du dépôt, puis rechargez la page."
         />
       )}
       {profiles?.length === 0 && (
