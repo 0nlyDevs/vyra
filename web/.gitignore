@@ -1,0 +1,15 @@
+# Dépendances et builds
+/node_modules
+/.next/
+/out/
+/build
+*.tsbuildinfo
+next-env.d.ts
+
+# Variables d'environnement : seul le modèle est versionné
+.env*
+!.env.example
+
+# Divers
+.DS_Store
+npm-debug.log*

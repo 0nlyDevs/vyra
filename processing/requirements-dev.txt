@@ -1,0 +1,6 @@
+# Outils de développement.
+-r requirements.txt
+ruff==0.16.9
+pytest==9.1.1
+# Client HTTP utilisé par le TestClient de Starlette.
+httpx2==2.13.1

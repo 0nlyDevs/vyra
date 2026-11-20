@@ -1,0 +1,7 @@
+# Dépendances de processing/. Versions exactes : tout le monde a la même chose.
+fastapi==0.141.1
+pydantic==2.13.5
+pydantic-settings==2.15.0
+httpx==0.28.1
+# Serveur local (make dev).
+uvicorn==0.54.0

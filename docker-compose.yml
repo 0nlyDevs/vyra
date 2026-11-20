@@ -1,0 +1,25 @@
+# Base de données locale : Postgres 17 avec pgvector (recherche par le sens).
+# `make db` la lance ; les données restent dans le volume `db-data` entre deux lancements.
+# Identifiants de développement, utilisés seulement sur ce PC (pas un secret).
+services:
+  db:
+    image: pgvector/pgvector:pg17
+    container_name: mindstack-devfest-db
+    environment:
+      POSTGRES_USER: mindstack
+      POSTGRES_PASSWORD: mindstack
+      POSTGRES_DB: mindstack
+    # 5433 côté PC : le port 5432 est souvent déjà pris par un Postgres installé à la main.
+    ports:
+      - "5433:5432"
+    volumes:
+      - db-data:/var/lib/postgresql/data
+      - ./docker/initdb:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mindstack -d mindstack"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+volumes:
+  db-data:

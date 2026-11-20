@@ -1,0 +1,23 @@
+# Dépendances
+node_modules/
+.venv/
+
+# Variables d'environnement : seuls les modèles (.env.example) sont versionnés
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+
+# Système et éditeurs
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# Journaux
+*.log
