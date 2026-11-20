@@ -1,0 +1,11 @@
+# Fins de ligne Unix partout : les scripts lancés dans Docker (Linux) cassent avec celles de Windows.
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.pdf binary
+*.mp4 binary
+*.woff2 binary

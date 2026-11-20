@@ -36,4 +36,5 @@ quote-style = "double"
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]
-addopts = "-q"
+# Pas de dossier .pytest_cache dans le code monté dans Docker.
+addopts = "-q -p no:cacheprovider"

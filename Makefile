@@ -1,66 +1,50 @@
-# Commandes de l'équipe. `make` ou `make help` affiche la liste.
-# Prérequis : Node 22, Python 3.12, Docker Desktop lancé (voir README.md).
+# Raccourcis pour Mac et Linux. Sous Windows sans `make`, taper la commande docker compose
+# indiquée en commentaire (tableau complet dans README.md).
+# Prérequis : Docker Desktop (ou Docker Engine sous Linux) lancé.
 
-PYTHON ?= python3.12
 .DEFAULT_GOAL := help
 
-.PHONY: help install install-web install-processing db db-push seed db-stop db-studio \
-	dev dev-web dev-processing lint lint-fix typecheck test check
+.PHONY: help up down logs seed db-push studio check lint-fix restart-web web-local clean
 
 help: ## Affiche cette aide
-	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-16s\033[0m %s\n", $$1, $$2}'
+	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-12s\033[0m %s\n", $$1, $$2}'
 
-install: install-web install-processing ## Installe tout et crée les fichiers .env manquants
+up: ## Lance tout (base, processing, web) : http://localhost:3000
+	docker compose up --build
 
-install-web:
-	cd web && npm install
-	@test -f web/.env.local || cp web/.env.example web/.env.local
+down: ## Arrête tout (les données sont gardées)
+	docker compose down
 
-install-processing:
-	cd processing && if command -v uv >/dev/null 2>&1; then \
-		uv venv -q --allow-existing --python 3.12 .venv && uv pip install -q --python .venv/bin/python -r requirements-dev.txt; \
-	else \
-		$(PYTHON) -m venv .venv && .venv/bin/pip install -q -r requirements-dev.txt; \
-	fi
-	@test -f processing/.env || cp processing/.env.example processing/.env
+logs: ## Affiche les journaux (docker compose logs -f)
+	docker compose logs -f
 
-db: ## Lance Postgres (Docker), crée les tables et les données de démo
-	docker compose up -d --wait
-	$(MAKE) db-push seed
+seed: ## Remet les données de démo à zéro
+	docker compose exec web npm run db:seed
 
-db-push: ## Aligne les tables sur web/src/server/db/schema.ts (après chaque changement du schéma)
-	cd web && npm run db:push
+db-push: ## Met les tables à jour après un changement de web/src/server/db/schema.ts
+	docker compose exec web npm run db:push
 
-seed: ## Remet les données de démo à zéro (comme le bouton « Réinitialiser la démo »)
-	cd web && npm run db:seed
+studio: ## Drizzle Studio pour voir les données : https://local.drizzle.studio
+	docker compose exec web npm run db:studio
 
-db-stop: ## Arrête Postgres (les données sont gardées)
-	docker compose stop
-
-db-studio: ## Ouvre Drizzle Studio pour voir et modifier les données
-	cd web && npm run db:studio
-
-dev: ## Lance web (port 3000) et processing (port 8000) ensemble
-	$(MAKE) -j2 dev-web dev-processing
-
-dev-web:
-	cd web && npm run dev
-
-dev-processing:
-	cd processing && .venv/bin/uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
-
-lint: ## Vérifie le style (web + processing)
-	cd web && npx biome check .
-	cd processing && .venv/bin/ruff check . && .venv/bin/ruff format --check .
+check: ## Tout vérifier avant de pousser (avec `make up` lancé)
+	docker compose exec web npm run lint
+	docker compose exec web npm run typecheck
+	docker compose exec processing ruff check .
+	docker compose exec processing ruff format --check .
+	docker compose exec processing pytest
 
 lint-fix: ## Corrige le style automatiquement
-	cd web && npx biome check --write .
-	cd processing && .venv/bin/ruff check --fix . && .venv/bin/ruff format .
+	docker compose exec web npm run lint:fix
+	docker compose exec processing ruff check --fix .
+	docker compose exec processing ruff format .
 
-typecheck: ## Vérifie les types TypeScript
-	cd web && npm run typecheck
+restart-web: ## Relance web (après un changement de .env ou si le rechargement bloque)
+	docker compose restart web
 
-test: ## Lance les tests de processing
-	cd processing && .venv/bin/pytest
+web-local: ## Option : web hors Docker (Node 22 requis), base et processing dans Docker
+	docker compose up -d --build db processing
+	cd web && (test -f .env.local || cp .env.example .env.local) && npm install && npm run dev
 
-check: lint typecheck test ## Tout vérifier avant de pousser
+clean: ## Supprime TOUT, données comprises (repartir de zéro)
+	docker compose down -v

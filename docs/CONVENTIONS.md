@@ -29,3 +29,4 @@
 - `git pull origin main` souvent : 5 personnes travaillent en même temps.
 - Messages de commit en français, courts : `feat: ajoute la carte des trajets`.
 - `make check` avant de pousser.
+- Fins de ligne Unix (LF) partout : `.gitattributes` s'en charge, ne pas le modifier.

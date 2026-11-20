@@ -4,7 +4,7 @@
 
 ```
                     ┌──────────────────────────────────────────────────────────┐
-                    │  PC de démo, tout en local                               │
+                    │  PC de démo, tout en local, dans Docker                  │
                     │                                                          │
 Navigateur ────────▶│  web/  Next.js (port 3000)                               │
 (projeté en direct) │   • pages grand écran (React, shadcn/ui)                 │
@@ -29,7 +29,8 @@ Navigateur ────────▶│  web/  Next.js (port 3000)            
 | Appelé par | Le navigateur | Uniquement `web/src/server/processing.ts` |
 | Base de données | **Seul propriétaire** (Drizzle) | Aucun accès |
 | Utilisateurs | Profil de démo en cookie | Ne les connaît pas |
-| Variables | `web/.env.local` | `processing/.env` (clé Gemini) |
+| Variables | `docker-compose.yml` (et `web/.env.local` hors Docker) | `processing/.env` (clé Gemini) |
+| Image Docker | `web/Dockerfile` + `web/scripts/docker-dev.sh` | `processing/Dockerfile` |
 
 ## L'arborescence
 
@@ -58,7 +59,8 @@ processing/app/
 
 ## Ajouter une fonctionnalité
 
-1. Les tables : dans `web/src/server/db/schema.ts`, puis `make db-push`.
+1. Les tables : dans `web/src/server/db/schema.ts`, puis `make db-push` (au prochain
+   `docker compose up`, c'est fait aussi automatiquement).
 2. Les données de démo : dans `web/src/server/demo/seed-data.ts`, puis `make seed`.
 3. L'accès aux données : `web/src/server/dal/<nom>.ts`.
 4. Le dossier `web/src/features/<nom>/` : `schema.ts` (Zod), `actions.ts` (server actions),
@@ -85,7 +87,9 @@ Sans IA, la recherche repasse par mots (`ilike`).
 | Choix | Raison |
 |---|---|
 | Next.js + FastAPI | L'équipe connaît (WebCup) ; Python pour l'IA |
-| Postgres + pgvector dans Docker | Même base pour tous en une commande ; recherche par le sens |
+| Tout dans Docker Compose | Mac, Linux et Windows : une commande, rien d'autre à installer que Docker |
+| Postgres + pgvector | Recherche par le sens |
+| `node_modules` et `.next` dans des volumes Docker | Rapide sur Mac et Windows ; pas de conflit avec un `npm install` hors Docker |
 | Drizzle, sans migrations (`db-push`) | Connu de l'équipe ; à 5 en 24 h, pas de conflits de migrations |
 | Gemini en REST (httpx) | Événement Google ; aucune dépendance de plus |
 | Réponses de secours | Le wifi de la salle est le plus grand risque de la démo |
