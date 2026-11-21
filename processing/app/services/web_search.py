@@ -17,17 +17,16 @@ import json
 import logging
 import re
 import unicodedata
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from email.utils import parsedate_to_datetime
 from html.parser import HTMLParser
 from typing import Any
-from urllib.parse import urlparse
+from urllib.parse import urljoin, urlparse
 
 import httpx
 
 from app.core.config import Settings
-from app.services.connect_retry import call_with_connect_retry_async
 
 logger = logging.getLogger(__name__)
 
@@ -48,6 +47,10 @@ PAGES_TOTAL_SECONDS = 14.0
 # On ne lit que le début des pages : titre, date et premières lignes sont en haut.
 PAGE_MAX_BYTES = 600_000
 EXCERPT_MAX_CHARS = 500
+# Début du texte et liens gardés par page : assez pour repérer les phrases recopiées et la source
+# citée, sans alourdir la réponse.
+BODY_MAX_CHARS = 4_000
+LINKS_MAX = 150
 USER_AGENT = "MindStack/0.1 (verification d'informations, DevFest 2026)"
 
 STOP_WORDS = frozenset(
@@ -128,6 +131,10 @@ class WebArticle:
     published_at: str | None
     excerpt: str
     language: str | None
+    # Le texte de la page (début) et ses liens sortants : ils servent à retrouver qui reprend qui
+    # (phrases recopiées, lien vers l'article d'origine).
+    body: str = ""
+    links: list[str] = field(default_factory=list)
 
     def as_dict(self) -> dict[str, Any]:
         return {
@@ -137,6 +144,8 @@ class WebArticle:
             "published_at": self.published_at,
             "excerpt": self.excerpt,
             "language": self.language,
+            "body": self.body,
+            "links": self.links,
         }
 
 
@@ -171,13 +180,13 @@ async def _gdelt(client: httpx.AsyncClient, words: list[str]) -> list[dict[str, 
         "maxrecords": str(MAX_ARTICLES * 2),
         "sort": "hybridrel",
     }
-    response = await call_with_connect_retry_async(lambda: client.get(GDELT_URL, params=params))
+    response = await client.get(GDELT_URL, params=params)
     for _ in range(GDELT_RETRIES):
         if response.status_code != 429:
             break
         # Saturé : GDELT demande d'attendre cinq secondes entre deux requêtes.
         await asyncio.sleep(GDELT_SPACING_SECONDS)
-        response = await call_with_connect_retry_async(lambda: client.get(GDELT_URL, params=params))
+        response = await client.get(GDELT_URL, params=params)
     response.raise_for_status()
     try:
         data = response.json()
@@ -206,6 +215,7 @@ class _PageReader(HTMLParser):
         self.title = ""
         self.time_datetime: str | None = None
         self.paragraphs: list[str] = []
+        self.links: list[str] = []
         self._in_title = False
         self._in_p = False
         self._current: list[str] = []
@@ -223,6 +233,8 @@ class _PageReader(HTMLParser):
         elif tag == "p":
             self._in_p = True
             self._current = []
+        elif tag == "a" and attributes.get("href") and len(self.links) < LINKS_MAX:
+            self.links.append(attributes["href"])
 
     def handle_endtag(self, tag: str) -> None:
         if tag == "title":
@@ -240,8 +252,8 @@ class _PageReader(HTMLParser):
             self._current.append(data)
 
 
-def read_page(html: str) -> dict[str, str | None]:
-    """Titre, date (ISO) et extrait d'une page HTML. Champs absents : None."""
+def read_page(html: str, base_url: str = "") -> dict[str, Any]:
+    """Titre, date (ISO), extrait, texte et liens d'une page HTML. Champs absents : None ou vide."""
     reader = _PageReader()
     # Une page mal formée donne ce qui a pu être lu avant l'erreur.
     with contextlib.suppress(AssertionError, ValueError):
@@ -259,10 +271,13 @@ def read_page(html: str) -> dict[str, str | None]:
     if len(excerpt) < 80 and reader.paragraphs:
         excerpt = " ".join(reader.paragraphs[:2])
     title = meta.get("og:title") or " ".join(reader.title.split())
+    links = [urljoin(base_url, href) for href in reader.links]
     return {
         "title": title.strip() or None,
         "published_at": _iso_date(published),
         "excerpt": _shorten(" ".join(excerpt.split())) or None,
+        "body": " ".join(reader.paragraphs)[:BODY_MAX_CHARS],
+        "links": [link for link in links if link.startswith("http")],
     }
 
 
@@ -291,26 +306,22 @@ def _shorten(text: str) -> str:
     return cut[: cut.rfind(" ")].rstrip(" ,;:") + "…"
 
 
-async def _download_page(client: httpx.AsyncClient, url: str) -> str | None:
-    async with client.stream("GET", url, timeout=PAGE_TIMEOUT_SECONDS) as response:
-        response.raise_for_status()
-        if "html" not in response.headers.get("content-type", ""):
-            return None
-        body = b""
-        async for chunk in response.aiter_bytes():
-            body += chunk
-            if len(body) >= PAGE_MAX_BYTES:
-                break
-        return body.decode(response.encoding or "utf-8", errors="replace")
-
-
-async def _fetch_page(client: httpx.AsyncClient, url: str) -> dict[str, str | None] | None:
+async def _fetch_page(client: httpx.AsyncClient, url: str) -> dict[str, Any] | None:
     """Titre, date et extrait d'une page web ; None si elle ne se lit pas (bloquée, lente…)."""
     try:
-        html = await call_with_connect_retry_async(lambda: _download_page(client, url))
+        async with client.stream("GET", url, timeout=PAGE_TIMEOUT_SECONDS) as response:
+            response.raise_for_status()
+            if "html" not in response.headers.get("content-type", ""):
+                return None
+            body = b""
+            async for chunk in response.aiter_bytes():
+                body += chunk
+                if len(body) >= PAGE_MAX_BYTES:
+                    break
+            html = body.decode(response.encoding or "utf-8", errors="replace")
     except httpx.HTTPError:
         return None
-    return read_page(html) if html is not None else None
+    return read_page(html, url)
 
 
 async def _read_article(client: httpx.AsyncClient, item: dict[str, Any]) -> WebArticle:
@@ -330,6 +341,8 @@ async def _read_article(client: httpx.AsyncClient, item: dict[str, Any]) -> WebA
     article.title = page["title"] or article.title
     article.published_at = page["published_at"] or article.published_at
     article.excerpt = page["excerpt"] or ""
+    article.body = page["body"]
+    article.links = page["links"]
     return article
 
 
@@ -368,16 +381,18 @@ async def find_articles(
 async def _tavily(
     client: httpx.AsyncClient, key: str, claim: str, topic: str
 ) -> list[dict[str, Any]]:
-    body = {
-        # Tavily accepte une phrase entière : l'information elle-même est la meilleure requête.
-        "query": claim[:TAVILY_QUERY_MAX_CHARS],
-        "topic": topic,
-        "search_depth": "basic",
-        "max_results": MAX_ARTICLES,
-    }
-    headers = {"Authorization": f"Bearer {key}"}
-    response = await call_with_connect_retry_async(
-        lambda: client.post(TAVILY_URL, headers=headers, json=body)
+    response = await client.post(
+        TAVILY_URL,
+        headers={"Authorization": f"Bearer {key}"},
+        json={
+            # Tavily accepte une phrase entière : l'information elle-même est la meilleure requête.
+            "query": claim[:TAVILY_QUERY_MAX_CHARS],
+            "topic": topic,
+            "search_depth": "basic",
+            "max_results": MAX_ARTICLES,
+            # Le texte de chaque page, en Markdown : on y lit les phrases et les liens.
+            "include_raw_content": "markdown",
+        },
     )
     response.raise_for_status()
     data = response.json()
@@ -388,6 +403,7 @@ async def _tavily(
 def _from_tavily(item: dict[str, Any]) -> WebArticle:
     url = str(item["url"])
     published = item.get("published_date")
+    raw = str(item.get("raw_content") or "")
     return WebArticle(
         url=url,
         title=" ".join(str(item.get("title") or "").split()),
@@ -398,7 +414,16 @@ def _from_tavily(item: dict[str, Any]) -> WebArticle:
             " ".join(re.sub(r"[#*_>`|]+", " ", str(item.get("content") or "")).split())
         ),
         language=None,
+        body=_markdown_text(raw)[:BODY_MAX_CHARS],
+        links=re.findall(r"\]\((https?://[^)\s]+)\)", raw)[:LINKS_MAX],
     )
+
+
+def _markdown_text(markdown: str) -> str:
+    """Le texte d'une page en Markdown, sans images ni adresses de liens."""
+    text = re.sub(r"!\[[^\]]*\]\([^)]*\)", " ", markdown)
+    text = re.sub(r"\[([^\]]*)\]\([^)]*\)", r"\1", text)
+    return " ".join(re.sub(r"[#*_>`|]+", " ", text).split())
 
 
 def _rfc_date(value: str) -> str | None:
@@ -435,16 +460,25 @@ async def _find_with_tavily(
                 if article.title:
                     articles.setdefault(article.url, article)
 
-        # Sans date, on va la lire sur la page, en temps limité : sinon l'article reste non daté.
-        undated = [article for article in articles.values() if article.published_at is None]
+        # Sans date ou sans texte, on va les lire sur la page, en temps limité : sinon l'article
+        # reste non daté, ou comparé aux autres par son seul extrait.
+        incomplete = [
+            article
+            for article in articles.values()
+            if article.published_at is None or not article.body
+        ]
 
         async def complete(article: WebArticle) -> None:
             page = await _fetch_page(client, article.url)
-            if page is not None:
-                article.published_at = page["published_at"]
+            if page is None:
+                return
+            article.published_at = article.published_at or page["published_at"]
+            article.body = article.body or page["body"]
+            article.links = article.links or page["links"]
 
-        await _finish([asyncio.create_task(complete(article)) for article in undated], DATE_SECONDS)
-    logger.info("tavily : %d articles, %d sans date au départ", len(articles), len(undated))
+        tasks = [asyncio.create_task(complete(article)) for article in incomplete]
+        await _finish(tasks, DATE_SECONDS)
+    logger.info("tavily : %d articles, %d complétés sur leur page", len(articles), len(incomplete))
     return list(articles.values())
 
 

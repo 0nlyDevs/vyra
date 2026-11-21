@@ -84,6 +84,9 @@ const webArticleSchema = z.object({
   published_at: z.string().nullable(),
   excerpt: z.string(),
   language: z.string().nullable(),
+  // Début du texte de la page et ses liens sortants : pour retrouver qui reprend qui.
+  body: z.string().default(''),
+  links: z.array(z.string()).default([]),
 });
 export type WebArticle = z.infer<typeof webArticleSchema>;
 
