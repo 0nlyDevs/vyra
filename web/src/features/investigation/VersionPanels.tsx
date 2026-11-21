@@ -1,17 +1,11 @@
 import { ExternalLink } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { ToneBadge } from '@/components/common/ToneBadge';
-import {
-  CHANGE_TYPE_LABELS,
-  CHANGE_TYPE_TONES,
-  LINK_CONFIDENCE_LABELS,
-  SOURCE_KIND_LABELS,
-  SOURCE_KIND_TONES,
-} from '@/lib/domain';
+import { CHANGE_TYPE_LABELS, CHANGE_TYPE_TONES, LINK_CONFIDENCE_LABELS } from '@/lib/domain';
 import { cn } from '@/lib/utils';
 import type { CaseFile } from '@/server/dal/cases';
 import { formatDay as formatDate } from './dates';
-import { sourceKind } from './source-kind';
+import { SourceKindBadge } from './SourceKindBadge';
 import { type DiffPart, diffWords } from './word-diff';
 
 type Version = CaseFile['versions'][number];
@@ -116,19 +110,8 @@ function VersionHeading({ version }: { version: Version }) {
       <span className="font-semibold text-foreground">Version {version.position}</span> ·
       <span>{version.sourceName}</span> ·
       <time dateTime={version.publishedAt?.toISOString()}>{formatDate(version.publishedAt)}</time>
-      <SourceKindBadge version={version} />
+      <SourceKindBadge source={version} />
     </p>
-  );
-}
-
-// Le type de la source (presse reconnue, forum, réseau social…), déduit de son adresse ou de son nom.
-export function SourceKindBadge({ version, className }: { version: Version; className?: string }) {
-  const kind = sourceKind(version.sourceUrl, version.sourceName);
-  if (kind === 'unknown') return null;
-  return (
-    <ToneBadge tone={SOURCE_KIND_TONES[kind]} className={className}>
-      {SOURCE_KIND_LABELS[kind]}
-    </ToneBadge>
   );
 }
 
