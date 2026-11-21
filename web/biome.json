@@ -61,6 +61,21 @@
   },
   "overrides": [
     {
+      "includes": ["src/features/landing/galaxy/**"],
+      "linter": {
+        "rules": {
+          "complexity": { "useOptionalChain": "off" },
+          "suspicious": {
+            "noAssignInExpressions": "off",
+            "useIterableCallbackReturn": "off",
+            "noArrayIndexKey": "off"
+          },
+          "style": { "noNonNullAssertion": "off" },
+          "a11y": { "useSemanticElements": "off", "noSvgWithoutTitle": "off" }
+        }
+      }
+    },
+    {
       "includes": ["src/lib/env.ts", "next.config.ts", "drizzle.config.ts", "scripts/**"],
       "linter": { "rules": { "style": { "noProcessEnv": "off" } } }
     },

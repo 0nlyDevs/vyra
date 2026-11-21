@@ -4,7 +4,9 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/* Thème MindStack « Nuit rouge » : une nuit teintée de rouge, un seul accent (le rouge de la
+/* Thème Vyra, issu de « Nuit rouge » (MindStack) et habillé en encre neutre, papier,
+   Bricolage Grotesque. Le rouge de MindStack reste l'accent. Ancienne description :
+   « Nuit rouge » : une nuit teintée de rouge, un seul accent (le rouge de la
    marque), un texte couleur os. La nuit est le thème par défaut ; le clair reste au choix.
    Trois couches de jetons :
    1. primitives : les valeurs brutes (nuancier rouge, gris teintés, couleurs d'état) ;
@@ -16,7 +18,9 @@
 
 @theme inline {
   --font-sans:
-    var(--font-geist-sans), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    "Bricolage Grotesque Variable", "Helvetica Neue", ui-sans-serif, system-ui, -apple-system,
+    "Segoe UI", Roboto, sans-serif;
+  --font-serif: "Cormorant Garamond", Georgia, serif;
   --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
   --font-heading: var(--font-sans);
   --font-display: var(--font-sans);
@@ -62,6 +66,11 @@
 }
 
 :root {
+  /* Polices lues aussi hors Tailwind (CSS de l'accueil). */
+  --font-sans:
+    "Bricolage Grotesque Variable", "Helvetica Neue", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Cormorant Garamond", Georgia, serif;
+
   /* 1. Primitives */
   --red-50: oklch(0.975 0.012 20);
   --red-100: oklch(0.94 0.03 20);
@@ -77,35 +86,35 @@
 
   /* Gris légèrement teintés de rouge : ils s'accordent avec la couleur de marque. */
   --ink-0: oklch(1 0 0);
-  --ink-50: oklch(0.985 0.002 20);
-  --ink-100: oklch(0.965 0.003 20);
-  --ink-200: oklch(0.925 0.004 20);
-  --ink-300: oklch(0.87 0.005 20);
-  --ink-400: oklch(0.71 0.008 20);
-  --ink-500: oklch(0.55 0.01 20);
-  --ink-600: oklch(0.44 0.01 20);
-  --ink-700: oklch(0.36 0.01 20);
-  --ink-800: oklch(0.25 0.016 22);
-  --ink-850: oklch(0.205 0.016 22);
-  --ink-900: oklch(0.175 0.014 22);
-  --ink-950: oklch(0.135 0.012 22);
-  --ink-1000: oklch(0.112 0.01 22);
+  --ink-50: oklch(0.985 0.003 95);
+  --ink-100: oklch(0.965 0.004 95);
+  --ink-200: oklch(0.925 0.005 95);
+  --ink-300: oklch(0.87 0.005 95);
+  --ink-400: oklch(0.71 0.006 95);
+  --ink-500: oklch(0.55 0.006 95);
+  --ink-600: oklch(0.44 0.006 95);
+  --ink-700: oklch(0.36 0.006 95);
+  --ink-800: oklch(0.26 0.004 95);
+  --ink-850: oklch(0.215 0.004 95);
+  --ink-900: oklch(0.18 0.004 95);
+  --ink-950: oklch(0.145 0.003 95);
+  --ink-1000: oklch(0.12 0.003 95);
 
   --green-100: oklch(0.95 0.045 155);
-  --green-400: oklch(0.76 0.15 155);
+  --green-400: oklch(0.8 0.18 153);
   --green-600: oklch(0.5 0.13 155);
   --green-900: oklch(0.3 0.06 155);
   --amber-100: oklch(0.955 0.055 85);
-  --amber-400: oklch(0.82 0.15 80);
+  --amber-400: oklch(0.82 0.16 78);
   --amber-600: oklch(0.52 0.12 65);
   --amber-900: oklch(0.32 0.06 65);
   --blue-100: oklch(0.95 0.03 250);
-  --blue-400: oklch(0.76 0.12 250);
+  --blue-400: oklch(0.66 0.19 257);
   --blue-600: oklch(0.5 0.15 255);
   --blue-900: oklch(0.3 0.07 255);
 
   /* 2. Sémantiques (clair) */
-  --background: oklch(0.982 0.004 30);
+  --background: oklch(0.965 0.005 95);
   --foreground: var(--ink-950);
   --card: var(--ink-0);
   --card-foreground: var(--ink-950);
@@ -131,7 +140,7 @@
   --info-soft: var(--blue-100);
   --danger: var(--red-700);
   --danger-soft: var(--red-100);
-  --radius: 0.85rem;
+  --radius: 1.1rem;
   /* Lumière de la marque (halos, lueurs) et reflet du haut des surfaces. */
   --glow: var(--red-500);
   --sheen: oklch(1 0 0 / 70%);
@@ -147,9 +156,9 @@
 .dark {
   /* 2. Sémantiques (nuit) */
   --background: var(--ink-950);
-  --foreground: oklch(0.955 0.007 30);
+  --foreground: oklch(0.955 0.006 95);
   --card: var(--ink-900);
-  --card-foreground: oklch(0.955 0.007 30);
+  --card-foreground: oklch(0.955 0.006 95);
   --popover: var(--ink-850);
   --popover-foreground: oklch(0.955 0.007 30);
   --primary: oklch(0.64 0.215 24);
@@ -161,7 +170,7 @@
   --accent: oklch(0.25 0.055 22);
   --accent-foreground: var(--red-100);
   --destructive: var(--red-400);
-  --border: oklch(1 0 0 / 8.5%);
+  --border: oklch(0.955 0.006 95 / 11%);
   --input: oklch(1 0 0 / 12%);
   --ring: var(--red-400);
   --glow: oklch(0.6 0.23 24);
@@ -231,8 +240,8 @@
 /* Titres : l'interlettrage se resserre quand le corps grandit. */
 @utility display {
   font-family: var(--font-display);
-  font-weight: 500;
-  letter-spacing: -0.035em;
+  font-weight: 700;
+  letter-spacing: -0.04em;
   line-height: 1.02;
   text-wrap: balance;
 }

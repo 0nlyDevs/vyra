@@ -114,7 +114,7 @@ function draw(
     PAD,
     SIZE - PAD - 80,
   );
-  context.fillText(`MindStack · ${formatDate(new Date())}`, PAD, SIZE - PAD - 36);
+  context.fillText(`Vyra · ${formatDate(new Date())}`, PAD, SIZE - PAD - 36);
 }
 
 export function shareText(claim: string, certainty: CertaintyLevel, conclusion: string) {
