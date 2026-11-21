@@ -100,6 +100,17 @@ export const CHANGE_TYPE_LABELS = {
   tone_hardened: 'Ton durci',
 } satisfies Record<ChangeType, string>;
 
+// Couleur d'un lien du graphe : plus le changement déforme l'information, plus il est appuyé.
+export const CHANGE_TYPE_TONES = {
+  shared_unchanged: 'neutral',
+  title_changed: 'info',
+  figure_changed: 'danger',
+  image_added: 'warning',
+  passage_cut: 'warning',
+  translated: 'info',
+  tone_hardened: 'danger',
+} satisfies Record<ChangeType, Tone>;
+
 // Confiance dans un lien du graphe : « cette version reprend bien celle-là ».
 export const LINK_CONFIDENCES = ['high', 'medium', 'low'] as const;
 export type LinkConfidence = (typeof LINK_CONFIDENCES)[number];
