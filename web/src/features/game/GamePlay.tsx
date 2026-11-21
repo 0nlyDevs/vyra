@@ -1,8 +1,18 @@
 'use client';
 
-import { ArrowRight, CircleCheck, CircleHelp, CircleX, Lightbulb, RotateCcw } from 'lucide-react';
+import {
+  ArrowRight,
+  CircleCheck,
+  CircleHelp,
+  CircleX,
+  Lightbulb,
+  RotateCcw,
+  Sparkles,
+} from 'lucide-react';
 import Link from 'next/link';
 import { useRef, useState, useTransition } from 'react';
+import { AiSourceBadge } from '@/components/common/DomainBadges';
+import { SpeechBubble } from '@/components/common/SpeechBubble';
 import { Steps } from '@/components/common/Steps';
 import { ToneBadge } from '@/components/common/ToneBadge';
 import { FormMessage } from '@/components/form/FormField';
@@ -19,7 +29,7 @@ import {
 } from '@/lib/domain';
 import { cn } from '@/lib/utils';
 import type { Scenario } from '@/server/db/schema';
-import { finishRun, type RunResult } from './actions';
+import { type Debrief, finishRun, getDebrief, type RunResult } from './actions';
 import { ClueCard } from './ClueCard';
 import { PostCard } from './PostCard';
 import type { RunInput } from './schema';
@@ -51,6 +61,10 @@ export function GamePlay({ scenarios }: { scenarios: PlayableScenario[] }) {
   const [result, setResult] = useState<RunResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  // Le conseil de l'IA arrive après la réponse ; il est rattaché à son information pour qu'une
+  // réponse tardive ne s'affiche pas sur l'information suivante.
+  const [debrief, setDebrief] = useState<{ scenarioId: string; value: Debrief } | null>(null);
+  const [debriefPending, startDebrief] = useTransition();
   const topRef = useRef<HTMLDivElement>(null);
 
   const scenario = scenarios[index];
@@ -68,6 +82,11 @@ export function GamePlay({ scenarios }: { scenarios: PlayableScenario[] }) {
     // Après la réponse, tous les indices se retournent : on voit ce qu'il fallait remarquer.
     setRevealed(scenario.clues.map((clue) => clue.kind));
     setAnswers((previous) => [...previous, { scenarioId: scenario.id, answer: value, ratings }]);
+    const scenarioId = scenario.id;
+    startDebrief(async () => {
+      const result = await getDebrief({ scenarioId, answer: value, ratings });
+      if (result.ok) setDebrief({ scenarioId, value: result.data });
+    });
   }
 
   function next() {
@@ -194,6 +213,10 @@ export function GamePlay({ scenarios }: { scenarios: PlayableScenario[] }) {
             <Lightbulb aria-hidden className="mt-1 size-5 shrink-0" />
             Le réflexe à garder : {scenario.reflex}
           </p>
+          <CoachAdvice
+            debrief={debrief?.scenarioId === scenario.id ? debrief.value : null}
+            pending={debriefPending}
+          />
           <FormMessage message={error} />
           <Button
             type="button"
@@ -208,6 +231,30 @@ export function GamePlay({ scenarios }: { scenarios: PlayableScenario[] }) {
         </section>
       )}
     </div>
+  );
+}
+
+// Le conseil personnalisé du coach (IA, ou réponse préparée hors ligne). Il complète l'explication
+// écrite, qui reste affichée : si l'IA ne répond pas du tout, rien ne manque au jeu.
+function CoachAdvice({ debrief, pending }: { debrief: Debrief | null; pending: boolean }) {
+  if (debrief) {
+    return (
+      <div className="grid gap-2" aria-live="polite">
+        <SpeechBubble speaker="Le coach" caption="conseil personnalisé" tone="info">
+          {debrief.advice}
+        </SpeechBubble>
+        <div>
+          <AiSourceBadge source={debrief.source} />
+        </div>
+      </div>
+    );
+  }
+  if (!pending) return null;
+  return (
+    <p role="status" className="flex items-center gap-2 text-muted-foreground">
+      <Sparkles aria-hidden className="size-4 motion-safe:animate-pulse" />
+      Le coach prépare un conseil pour vous…
+    </p>
   );
 }
 
