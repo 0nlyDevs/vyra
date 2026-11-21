@@ -30,8 +30,14 @@ class Settings(BaseSettings):
 
     # Clé de l'API Gemini (https://aistudio.google.com/apikey). Absente : réponses de secours.
     gemini_api_key: SecretStr | None = None
-    # Alias tenu à jour par Google : pointe toujours vers le dernier modèle Flash.
-    gemini_model: str = "gemini-flash-latest"
+    # Modèle principal. Mesuré le 21/11 : réponse en 2 à 3 secondes, quand « gemini-flash-latest »
+    # (le dernier Flash) était saturé.
+    gemini_model: str = "gemini-3-flash-preview"
+    # Essayés dans l'ordre quand le modèle précédent est saturé, trop lent ou retiré, dans la
+    # limite de `ai_timeout_seconds` au total.
+    gemini_fallback_models: list[str] = ["gemini-flash-latest", "gemini-3.1-flash-lite"]
+    # Temps laissé à chaque modèle avant de passer au suivant (un modèle saturé peut ne rien dire).
+    gemini_attempt_timeout_seconds: float = 8.0
     gemini_embedding_model: str = "gemini-embedding-001"
     # Doit rester égal à la taille de la colonne `vector` du schéma web (src/server/db/schema.ts).
     embedding_dimensions: int = 768
