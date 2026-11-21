@@ -32,7 +32,7 @@ export default async function VerifyEmailPage({
         />
       )}
       <Button asChild className="justify-self-start">
-        <Link href={AFTER_SIGN_IN_PATH}>Ouvrir MindStack</Link>
+        <Link href={AFTER_SIGN_IN_PATH}>Ouvrir Vyra</Link>
       </Button>
     </div>
   );

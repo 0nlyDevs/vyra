@@ -1,0 +1,773 @@
+/* Réglages propres à l'accueil, titres masqués ligne par ligne, piste
+   horizontale épinglée, colonnes dont l'une reste en place. Les polices (Bricolage, Cormorant) sont
+   globales : voir layout.tsx. La classe `motion` est posée par LandingMotion une fois tout branché ;
+   sans elle (ou en mouvement réduit), tout reste visible et empilé. */
+
+.landing {
+  --gutter: clamp(20px, 6vw, 96px);
+  --line: oklch(0.955 0.006 95 / 11%);
+}
+
+/* ---------- Texte ---------- */
+
+.landing .display em {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-weight: 500;
+  font-size: 1.08em;
+  letter-spacing: -0.01em;
+  line-height: 1;
+  padding-right: 0.04em;
+}
+
+.landing .h2 {
+  font-size: clamp(2.4rem, 5.6vw, 6rem);
+  padding-bottom: 0.12em;
+}
+
+.landing .h2-s {
+  font-size: clamp(2.2rem, 5vw, 4.8rem);
+  line-height: 1;
+  padding-bottom: 0.12em;
+}
+
+.landing .lead {
+  font-size: clamp(1.05rem, 1.35vw, 1.3rem);
+  line-height: 1.5;
+  color: var(--muted-foreground);
+  max-width: 44ch;
+  text-wrap: pretty;
+}
+
+.landing .mono {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+  font-variant-numeric: tabular-nums;
+}
+
+.landing .wrap {
+  padding-inline: var(--gutter);
+}
+
+.landing .section {
+  position: relative;
+  padding-block: clamp(80px, 14vh, 160px);
+}
+
+/* ---------- Apparitions ---------- */
+
+.landing .lines {
+  display: block;
+}
+
+.landing .lines .line {
+  display: block;
+  overflow: hidden;
+  padding-bottom: 0.06em;
+  margin-bottom: -0.06em;
+}
+
+.landing .lines .line > span {
+  display: block;
+  will-change: transform;
+}
+
+.landing.motion .lines .line > span {
+  transform: translateY(112%);
+}
+
+.landing.motion [data-reveal="fade"] {
+  opacity: 0;
+  transform: translateY(28px);
+}
+
+.landing.motion [data-reveal="stagger"] > * {
+  opacity: 0;
+  transform: translateY(24px);
+}
+
+/* ---------- Parcours : piste horizontale épinglée ---------- */
+
+.landing .parcours {
+  position: relative;
+  overflow: clip;
+}
+
+.landing .parcours-track {
+  display: flex;
+  flex-direction: column;
+}
+
+.landing .parcours .slide {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: clamp(64px, 10vh, 120px) var(--gutter);
+  border-top: 1px solid var(--line);
+}
+
+.landing .parcours .slide:first-child {
+  border-top: 0;
+}
+
+.landing .parcours.is-pinned .parcours-track {
+  position: sticky;
+  top: 0;
+  flex-direction: row;
+  align-items: stretch;
+  height: 100svh;
+  width: max-content;
+  will-change: transform;
+}
+
+.landing .parcours.is-pinned .slide {
+  flex: 0 0 auto;
+  width: 100vw;
+  height: 100%;
+  padding: 12vh var(--gutter);
+  border-top: 0;
+  border-left: 1px solid var(--line);
+}
+
+.landing .parcours.is-pinned .slide:first-child {
+  border-left: 0;
+}
+
+@media (min-width: 1024px) {
+  .landing .parcours.is-pinned .slide {
+    width: 62vw;
+  }
+}
+
+.landing .slide-time {
+  font-family: var(--font-mono);
+  font-size: clamp(4rem, 13vw, 14rem);
+  line-height: 0.9;
+  letter-spacing: -0.06em;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+.landing .slide-place {
+  margin-top: 18px;
+}
+
+.landing .slide-text {
+  margin-top: 40px;
+  font-size: clamp(1.35rem, 2.4vw, 2.3rem);
+  line-height: 1.25;
+  letter-spacing: -0.02em;
+  max-width: 24ch;
+  text-wrap: pretty;
+}
+
+.landing .slide-visual {
+  margin-top: 40px;
+}
+
+.landing .stat-num {
+  font-family: var(--font-mono);
+  font-size: clamp(3.4rem, 8vw, 8rem);
+  line-height: 0.9;
+  letter-spacing: -0.05em;
+  font-variant-numeric: tabular-nums;
+}
+
+.landing .parcours-bar {
+  display: none;
+}
+
+.landing .parcours.is-pinned .parcours-bar {
+  display: block;
+  position: absolute;
+  left: var(--gutter);
+  width: calc(100vw - 2 * var(--gutter));
+  bottom: 28px;
+  height: 1px;
+  background: var(--line);
+}
+
+.landing .parcours-bar i {
+  position: absolute;
+  inset: 0;
+  background: var(--foreground);
+  transform-origin: left;
+  transform: scaleX(0);
+}
+
+/* Première case : la promesse, et la carte que la torche du hero vient poser. */
+
+.landing .slide.is-head {
+  gap: 40px;
+}
+
+.landing .head-copy {
+  display: grid;
+  gap: 24px;
+}
+
+.landing .reel {
+  margin: 0;
+  order: -1;
+  width: min(100%, 26rem);
+}
+
+.landing .reel-slot {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  border-radius: 20px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+}
+
+.landing .reel-slot canvas {
+  display: block;
+  object-fit: cover;
+  width: 100%;
+  height: 100%;
+  transition: opacity 0.3s ease;
+}
+
+/* La carte 3D se pose exactement sur l'emplacement : l'affiche dessous disparaît. */
+.landing .reel-slot[data-live="1"] {
+  border-color: transparent;
+}
+
+.landing .reel-slot[data-live="1"] canvas {
+  opacity: 0;
+}
+
+.landing .reel figcaption {
+  margin-top: 14px;
+}
+
+@media (min-width: 1024px) {
+  .landing .parcours .slide.is-head {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: clamp(40px, 5vw, 96px);
+  }
+
+  .landing .parcours.is-pinned .slide.is-head {
+    width: 100vw;
+  }
+
+  .landing .head-copy {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+
+  .landing .reel {
+    order: 0;
+    flex: 0 0 auto;
+    width: clamp(18rem, 28vw, 30rem);
+  }
+}
+
+/* ---------- Tribunal : deux colonnes, la gauche reste en place ---------- */
+
+.landing .court-grid {
+  display: grid;
+  gap: 48px;
+}
+
+.landing .court-steps {
+  display: grid;
+  gap: 24px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.landing .court-step {
+  display: grid;
+  gap: 20px;
+  padding-top: 28px;
+  border-top: 1px solid var(--line);
+}
+
+.landing .ticks {
+  display: none;
+}
+
+@media (min-width: 1024px) {
+  .landing .court-grid {
+    grid-template-columns: 5fr 7fr;
+    column-gap: clamp(32px, 5vw, 96px);
+  }
+
+  .landing .court-side {
+    position: sticky;
+    top: 0;
+    height: 100svh;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 11vh 0 6vh;
+  }
+
+  .landing .court-side .h2-s {
+    font-size: min(clamp(2.2rem, 5vw, 4.8rem), 9svh);
+  }
+
+  .landing .court-steps {
+    gap: 0;
+    padding-block: 18vh;
+  }
+
+  .landing .court-step {
+    min-height: 56svh;
+    align-content: start;
+    margin-bottom: 10svh;
+    opacity: 0.28;
+    transition: opacity 0.45s ease;
+  }
+
+  .landing .court-step:last-child {
+    margin-bottom: 0;
+  }
+
+  .landing .court-step.is-active {
+    opacity: 1;
+  }
+
+  .landing .ticks {
+    display: flex;
+    gap: 8px;
+  }
+}
+
+.landing .tick {
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  display: grid;
+  place-items: center;
+  color: var(--background);
+  transition:
+    background-color 0.35s ease,
+    border-color 0.35s ease;
+}
+
+.landing .tick svg {
+  opacity: 0;
+  transition: opacity 0.35s ease;
+}
+
+.landing .tick.is-done {
+  background: var(--foreground);
+  border-color: var(--foreground);
+}
+
+.landing .tick.is-done svg {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .landing .court-step {
+    opacity: 1;
+  }
+}
+
+/* ---------- Libellés : en capitales espacées mono ---------- */
+
+.landing .eyebrow {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 400;
+  letter-spacing: 0.08em;
+  color: var(--muted-foreground);
+}
+
+/* ---------- Sources : un bandeau de mots, sans cadre ---------- */
+
+.landing .sources {
+  padding-block: clamp(40px, 7vh, 80px);
+  border-block: 1px solid var(--line);
+}
+
+.landing .sources-label {
+  padding-inline: var(--gutter);
+  margin-bottom: 28px;
+}
+
+/* ---------- Scène des conclusions (épinglée, le fond change de teinte) ---------- */
+
+.landing .verdict {
+  height: 520vh;
+}
+
+.landing .verdict-pin {
+  position: sticky;
+  top: 0;
+  height: 100svh;
+  overflow: hidden;
+  padding: 10px;
+}
+
+.landing .verdict-frame {
+  position: relative;
+  height: 100%;
+  border-radius: 32px;
+  overflow: hidden;
+  background: var(--card);
+  border: 1px solid var(--line);
+}
+
+.landing .verdict-wash {
+  position: absolute;
+  inset: 0;
+  background: var(--card);
+}
+
+.landing .verdict-stage {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  text-align: center;
+  padding: 0 var(--gutter);
+}
+
+.landing .verdict-item {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+}
+
+.landing .verdict-item > div {
+  display: grid;
+  justify-items: center;
+  gap: 18px;
+  max-width: 980px;
+}
+
+.landing .verdict-icon {
+  width: clamp(48px, 7vw, 84px);
+  height: clamp(48px, 7vw, 84px);
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  color: #0a0a0b;
+}
+
+.landing .verdict-word {
+  font-size: clamp(3.4rem, 12vw, 13rem);
+  letter-spacing: -0.03em;
+  overflow: hidden;
+  padding-bottom: 0.08em;
+}
+
+.landing .verdict-word span {
+  display: block;
+}
+
+.landing .verdict-line {
+  margin: 0;
+  font-size: clamp(1.1rem, 1.8vw, 1.6rem);
+  line-height: 1.35;
+  max-width: 38ch;
+  text-wrap: pretty;
+}
+
+.landing .verdict-rule {
+  margin: 0;
+  max-width: 56ch;
+}
+
+.landing .verdict-legend {
+  position: absolute;
+  left: clamp(18px, 3vw, 40px);
+  top: 50%;
+  transform: translateY(-50%);
+  display: grid;
+  gap: 10px;
+}
+
+.landing .verdict-legend button {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+  cursor: pointer;
+}
+
+.landing .verdict-legend i {
+  display: block;
+  width: 6px;
+  height: 28px;
+  border-radius: 999px;
+  transform: scaleY(0.4);
+  opacity: 0.5;
+  transition:
+    transform 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+    opacity 0.3s ease;
+}
+
+.landing .verdict-legend button.is-active i {
+  transform: scaleY(1);
+  opacity: 1;
+}
+
+.landing .verdict-legend button.is-active {
+  color: var(--foreground);
+}
+
+.landing .verdict-legend span {
+  display: none;
+}
+
+@media (min-width: 768px) {
+  .landing .verdict-legend span {
+    display: inline;
+  }
+}
+
+.landing .verdict-foot {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: clamp(20px, 4vh, 40px);
+  text-align: center;
+  padding: 0 var(--gutter);
+}
+
+/* Mouvement réduit : les cinq conclusions s'empilent, rien n'est épinglé. */
+.landing .verdict.is-flat {
+  height: auto;
+}
+
+.landing .verdict.is-flat .verdict-pin {
+  position: static;
+  height: auto;
+}
+
+.landing .verdict.is-flat .verdict-frame {
+  height: auto;
+}
+
+.landing .verdict.is-flat .verdict-stage,
+.landing .verdict.is-flat .verdict-item {
+  position: static;
+  padding-block: 48px;
+}
+
+.landing .verdict.is-flat .verdict-legend,
+.landing .verdict.is-flat .verdict-foot {
+  display: none;
+}
+
+/* ---------- La différence : un tableau en lignes fines ---------- */
+
+.landing .diff-head {
+  display: grid;
+  gap: 20px;
+  margin-bottom: clamp(40px, 7vh, 80px);
+}
+
+.landing .diff-table {
+  border-bottom: 1px solid var(--line);
+}
+
+.landing .diff-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: clamp(16px, 4vw, 64px);
+  padding-block: clamp(20px, 3.2vh, 34px);
+  border-top: 1px solid var(--line);
+}
+
+.landing .diff-row.mono {
+  padding-block: 14px;
+}
+
+.landing .diff-no,
+.landing .diff-yes {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  margin: 0;
+  font-size: clamp(1.1rem, 2vw, 1.8rem);
+  line-height: 1.25;
+  letter-spacing: -0.02em;
+  text-wrap: pretty;
+}
+
+.landing .diff-no {
+  color: var(--muted-foreground);
+}
+
+.landing .diff-no svg,
+.landing .diff-yes svg {
+  margin-top: 0.3em;
+}
+
+/* ---------- Pied de page : l'appel final, les liens, le nom en très grand ---------- */
+
+.landing .fin {
+  position: relative;
+  overflow: hidden;
+  padding-top: clamp(100px, 18vh, 200px);
+  background: var(--background);
+}
+
+.landing .fin-content {
+  padding-inline: var(--gutter);
+}
+
+.landing .fin-title {
+  font-size: clamp(2.6rem, 7vw, 7.4rem);
+  line-height: 0.95;
+  padding-bottom: 0.12em;
+}
+
+.landing .fin .lead {
+  margin-top: 28px;
+}
+
+.landing .fin-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 20px 28px;
+  margin-top: 40px;
+}
+
+.landing .fin-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  min-height: 52px;
+  padding: 12px 26px;
+  border: 1px solid oklch(0.955 0.006 95 / 28%);
+  border-radius: 999px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  transition:
+    background-color 0.2s,
+    color 0.2s;
+}
+
+.landing .fin-button:hover {
+  background: var(--secondary);
+}
+
+.landing .fin-button.is-primary {
+  border-color: var(--foreground);
+  background: var(--foreground);
+  color: var(--background);
+}
+
+.landing .fin-button.is-primary:hover {
+  background: #fff;
+}
+
+.landing .fin-grid {
+  display: grid;
+  gap: 28px;
+  margin-top: clamp(80px, 14vh, 160px);
+  padding: clamp(60px, 10vh, 120px) 0 40px;
+  border-top: 1px solid var(--line);
+}
+
+@media (min-width: 768px) {
+  .landing .fin-grid {
+    grid-template-columns: minmax(0, 1.4fr) repeat(2, minmax(0, 1fr));
+  }
+}
+
+.landing .fin-brand {
+  font-size: 1.3rem;
+  font-weight: 800;
+  letter-spacing: -0.05em;
+}
+
+.landing .fin-grid p {
+  max-width: 30ch;
+  margin: 12px 0 0;
+  color: var(--muted-foreground);
+  font-size: 0.95rem;
+}
+
+.landing .fin-grid h3 {
+  margin: 0;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--muted-foreground);
+}
+
+.landing .fin-grid ul {
+  display: grid;
+  gap: 8px;
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.landing .fin-grid li a {
+  display: inline-block;
+  padding: 2px 0;
+  color: var(--muted-foreground);
+}
+
+.landing .fin-grid li a:hover {
+  color: var(--foreground);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.landing .fin-legal {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 16px 24px;
+  padding: 24px 0;
+  color: var(--muted-foreground);
+  font-size: 0.72rem;
+}
+
+.landing .fin-wordmark {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  margin-top: clamp(28px, 5vw, 80px);
+  padding-top: clamp(20px, 4vw, 64px);
+  pointer-events: none;
+  user-select: none;
+}
+
+.landing .fin-wordmark svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+  transform: translateY(14%);
+}
+
+.landing .fin-wordmark::after {
+  content: "";
+  position: absolute;
+  inset: 65% 0 0;
+  backdrop-filter: blur(clamp(1px, 0.2vw, 3px));
+  mask-image: linear-gradient(to bottom, transparent, #000 80%);
+}
+
+.landing .fin-wordmark text {
+  font-family: var(--font-sans);
+  font-weight: 800;
+  font-size: 290px;
+  letter-spacing: -0.06em;
+  fill: #fff;
+  filter: drop-shadow(0 0 6px rgb(255 255 255 / 0.35)) drop-shadow(0 0 24px rgb(255 120 100 / 0.3));
+}
