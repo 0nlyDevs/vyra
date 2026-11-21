@@ -63,3 +63,26 @@ def test_unknown_fallback_variant_uses_the_general_fallback(offline_client: Test
     assert response.status_code == 200
     assert response.json()["source"] == "fallback"
     assert "hors ligne" in response.json()["result"]["conclusion"]
+
+
+def test_gemini_tries_the_next_model_when_the_first_is_overloaded() -> None:
+    from app.services import gemini
+
+    calls: list[str] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        calls.append(request.url.path)
+        if "first-model" in request.url.path:
+            return httpx.Response(503, json={"error": {"status": "UNAVAILABLE"}})
+        reply = {"candidates": [{"content": {"parts": [{"text": '{"ok": true}'}]}}]}
+        return httpx.Response(200, json=reply)
+
+    settings = make_settings(
+        gemini_api_key="test-key", gemini_model="first-model", gemini_fallback_models=["second"]
+    )
+    result = gemini.generate_json(settings, "c", {}, transport=httpx.MockTransport(handler))
+    assert result == {"ok": True}
+    assert [path.rsplit("/", 1)[-1] for path in calls] == [
+        "first-model:generateContent",
+        "second:generateContent",
+    ]
