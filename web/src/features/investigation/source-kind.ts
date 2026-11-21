@@ -3,6 +3,26 @@ import type { SourceKind } from '@/lib/domain';
 // Le type d'une source, d'après son adresse (site connu, réseau social…) ou, sans adresse,
 // d'après son nom (« Message transféré », « page de réseau social »…). Liste à compléter.
 
+// Rédactions spécialisées dans la vérification : avant la presse (factuel.afp.com ≠ afp.com).
+// Un chemin limite le site à sa rubrique de vérification.
+const FACT_CHECKERS = [
+  'factuel.afp.com',
+  'factcheck.afp.com',
+  'africacheck.org',
+  'observers.france24.com',
+  'lemonde.fr/les-decodeurs',
+  'francetvinfo.fr/vrai-ou-fake',
+  'liberation.fr/checknews',
+  '20minutes.fr/societe/desintox',
+  'snopes.com',
+  'politifact.com',
+  'factcheck.org',
+  'fullfact.org',
+  'leadstories.com',
+  'pesacheck.org',
+  'dubawa.org',
+];
+
 const PRESS = [
   'afp.com',
   'apnews.com',
@@ -55,15 +75,27 @@ function matches(host: string, domains: string[]) {
   return domains.some((domain) => host === domain || host.endsWith(`.${domain}`));
 }
 
+function isFactChecker(host: string, path: string) {
+  return FACT_CHECKERS.some((entry) => {
+    const [domain = '', ...section] = entry.split('/');
+    const prefix = section.length ? `/${section.join('/')}` : '';
+    return matches(host, [domain]) && path.startsWith(prefix);
+  });
+}
+
 export function sourceKind(sourceUrl: string | null, sourceName: string): SourceKind {
   if (sourceUrl) {
     let host = '';
+    let path = '';
     try {
-      host = new URL(sourceUrl).hostname.replace(/^www\./, '');
+      const parsed = new URL(sourceUrl);
+      host = parsed.hostname.replace(/^www\./, '');
+      path = parsed.pathname;
     } catch {
       host = '';
     }
     if (host) {
+      if (isFactChecker(host, path)) return 'fact_checker';
       if (matches(host, PRESS)) return 'press';
       if (OFFICIAL_SUFFIXES.some((suffix) => host.endsWith(suffix))) return 'official';
       if (matches(host, SOCIAL)) return 'social';
@@ -73,6 +105,9 @@ export function sourceKind(sourceUrl: string | null, sourceName: string): Source
       if (matches(host, BLOG) || host.includes('blog')) return 'blog';
       return 'website';
     }
+  }
+  if (/fact.?check|vérification|décodeurs|checknews|africa check/i.test(sourceName)) {
+    return 'fact_checker';
   }
   if (/message transféré|whatsapp|messenger|sms/i.test(sourceName)) return 'messaging';
   if (/officiel|ministère|mairie|régie|office/i.test(sourceName)) return 'official';

@@ -32,6 +32,7 @@ export default async function HearingPage({ params }: { params: Promise<{ id: st
             title: piece.title,
             content: piece.content,
             sourceName: piece.sourceName,
+            sourceUrl: piece.sourceUrl,
             publishedAt: piece.publishedAt,
             stance: piece.stance,
             strength: piece.strength,
