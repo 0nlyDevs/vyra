@@ -380,3 +380,80 @@ export function gameGradeOf(score: number, total: number): GameGrade {
   if (total > 0 && score >= total) return 'expert';
   return total > 0 && score / total >= 0.6 ? 'vigilant' : 'beginner';
 }
+
+// ─── Fil d'actualité ────────────────────────────────────────────────────────────────────────
+
+// État d'une publication du fil, calculé depuis son affaire et ses signalements.
+export const FEED_STATUSES = ['unverified', 'reported', 'verifying', 'concluded'] as const;
+export type FeedStatus = (typeof FEED_STATUSES)[number];
+
+export const FEED_STATUS_LABELS = {
+  unverified: 'Non vérifié',
+  reported: 'Signalé',
+  verifying: 'En vérification',
+  concluded: 'Conclu',
+} satisfies Record<FeedStatus, string>;
+
+export const FEED_STATUS_TONES = {
+  unverified: 'neutral',
+  reported: 'warning',
+  verifying: 'info',
+  concluded: 'success',
+} satisfies Record<FeedStatus, Tone>;
+
+// Région choisie à l'entrée du fil : ses sources passent en premier, le monde vient à côté.
+export const FEED_REGIONS = ['mg', 'world'] as const;
+export type FeedRegion = (typeof FEED_REGIONS)[number];
+
+export const FEED_REGION_LABELS = {
+  mg: 'Madagascar',
+  world: 'Monde',
+} satisfies Record<FeedRegion, string>;
+
+// D'où vient une publication du fil. Toutes sont réelles, officielles ou non.
+export const FEED_KINDS = ['press', 'tv', 'facebook', 'social', 'trend', 'factcheck'] as const;
+export type FeedKind = (typeof FEED_KINDS)[number];
+
+export const FEED_KIND_LABELS = {
+  press: 'Presse',
+  tv: 'Télévision',
+  facebook: 'Facebook',
+  social: 'Réseau social',
+  trend: 'Tendance',
+  factcheck: 'Vérification',
+} satisfies Record<FeedKind, string>;
+
+export const FEED_KIND_TONES = {
+  press: 'neutral',
+  tv: 'neutral',
+  facebook: 'warning',
+  social: 'warning',
+  trend: 'info',
+  factcheck: 'success',
+} satisfies Record<FeedKind, Tone>;
+
+// Ce que mesure la portée d'une publication, selon sa source.
+export const FEED_REACH_UNITS = {
+  press: null,
+  tv: 'vues',
+  // Vidéos seulement : Facebook ne donne pas la portée d'un post écrit.
+  facebook: 'vues',
+  social: 'partages',
+  trend: 'recherches',
+  factcheck: null,
+} satisfies Record<FeedKind, string | null>;
+
+// Les publications non officielles : réseaux sociaux et Facebook.
+export const UNOFFICIAL_FEED_KINDS: readonly FeedKind[] = ['facebook', 'social'];
+
+// Les vues du fil (paramètre `vue` de l'adresse). `local` : la région choisie.
+export const FEED_VIEWS = ['all', 'local', 'world', 'unofficial', 'checked'] as const;
+export type FeedView = (typeof FEED_VIEWS)[number];
+
+export const FEED_VIEW_LABELS = {
+  all: 'Tout',
+  local: 'Madagascar',
+  world: 'Monde',
+  unofficial: 'Réseaux sociaux',
+  checked: 'Analysées',
+} satisfies Record<FeedView, string>;
