@@ -40,8 +40,27 @@ TAVILY_URL = "https://api.tavily.com/search"
 TAVILY_TIMEOUT_SECONDS = 15.0
 TAVILY_QUERY_MAX_CHARS = 380
 # Temps accordé pour aller lire la date des articles que la recherche n'a pas datés.
-DATE_SECONDS = 6.0
+DATE_SECONDS = 8.0
+# Pages lues pour compléter les résultats (date, texte, liens), en même temps et en temps limité.
+PAGES_TO_COMPLETE = 40
+# GDELT : nombre d'articles gardés par recherche.
 MAX_ARTICLES = 8
+# Tavily : résultats par requête, et autres formulations de l'information cherchées en plus.
+TAVILY_MAX_RESULTS = 20
+MAX_QUERIES = 6
+# Requête ciblée sur les réseaux sociaux et les forums publics.
+SOCIAL_DOMAINS = [
+    "facebook.com",
+    "x.com",
+    "twitter.com",
+    "reddit.com",
+    "youtube.com",
+    "tiktok.com",
+    "instagram.com",
+    "t.me",
+]
+# Lecture de pages données (exploration en suivant les liens).
+PAGES_MAX = 30
 PAGE_TIMEOUT_SECONDS = 8.0
 PAGES_TOTAL_SECONDS = 14.0
 # On ne lit que le début des pages : titre, date et premières lignes sont en haut.
@@ -363,37 +382,45 @@ async def _finish(tasks: list[asyncio.Task[Any]], seconds: float) -> list[Any]:
 
 
 async def find_articles(
-    settings: Settings, claim: str, *, transport: httpx.AsyncBaseTransport | None = None
+    settings: Settings,
+    claim: str,
+    queries: list[str] | None = None,
+    *,
+    transport: httpx.AsyncBaseTransport | None = None,
 ) -> tuple[list[WebArticle], str]:
     """Articles proches de l'information, datés, et le moteur utilisé (« tavily » ou « gdelt »).
 
-    Tavily si sa clé est configurée (rapide, presse et forums), sinon GDELT (presse seulement).
+    Tavily si sa clé est configurée (rapide, presse, forums, réseaux) : l'information elle-même,
+    plus les autres formulations `queries` (mots-clés, autres langues). Sinon GDELT (presse).
     Lève WebSearchUnavailableError si la recherche ne peut pas se faire.
     """
     if settings.demo_offline:
         raise WebSearchUnavailableError("offline")
     if settings.tavily_api_key is not None:
         key = settings.tavily_api_key.get_secret_value()
-        return await _find_with_tavily(key, claim, transport), "tavily"
+        return await _find_with_tavily(key, claim, queries or [], transport), "tavily"
     return await _find_with_gdelt(claim, transport), "gdelt"
 
 
 async def _tavily(
-    client: httpx.AsyncClient, key: str, claim: str, topic: str
+    client: httpx.AsyncClient,
+    key: str,
+    query: str,
+    topic: str,
+    domains: list[str] | None = None,
 ) -> list[dict[str, Any]]:
-    response = await client.post(
-        TAVILY_URL,
-        headers={"Authorization": f"Bearer {key}"},
-        json={
-            # Tavily accepte une phrase entière : l'information elle-même est la meilleure requête.
-            "query": claim[:TAVILY_QUERY_MAX_CHARS],
-            "topic": topic,
-            "search_depth": "basic",
-            "max_results": MAX_ARTICLES,
-            # Le texte de chaque page, en Markdown : on y lit les phrases et les liens.
-            "include_raw_content": "markdown",
-        },
-    )
+    body: dict[str, Any] = {
+        # Tavily accepte une phrase entière : l'information elle-même est une bonne requête.
+        "query": query[:TAVILY_QUERY_MAX_CHARS],
+        "topic": topic,
+        "search_depth": "basic",
+        "max_results": TAVILY_MAX_RESULTS,
+        # Le texte de chaque page, en Markdown : on y lit les phrases et les liens.
+        "include_raw_content": "markdown",
+    }
+    if domains:
+        body["include_domains"] = domains
+    response = await client.post(TAVILY_URL, headers={"Authorization": f"Bearer {key}"}, json=body)
     response.raise_for_status()
     data = response.json()
     results = data.get("results", []) if isinstance(data, dict) else []
@@ -435,16 +462,20 @@ def _rfc_date(value: str) -> str | None:
 
 
 async def _find_with_tavily(
-    key: str, claim: str, transport: httpx.AsyncBaseTransport | None
+    key: str, claim: str, queries: list[str], transport: httpx.AsyncBaseTransport | None
 ) -> list[WebArticle]:
     headers = {"User-Agent": USER_AGENT}
     async with httpx.AsyncClient(
         timeout=TAVILY_TIMEOUT_SECONDS, follow_redirects=True, headers=headers, transport=transport
     ) as client:
-        # Actualités (datées) et web général (forums, Reddit, blogs) en même temps.
+        # Tout en même temps : l'information en actualités (datées) et sur le web général, sur les
+        # réseaux sociaux, puis chaque autre formulation (mots-clés, autres langues).
+        others = [query for query in queries if query.strip() and query.strip() != claim.strip()]
         responses = await asyncio.gather(
             _tavily(client, key, claim, "news"),
             _tavily(client, key, claim, "general"),
+            _tavily(client, key, claim, "general", SOCIAL_DOMAINS),
+            *(_tavily(client, key, query, "general") for query in others[:MAX_QUERIES]),
             return_exceptions=True,
         )
         if all(isinstance(response, BaseException) for response in responses):
@@ -466,7 +497,7 @@ async def _find_with_tavily(
             article
             for article in articles.values()
             if article.published_at is None or not article.body
-        ]
+        ][:PAGES_TO_COMPLETE]
 
         async def complete(article: WebArticle) -> None:
             page = await _fetch_page(client, article.url)
@@ -510,3 +541,39 @@ async def _find_with_gdelt(
         articles: list[WebArticle] = await _finish(tasks, PAGES_TOTAL_SECONDS)
     logger.info("gdelt : %d articles trouvés, %d lus", len(unique), len(articles))
     return [article for article in articles if article.title]
+
+
+async def read_pages(
+    settings: Settings, urls: list[str], *, transport: httpx.AsyncBaseTransport | None = None
+) -> list[WebArticle]:
+    """Titre, date, extrait, texte et liens de pages données (les liens d'un article qu'on suit
+    pour remonter à ses sources). Les pages illisibles ou trop lentes sont ignorées."""
+    if settings.demo_offline:
+        raise WebSearchUnavailableError("offline")
+    unique = list(dict.fromkeys(url for url in urls if url.startswith("http")))[:PAGES_MAX]
+    async with httpx.AsyncClient(
+        timeout=PAGE_TIMEOUT_SECONDS,
+        follow_redirects=True,
+        headers={"User-Agent": USER_AGENT},
+        transport=transport,
+    ) as client:
+
+        async def read(url: str) -> WebArticle | None:
+            page = await _fetch_page(client, url)
+            if page is None or not page["title"]:
+                return None
+            return WebArticle(
+                url=url,
+                title=page["title"],
+                site=_site(url),
+                published_at=page["published_at"],
+                excerpt=page["excerpt"] or "",
+                language=None,
+                body=page["body"],
+                links=page["links"],
+            )
+
+        results = await _finish([asyncio.create_task(read(url)) for url in unique], DATE_SECONDS)
+    articles = [article for article in results if article is not None]
+    logger.info("pages : %d lues sur %d", len(articles), len(unique))
+    return articles
