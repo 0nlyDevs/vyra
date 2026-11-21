@@ -18,7 +18,7 @@ export function DemoAccounts() {
             <Button
               type="submit"
               variant="outline"
-              className="h-auto w-full justify-between gap-3 px-3 py-2.5 text-left"
+              className="h-auto w-full justify-between gap-3 rounded-2xl px-4 py-3 text-left"
             >
               <span className="grid">
                 <span className="font-medium">{profile.name}</span>

@@ -44,9 +44,27 @@ La base actuelle a été posée avec `design-system` (les jetons en trois couche
 
 ## Le thème
 
-Rouge MindStack, en clair (par défaut, plus lisible au projecteur) et en sombre (bouton dans
-l'en-tête). Les couleurs sont des jetons en trois couches dans `globals.css` : les valeurs brutes,
+Direction « Nuit rouge » : une nuit teintée de rouge, un seul accent (le rouge MindStack), un
+texte couleur os. La nuit est le thème par défaut ; le clair reste au choix (bouton dans
+l'en-tête). L'accueil et les pages de compte sont toujours en nuit (classe `dark` sur leur
+cadre). Les couleurs sont des jetons en trois couches dans `globals.css` : les valeurs brutes,
 puis leur rôle, puis ce qui est propre à un composant.
+
+Les briques du langage visuel, toutes dans `globals.css` :
+
+| Classe | Pour |
+|---|---|
+| `display` | Les titres : interlettrage serré qui se resserre quand le corps grandit |
+| `eyebrow` | La petite ligne en capitales rouges au-dessus d'un titre |
+| `surface` | Une carte : fond, reflet en haut, filet fin (sans bordure dure) |
+| `bezel` + `bezel-core` | Le cadre double (coque fine autour d'un cœur), pour mettre un bloc en avant |
+| `glass` | Le verre : seulement pour ce qui flotte (barre du haut, panneaux) |
+| `link-arrow`, `btn-swap` | Le lien avec flèche qui glisse, la flèche qui sort et revient dans un bouton |
+
+Boutons : des pilules. `default` (rouge) pour l'action principale d'un écran, `solid` (clair sur
+nuit) réservé à l'accueil, `secondary`, `outline`, `ghost` pour le reste. Les animations passent par
+`motion` (`src/components/motion/Reveal.tsx` : `Reveal` au défilement, `MaskLines` pour un titre
+ligne par ligne) avec les courbes de `src/lib/motion.ts`.
 
 Dans une page, on écrit le rôle, pas la couleur : `bg-primary`, `text-muted-foreground`,
 `bg-success-soft text-success`. Changer le rouge de toute l'application se fait à un seul endroit :

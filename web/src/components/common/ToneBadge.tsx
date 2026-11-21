@@ -26,7 +26,7 @@ export function ToneBadge({
     <span
       data-tone={tone}
       className={cn(
-        'inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-0.5 font-medium text-xs [&_svg]:size-3.5',
+        'inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-0.5 font-medium text-xs shadow-[inset_0_0_0_1px_color-mix(in_oklch,currentColor_14%,transparent)] [&_svg]:size-3.5',
         TONE_CLASSES[tone],
         className,
       )}

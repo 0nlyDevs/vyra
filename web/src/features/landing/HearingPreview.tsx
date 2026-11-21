@@ -10,7 +10,7 @@ const ENTER =
 
 export function HearingPreview() {
   return (
-    <div className="relative grid gap-3 rounded-2xl border bg-card p-5 shadow-[0_24px_60px_-28px_color-mix(in_oklch,var(--primary)_45%,transparent)] sm:p-6">
+    <div className="relative grid gap-3 p-5 sm:p-7">
       <div className={cn('grid gap-1', ENTER)}>
         <p className="text-muted-foreground text-xs">L’information jugée</p>
         <p className="text-pretty font-medium leading-snug">
@@ -30,7 +30,7 @@ export function HearingPreview() {
       </div>
       <div
         className={cn(
-          'flex flex-wrap items-center justify-between gap-3 rounded-xl bg-muted px-4 py-3 [animation-delay:450ms]',
+          'flex flex-wrap items-center justify-between gap-3 rounded-xl bg-foreground/[0.04] px-4 py-3 [animation-delay:450ms]',
           ENTER,
         )}
       >

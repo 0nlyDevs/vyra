@@ -6,7 +6,7 @@ import type { FeedTopic } from './topics';
 // « Sujets qui reviennent » : les sujets repris par le plus de sources différentes.
 export function TopicsColumn({ topics }: { topics: FeedTopic[] }) {
   return (
-    <section aria-labelledby="topics-title" className="grid gap-3 rounded-2xl border bg-card p-5">
+    <section aria-labelledby="topics-title" className="grid gap-3 surface p-5">
       <div className="grid gap-1">
         <h2 id="topics-title" className="flex items-center gap-2 font-semibold">
           <Layers aria-hidden className="size-4 text-primary" />
