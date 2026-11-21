@@ -24,6 +24,10 @@ export const ERRORS = defineErrors({
     code: 'AI_UNAVAILABLE',
     message: "L'IA est momentanément indisponible. Réessayez dans un instant.",
   },
+  WEB_SEARCH_UNAVAILABLE: {
+    code: 'WEB_SEARCH_UNAVAILABLE',
+    message: "La recherche sur le web n'a pas pu se faire. Réessayez dans un instant.",
+  },
   INTERNAL: {
     code: 'INTERNAL',
     message: 'Une erreur inattendue est survenue. Réessayez.',

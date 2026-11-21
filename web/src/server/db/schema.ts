@@ -18,6 +18,7 @@ import {
   EVIDENCE_STRENGTHS,
   LINK_CONFIDENCES,
   PROFILE_ROLES,
+  WEB_SEARCH_STATUSES,
 } from '../../lib/domain';
 
 // Taille des vecteurs : doit rester égale à EMBEDDING_DIMENSIONS côté processing (768).
@@ -138,9 +139,23 @@ export const evidence = pgTable(
 
 // ─── Tables des modules : chacun ajoute les siennes ici ─────────────────────────────────────
 
+// Module Enquête : la recherche web d'une affaire, faite une fois. Les articles retenus sont
+// enregistrés comme versions (`case_versions`, avec leur lien) et reliés dans `version_links`.
+export const webSearches = pgTable('web_searches', {
+  caseId: uuid('case_id')
+    .primaryKey()
+    .references(() => cases.id, { onDelete: 'cascade' }),
+  status: text('status', { enum: WEB_SEARCH_STATUSES }).notNull(),
+  // Articles proposés par la recherche, puis gardés car proches par le sens.
+  foundCount: integer('found_count').notNull(),
+  keptCount: integer('kept_count').notNull(),
+  searchedAt: timestamp('searched_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
 export type Profile = typeof profiles.$inferSelect;
 export type Note = typeof notes.$inferSelect;
 export type Case = typeof cases.$inferSelect;
 export type CaseVersion = typeof caseVersions.$inferSelect;
 export type VersionLink = typeof versionLinks.$inferSelect;
 export type Evidence = typeof evidence.$inferSelect;
+export type WebSearch = typeof webSearches.$inferSelect;
