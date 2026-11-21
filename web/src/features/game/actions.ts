@@ -16,9 +16,19 @@ import { demoVariantForScenario } from '@/server/demo/game-variants';
 import { type AiSource, runPrompt } from '@/server/processing';
 import { getCurrentProfile } from '@/server/session';
 import {
+  FAMILY_FACTS,
+  FAMILY_MEMBERS,
+  FAMILY_OPENING,
+  FAMILY_RUMOR,
+  type FamilyFeedback,
+  ruleBasedFeedback,
+} from './family';
+import {
   type DebriefInput,
   debriefResultSchema,
   debriefSchema,
+  familyMessageSchema,
+  familyResultSchema,
   type RunInput,
   runSchema,
 } from './schema';
@@ -88,4 +98,46 @@ export async function getDebrief(input: DebriefInput): Promise<ActionResult<Debr
   );
   if (!result.ok) return result;
   return ok({ advice: result.data.result.advice, source: result.data.source });
+}
+
+export type FamilyReply = {
+  message: string;
+  replies: { name: string; message: string }[];
+  feedback: FamilyFeedback;
+  source: AiSource;
+};
+
+// Bonus : la famille (jouée par l'IA) réagit au message du joueur, et le coach l'évalue.
+// Sans IA, les réponses préparées s'affichent et l'évaluation vient de règles simples.
+export async function sendToFamily(
+  _previous: ActionResult<FamilyReply> | null,
+  formData: FormData,
+): Promise<ActionResult<FamilyReply>> {
+  const profile = await getCurrentProfile();
+  if (!profile) return fail(ERRORS.UNAUTHORIZED);
+  const parsed = familyMessageSchema.safeParse({ message: formData.get('message') ?? '' });
+  if (!parsed.success) return fail(ERRORS.VALIDATION_FAILED, parsed.error);
+  const { message } = parsed.data;
+
+  const result = await runPrompt(
+    'game-family',
+    {
+      rumor: FAMILY_RUMOR,
+      sharedBy: FAMILY_OPENING[0]?.name,
+      facts: FAMILY_FACTS,
+      family: FAMILY_MEMBERS,
+      message,
+    },
+    familyResultSchema,
+  );
+  if (!result.ok) return result;
+
+  const { replies, feedback } = result.data.result;
+  const source = result.data.source;
+  return ok({
+    message,
+    replies,
+    feedback: source === 'gemini' ? feedback : { ...ruleBasedFeedback(message), tip: feedback.tip },
+    source,
+  });
 }
