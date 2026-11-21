@@ -59,7 +59,7 @@ export function AppSidebar({ appName }: { appName: string }) {
           <div className="mx-1 rounded-2xl bg-foreground/[0.035] p-3.5 shadow-[inset_0_0_0_1px_color-mix(in_oklch,var(--foreground)_6%,transparent)]">
             <p className="font-medium text-[0.8rem]">Non vérifié ≠ faux</p>
             <p className="mt-1 text-[0.75rem] text-muted-foreground leading-snug">
-              MindStack montre les preuves. C’est vous qui jugez.
+              Vyra montre les preuves. C’est vous qui jugez.
             </p>
           </div>
           <NavLink item={KIT_ITEM} />

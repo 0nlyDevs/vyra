@@ -1,6 +1,6 @@
-# MindStack · DevFest Antananarivo 2026
+# Vyra · DevFest Antananarivo 2026
 
-Projet de l'équipe **MindStack** au hackathon du DevFest Antananarivo (21 et 22 novembre 2026).
+Projet **Vyra** (issu du travail de l’équipe MindStack) au hackathon du DevFest Antananarivo (21 et 22 novembre 2026).
 Tout tourne en local sur un PC : le jury juge la **démo en direct** et la présentation.
 
 ## Démarrer : une seule commande, sur Mac, Linux et Windows

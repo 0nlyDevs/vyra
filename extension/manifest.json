@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "MindStack · Vérifier ici",
+  "name": "Vyra · Vérifier ici",
   "version": "0.1.0",
   "description": "Vérifier un texte, un lien ou une image sans quitter la page : affaires déjà jugées, signes d'alerte et vérifications publiées.",
   "minimum_chrome_version": "116",
