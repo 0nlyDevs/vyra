@@ -30,14 +30,22 @@ export default async function FeedPage({
 }: {
   searchParams: Promise<{ vue?: string; sujet?: string }>;
 }) {
+  const region = await getFeedRegion();
   const header = (
     <PageHeader
-      eyebrow="Module 1"
+      eyebrow={
+        <span className="inline-flex items-center gap-2.5">
+          <span aria-hidden className="relative flex size-2">
+            <span className="absolute inline-flex size-full animate-ping rounded-full bg-primary opacity-60 motion-reduce:hidden" />
+            <span className="relative inline-flex size-2 rounded-full bg-primary" />
+          </span>
+          En direct{region ? ` · ${FEED_REGION_LABELS[region]}` : ''}
+        </span>
+      }
       title="Fil d’actualité"
       description="Ce qui circule vraiment, officiel ou non, avec son état de vérification."
     />
   );
-  const region = await getFeedRegion();
   if (!region) {
     return (
       <div className="grid grid-cols-[minmax(0,1fr)] gap-8">
