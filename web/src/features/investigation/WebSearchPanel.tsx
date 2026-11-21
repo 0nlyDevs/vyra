@@ -1,6 +1,6 @@
 'use client';
 
-import { Globe, LoaderCircle, RotateCcw } from 'lucide-react';
+import { Globe, LoaderCircle, RotateCcw, ShieldAlert } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Steps } from '@/components/common/Steps';
@@ -13,7 +13,7 @@ const STEPS = ['Recherche sur le web', 'Lecture des sources', 'Comparaison du se
 // la date des sources qui n'en ont pas.
 const STEP_AT_MS = [3_000, 8_000];
 
-type Done = { status: WebSearchStatus; kept: number };
+type Done = { status: WebSearchStatus; kept: number; contradicting: number };
 
 // Recherche web d'une nouvelle affaire, lancée toute seule à l'ouverture de sa page. Les articles
 // retenus apparaissent dans le graphe dès qu'elle se termine.
@@ -46,7 +46,8 @@ export function WebSearchPanel({
       return;
     }
     if (result.data.status === 'prepared') return;
-    setDone({ status: result.data.status, kept: result.data.kept });
+    const { status, kept, contradicting } = result.data;
+    setDone({ status, kept, contradicting });
     if (result.data.kept > 0) router.refresh();
   }, [caseId, router]);
 
@@ -95,7 +96,27 @@ export function WebSearchPanel({
 
   if (!done) return null;
   return (
-    <p className="flex items-start gap-2 rounded-xl border px-5 py-4">
+    <div className="grid gap-2 rounded-xl border px-5 py-4">
+      <WebSearchSummary done={done} />
+      {done.contradicting > 0 && (
+        <p className="flex items-start gap-2">
+          <ShieldAlert className="mt-0.5 size-5 shrink-0 text-warning" aria-hidden />
+          <span>
+            <strong className="font-semibold">
+              {done.contradicting} {done.contradicting > 1 ? 'sources démentent' : 'source dément'}
+            </strong>{' '}
+            cette information, selon l’IA. Elles ne sont pas dans le graphe : elles relèvent du
+            tribunal.
+          </span>
+        </p>
+      )}
+    </div>
+  );
+}
+
+function WebSearchSummary({ done }: { done: Done }) {
+  return (
+    <p className="flex items-start gap-2">
       <Globe className="mt-0.5 size-5 shrink-0 text-primary" aria-hidden />
       {done.status === 'found' ? (
         <span>

@@ -79,7 +79,15 @@ export default async function CaseFilePage({
 
       <WebSearchPanel
         caseId={file.id}
-        previous={webSearch ? { status: webSearch.status, kept: webSearch.keptCount } : null}
+        previous={
+          webSearch
+            ? {
+                status: webSearch.status,
+                kept: webSearch.keptCount,
+                contradicting: webSearch.contradictingCount,
+              }
+            : null
+        }
         autoStart={!webSearch && file.versions.length === 1}
       />
 
