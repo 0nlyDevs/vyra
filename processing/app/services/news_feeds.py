@@ -17,6 +17,8 @@ from xml.etree import ElementTree
 
 import httpx
 
+from app.services.connect_retry import call_with_connect_retry_async
+
 logger = logging.getLogger(__name__)
 
 FEED_TIMEOUT_SECONDS = 12.0
@@ -162,7 +164,7 @@ def parse_feed(xml: str, source_name: str) -> list[FeedItem]:
 
 async def _read_feed(client: httpx.AsyncClient, url: str, name: str) -> list[FeedItem]:
     try:
-        response = await client.get(url)
+        response = await call_with_connect_retry_async(lambda: client.get(url))
         response.raise_for_status()
     except httpx.HTTPError as exc:
         logger.warning("flux : %s illisible (%s)", name, type(exc).__name__)
