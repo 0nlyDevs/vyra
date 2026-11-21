@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Vérifier ici</title>
+    <link rel="stylesheet" href="sidepanel.css" />
+  </head>
+  <body>
+    <header>
+      <img src="icons/32.png" alt="" width="24" height="24" />
+      <strong>Vérifier ici</strong>
+      <button id="settings-toggle" class="ghost" type="button" aria-expanded="false">Réglages</button>
+    </header>
+
+    <form id="settings" hidden>
+      <label for="base-url">Adresse de la plateforme</label>
+      <input id="base-url" type="url" required placeholder="http://localhost:3000" />
+      <button type="submit">Enregistrer</button>
+      <p class="muted" id="settings-status"></p>
+    </form>
+
+    <main>
+      <section id="empty">
+        <p>Sélectionnez un texte, puis <strong>clic droit → Vérifier ce texte</strong>.</p>
+        <p class="muted">Marche aussi sur un lien ou une image. Rien n’est envoyé avant que vous cliquiez sur « Vérifier ce contenu ».</p>
+        <label for="paste">Ou collez un texte ou un lien</label>
+        <textarea id="paste" rows="4" placeholder="Message reçu, ou https://…"></textarea>
+        <button id="paste-check" type="button">Vérifier ce contenu</button>
+      </section>
+
+      <section id="preview" hidden>
+        <p class="eyebrow" id="preview-kind"></p>
+        <blockquote id="preview-text"></blockquote>
+        <img id="preview-image" alt="Image à examiner" hidden />
+        <button id="check" type="button">Vérifier ce contenu</button>
+        <button id="clear" class="ghost" type="button">Effacer</button>
+      </section>
+
+      <p id="status" class="muted" role="status"></p>
+      <section id="result" aria-live="polite"></section>
+    </main>
+    <script src="sidepanel.js" type="module"></script>
+  </body>
+</html>
