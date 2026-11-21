@@ -13,13 +13,36 @@ class WebArticleOut(BaseModel):
     url: str
     title: str
     site: str
-    # Date ISO de publication (page lue), ou à défaut celle où GDELT a vu l'article.
+    # Date ISO de publication (moteur ou page lue) ; None si elle reste inconnue.
     published_at: str | None
     excerpt: str
     language: str | None
 
 
+class NewsFeed(BaseModel):
+    url: str = Field(min_length=8, max_length=500)
+    name: str = Field(min_length=1, max_length=120)
+
+
+class NewsFeedsRequest(BaseModel):
+    feeds: list[NewsFeed] = Field(min_length=1, max_length=40)
+
+
+class NewsItemOut(BaseModel):
+    url: str
+    title: str
+    summary: str
+    published_at: str | None
+    source_name: str
+
+
+class NewsFeedsResponse(BaseModel):
+    items: list[NewsItemOut]
+    # Nombre de flux qui ont répondu (0 : réseau coupé).
+    feeds_read: int
+
+
 class WebSourcesResponse(BaseModel):
     articles: list[WebArticleOut]
     # « fallback » : recherche impossible (hors ligne, GDELT indisponible).
-    source: Literal["gdelt", "fallback"]
+    source: Literal["tavily", "gdelt", "fallback"]
