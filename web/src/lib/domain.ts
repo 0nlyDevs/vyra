@@ -154,6 +154,16 @@ export const SOURCE_KIND_TONES = {
 export const INFO_RELATIONS = ['same', 'contradicts', 'related', 'unrelated'] as const;
 export type InfoRelation = (typeof INFO_RELATIONS)[number];
 
+// Comment une nouvelle analyse a retrouvé une affaire existante (module Enquête).
+export const MATCH_KINDS = ['ai', 'meaning', 'words'] as const;
+export type MatchKind = (typeof MATCH_KINDS)[number];
+
+export const MATCH_KIND_LABELS = {
+  ai: 'Même fait, confirmé par l’IA',
+  meaning: 'Proche par le sens (l’IA n’a pas pu confirmer)',
+  words: 'Mêmes mots (IA indisponible)',
+} satisfies Record<MatchKind, string>;
+
 // Recherche web d'une affaire (module Enquête) : faite une fois, son résultat est gardé.
 export const WEB_SEARCH_STATUSES = ['found', 'nothing_found'] as const;
 export type WebSearchStatus = (typeof WEB_SEARCH_STATUSES)[number];
