@@ -40,6 +40,9 @@ Le mode se choisit dans `processing/.env` (copié depuis `processing/.env.exampl
 | `gemini-then-local` | Gemini, puis Gemma 4 en local s'il ne répond pas | La clé, plus [Ollama](https://ollama.com) avec `ollama pull gemma4:e4b` et `ollama pull embeddinggemma` (environ 7 Go, 16 Go de mémoire conseillés) |
 | `local` | Gemma 4 en local seul, sans wifi | Ollama et les deux modèles |
 
+Dans l'équipe, seul le Mac de Mahery a Gemma 4 (modes `local` et `gemini-then-local`) : tous les
+autres postes restent en `gemini` et n'installent ni Ollama ni Gemma.
+
 Dans tous les modes, si aucune IA ne répond, la réponse préparée de chaque consigne s'affiche : la
 démo continue.
 
