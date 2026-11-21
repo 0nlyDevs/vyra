@@ -25,6 +25,9 @@ SUMMARY_MAX_CHARS = 500
 USER_AGENT = "MindStack/0.1 (verification d'informations, DevFest 2026)"
 ATOM = "{http://www.w3.org/2005/Atom}"
 DUBLIN_CORE = "{http://purl.org/dc/elements/1.1/}"
+MEDIA = "{http://search.yahoo.com/mrss/}"
+CONTENT = "{http://purl.org/rss/1.0/modules/content/}"
+IMG_SRC = re.compile(r"<img[^>]+src=[\"']([^\"']+)[\"']", re.IGNORECASE)
 
 
 @dataclass
@@ -34,6 +37,8 @@ class FeedItem:
     summary: str
     published_at: str | None
     source_name: str
+    # Image de l'article quand le flux en donne une (le fil d'actualité l'affiche).
+    image_url: str | None = None
 
     def as_dict(self) -> dict[str, Any]:
         return {
@@ -42,6 +47,7 @@ class FeedItem:
             "summary": self.summary,
             "published_at": self.published_at,
             "source_name": self.source_name,
+            "image_url": self.image_url,
         }
 
 
@@ -75,6 +81,41 @@ def _date(value: str) -> str | None:
         return None
 
 
+def _width(element: ElementTree.Element) -> int:
+    value = element.get("width") or ""
+    return int(value) if value.isdigit() else 0
+
+
+def _image(element: ElementTree.Element) -> str | None:
+    """L'image d'un article : media:content ou media:thumbnail (la plus large), une pièce jointe
+    image, sinon la première balise <img> du texte. Aucune : None."""
+    best: str | None = None
+    best_width = -1
+    for tag in (f"{MEDIA}content", f"{MEDIA}thumbnail"):
+        for media in element.iter(tag):
+            url = media.get("url", "")
+            kind = media.get("medium") or media.get("type") or "image"
+            if url.startswith("http") and kind.startswith("image") and _width(media) > best_width:
+                best, best_width = url, _width(media)
+    if best:
+        return best
+    for enclosure in element.iter("enclosure"):
+        if enclosure.get("type", "").startswith("image") and enclosure.get("url", "").startswith(
+            "http"
+        ):
+            return enclosure.get("url")
+    for link in element.iter(f"{ATOM}link"):
+        if link.get("rel") == "enclosure" and link.get("type", "").startswith("image"):
+            return link.get("href")
+    for tag in (f"{CONTENT}encoded", "description", f"{ATOM}content", f"{ATOM}summary"):
+        node = element.find(tag)
+        if node is not None:
+            match = IMG_SRC.search("".join(node.itertext()))
+            if match and match.group(1).startswith("http"):
+                return html.unescape(match.group(1))
+    return None
+
+
 def parse_feed(xml: str, source_name: str) -> list[FeedItem]:
     """Les articles d'un flux RSS 2.0 ou Atom. Flux illisible : liste vide."""
     try:
@@ -95,6 +136,7 @@ def parse_feed(xml: str, source_name: str) -> list[FeedItem]:
                 summary=_shorten(_text(item.find("description"))),
                 published_at=_date(published),
                 source_name=source_name,
+                image_url=_image(item),
             )
         )
     for entry in root.iter(f"{ATOM}entry"):
@@ -112,6 +154,7 @@ def parse_feed(xml: str, source_name: str) -> list[FeedItem]:
                 summary=_shorten(summary),
                 published_at=_date(published),
                 source_name=source_name,
+                image_url=_image(entry),
             )
         )
     return items
