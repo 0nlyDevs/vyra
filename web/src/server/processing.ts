@@ -13,14 +13,19 @@ const TIMEOUT_MS = 25_000;
 
 export type AiSource = 'gemini' | 'fallback';
 
-async function post<T>(path: string, body: unknown, schema: z.ZodType<T>): Promise<T | null> {
+async function post<T>(
+  path: string,
+  body: unknown,
+  schema: z.ZodType<T>,
+  timeoutMs = TIMEOUT_MS,
+): Promise<T | null> {
   const started = Date.now();
   try {
     const response = await fetch(`${env.PROCESSING_URL}${path}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
-      signal: AbortSignal.timeout(TIMEOUT_MS),
+      signal: AbortSignal.timeout(timeoutMs),
       cache: 'no-store',
     });
     if (!response.ok) {
@@ -52,6 +57,31 @@ export async function runPrompt<T>(
 ): Promise<ActionResult<{ result: T; source: AiSource }>> {
   const schema = z.object({ result: resultSchema, source: z.enum(['gemini', 'fallback']) });
   const data = await post(`/v1/prompts/${encodeURIComponent(name)}`, { payload }, schema);
+  return data ? ok(data) : fail(ERRORS.AI_UNAVAILABLE);
+}
+
+// La recherche web (presse, via GDELT) est lente : elle tourne après l'affichage de la page.
+const WEB_SEARCH_TIMEOUT_MS = 90_000;
+
+const webArticleSchema = z.object({
+  url: z.string(),
+  title: z.string(),
+  site: z.string(),
+  published_at: z.string().nullable(),
+  excerpt: z.string(),
+  language: z.string().nullable(),
+});
+export type WebArticle = z.infer<typeof webArticleSchema>;
+
+// Articles de presse qui rapportent l'information. `source: 'fallback'` : recherche impossible.
+export async function findWebSources(
+  claim: string,
+): Promise<ActionResult<{ articles: WebArticle[]; source: 'gdelt' | 'fallback' }>> {
+  const schema = z.object({
+    articles: z.array(webArticleSchema),
+    source: z.enum(['gdelt', 'fallback']),
+  });
+  const data = await post('/v1/web-sources', { claim }, schema, WEB_SEARCH_TIMEOUT_MS);
   return data ? ok(data) : fail(ERRORS.AI_UNAVAILABLE);
 }
 

@@ -106,6 +106,10 @@ export const CHANGE_TYPE_TONES = {
   tone_hardened: 'danger',
 } satisfies Record<ChangeType, Tone>;
 
+// Recherche web d'une affaire (module Enquête) : faite une fois, son résultat est gardé.
+export const WEB_SEARCH_STATUSES = ['found', 'nothing_found'] as const;
+export type WebSearchStatus = (typeof WEB_SEARCH_STATUSES)[number];
+
 // Confiance dans un lien du graphe : « cette version reprend bien celle-là ».
 export const LINK_CONFIDENCES = ['high', 'medium', 'low'] as const;
 export type LinkConfidence = (typeof LINK_CONFIDENCES)[number];

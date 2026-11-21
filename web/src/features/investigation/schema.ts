@@ -14,3 +14,5 @@ export const openCaseSchema = z.object({
 });
 
 export type OpenCaseInput = z.infer<typeof openCaseSchema>;
+
+export const caseIdSchema = z.uuid();

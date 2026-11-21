@@ -13,9 +13,11 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { PropagationGraph } from '@/features/investigation/PropagationGraph';
+import { WebSearchPanel } from '@/features/investigation/WebSearchPanel';
 import { EVIDENCE_STRENGTH_LABELS } from '@/lib/domain';
 import { formatDateTime } from '@/lib/format';
 import { getCaseFile } from '@/server/dal/cases';
+import { getWebSearch } from '@/server/dal/investigation';
 
 // Le dossier d'une affaire, en lecture seule : versions retrouvées et pièces.
 // Le module Enquête remplace la liste des versions par le graphe ; le tribunal part des pièces.
@@ -32,6 +34,7 @@ export default async function CaseFilePage({
 
   const file = await getCaseFile(id);
   if (!file) notFound();
+  const webSearch = await getWebSearch(id);
 
   return (
     <div className="grid gap-8">
@@ -68,11 +71,17 @@ export default async function CaseFilePage({
         <Alert>
           <AlertTitle>Nouvelle affaire ouverte</AlertTitle>
           <AlertDescription>
-            Aucune version proche n’a été retrouvée. Le texte reçu est la première version du
-            dossier.
+            Aucune affaire proche dans la base : le texte reçu est la première version du dossier.
+            La plateforme cherche maintenant d’autres versions dans la presse.
           </AlertDescription>
         </Alert>
       )}
+
+      <WebSearchPanel
+        caseId={file.id}
+        previous={webSearch ? { status: webSearch.status, kept: webSearch.keptCount } : null}
+        autoStart={!webSearch && file.versions.length === 1}
+      />
 
       <Card>
         <CardHeader>
