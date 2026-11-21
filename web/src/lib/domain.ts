@@ -9,6 +9,11 @@ export const PROFILE_ROLE_LABELS = {
   member: 'Citoyen',
 } satisfies Record<ProfileRole, string>;
 
+// Le vérificateur voit les groupes d'alertes et peut ouvrir une affaire sans attendre le seuil.
+export function isVerifier(role: ProfileRole) {
+  return role === 'admin';
+}
+
 // Ton d'un badge ou d'un encadré : il choisit la couleur d'état (voir ToneBadge).
 export const TONES = ['success', 'info', 'warning', 'danger', 'neutral'] as const;
 export type Tone = (typeof TONES)[number];
@@ -137,6 +142,50 @@ export const AI_SOURCE_LABELS = {
   gemini: 'Réponse de l’IA',
   fallback: 'Réponse préparée (hors ligne)',
 } satisfies Record<AiSource, string>;
+
+// ─── Boîte d'alertes ────────────────────────────────────────────────────────────────────────
+
+// Pourquoi une personne signale un contenu.
+export const REPORT_REASONS = [
+  'fake',
+  'misleading',
+  'out_of_context',
+  'generated_media',
+  'scam',
+] as const;
+export type ReportReason = (typeof REPORT_REASONS)[number];
+
+export const REPORT_REASON_LABELS = {
+  fake: 'Faux',
+  misleading: 'Trompeur',
+  out_of_context: 'Sorti de son contexte',
+  generated_media: 'Image ou voix générée',
+  scam: 'Arnaque',
+} satisfies Record<ReportReason, string>;
+
+// Où en est un signalement (et son groupe). Cet état n'est pas enregistré : il se déduit du nombre
+// de signaleurs du groupe et de l'affaire ouverte pour lui (voir server/dal/reports.ts).
+export const REPORT_STATES = ['received', 'grouped', 'verifying', 'concluded'] as const;
+export type ReportState = (typeof REPORT_STATES)[number];
+
+export const REPORT_STATE_LABELS = {
+  received: 'Reçu',
+  grouped: 'Regroupé',
+  verifying: 'En vérification',
+  concluded: 'Conclu',
+} satisfies Record<ReportState, string>;
+
+export const REPORT_STATE_TONES = {
+  received: 'neutral',
+  grouped: 'info',
+  verifying: 'warning',
+  concluded: 'success',
+} satisfies Record<ReportState, Tone>;
+
+// À ce nombre de signaleurs différents, une affaire est ouverte pour le groupe.
+export const REPORT_CASE_THRESHOLD = 5;
+// Signalements permis par personne sur 24 heures.
+export const REPORT_DAILY_LIMIT = 10;
 
 // ─── Tribunal ───────────────────────────────────────────────────────────────────────────────
 

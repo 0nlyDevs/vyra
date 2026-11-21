@@ -5,6 +5,7 @@ import {
   pgTable,
   text,
   timestamp,
+  unique,
   uuid,
   varchar,
   vector,
@@ -22,6 +23,7 @@ import {
   LINK_CONFIDENCES,
   MEDIA_KINDS,
   PROFILE_ROLES,
+  REPORT_REASONS,
   SCAN_OUTCOMES,
   VOTES,
 } from '../../lib/domain';
@@ -144,6 +146,57 @@ export const evidence = pgTable(
 
 // ─── Tables des modules : chacun ajoute les siennes ici ─────────────────────────────────────
 
+// ─── Boîte d'alertes ───
+// Un groupe réunit les signalements d'un même contenu, même formulé autrement. À
+// REPORT_CASE_THRESHOLD signaleurs différents, une affaire est ouverte et liée au groupe.
+export const reportGroups = pgTable(
+  'report_groups',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    // Le contenu en quelques mots, puis ce qu'il affirme (repris comme titre et texte de l'affaire).
+    title: text('title').notNull(),
+    summary: text('summary').notNull(),
+    // Publication du fil signalée, quand le signalement vient du fil. Pas encore de clé étrangère :
+    // la table du fil (`feed_posts`) arrive avec le module Fil d'actualité.
+    feedPostId: uuid('feed_post_id'),
+    // Vide tant que le seuil n'est pas atteint.
+    caseId: uuid('case_id').references(() => cases.id, { onDelete: 'set null' }),
+    // Vide quand l'IA était indisponible : le groupe reste trouvable par mots.
+    embedding: vector('embedding', { dimensions: EMBEDDING_DIMENSIONS }),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index('report_groups_feed_post_idx').on(table.feedPostId),
+    index('report_groups_embedding_idx').using('hnsw', table.embedding.op('vector_cosine_ops')),
+  ],
+);
+
+// Un signalement : qui, quoi, pourquoi. Son état se déduit de son groupe (voir domain.ts).
+export const reports = pgTable(
+  'reports',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    groupId: uuid('group_id')
+      .notNull()
+      .references(() => reportGroups.id, { onDelete: 'cascade' }),
+    reporterId: varchar('reporter_id', { length: 40 })
+      .notNull()
+      .references(() => profiles.id, { onDelete: 'cascade' }),
+    // Le texte signalé tel que la personne l'a vu (vide si elle n'a donné qu'un lien).
+    content: text('content').notNull().default(''),
+    url: text('url'),
+    feedPostId: uuid('feed_post_id'),
+    reason: text('reason', { enum: REPORT_REASONS }).notNull(),
+    description: text('description').notNull().default(''),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    // Une personne compte une seule fois par groupe.
+    unique('reports_group_reporter_unique').on(table.groupId, table.reporterId),
+    index('reports_reporter_idx').on(table.reporterId, table.createdAt),
+  ],
+);
+
 // ─── Tribunal (lot de Mahery) ────────────────────────────────────────────────────────────────
 
 export type Pleading = { argument: string; cited: number[] };
@@ -234,5 +287,7 @@ export type Case = typeof cases.$inferSelect;
 export type CaseVersion = typeof caseVersions.$inferSelect;
 export type VersionLink = typeof versionLinks.$inferSelect;
 export type Evidence = typeof evidence.$inferSelect;
+export type ReportGroup = typeof reportGroups.$inferSelect;
+export type Report = typeof reports.$inferSelect;
 export type Hearing = typeof hearings.$inferSelect;
 export type Scan = typeof scans.$inferSelect;
