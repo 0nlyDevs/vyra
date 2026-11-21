@@ -1,0 +1,298 @@
+'use client';
+
+import { FileSearch, FolderInput, History, Sparkles } from 'lucide-react';
+import Link from 'next/link';
+import { type ReactNode, useEffect, useState, useTransition } from 'react';
+import { toast } from 'sonner';
+import { AiSourceBadge } from '@/components/common/DomainBadges';
+import { FileDrop } from '@/components/common/FileDrop';
+import { ToneBadge } from '@/components/common/ToneBadge';
+import { FormMessage } from '@/components/form/FormField';
+import { LoadingState } from '@/components/states/States';
+import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
+import { SCAN_OUTCOME_DESCRIPTIONS, SCAN_OUTCOME_LABELS, SCAN_OUTCOME_TONES } from '@/lib/domain';
+import { formatDate } from '@/lib/format';
+import { cn } from '@/lib/utils';
+import { addScanToCase, analyzeImage, type ScanView } from './actions';
+import { fingerprintDistance, imageFingerprint } from './fingerprint';
+import styles from './scan.module.css';
+import { IMAGE_TYPES, MAX_IMAGE_DISTANCE } from './schema';
+
+const ENTER =
+  'animate-in fade-in slide-in-from-bottom-2 fill-mode-both duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] motion-reduce:slide-in-from-bottom-0';
+
+// Fichiers prêts pour la démo sur scène : pas besoin d'ouvrir un sélecteur de fichiers.
+const DEMO_IMAGES = [
+  { label: 'Photo reçue par message', path: '/demo/inondation-virale.jpg' },
+  { label: 'Photo d’origine', path: '/demo/inondation-2019.png' },
+  { label: 'Image qui se déclare générée', path: '/demo/image-generee.png' },
+];
+
+export type KnownImage = { versionId: string; imagePath: string | null };
+export type CaseOption = { id: string; title: string };
+
+// Compare l'empreinte du fichier à celle des images de nos affaires, dans le navigateur.
+async function findMatches(file: Blob, knownImages: KnownImage[]) {
+  try {
+    const mine = await imageFingerprint(file);
+    const results = await Promise.all(
+      knownImages.map(async ({ versionId, imagePath }) => {
+        if (!imagePath) return null;
+        const response = await fetch(imagePath);
+        if (!response.ok) return null;
+        const distance = fingerprintDistance(mine, await imageFingerprint(await response.blob()));
+        return distance <= MAX_IMAGE_DISTANCE ? { versionId, distance } : null;
+      }),
+    );
+    return results.filter((match) => match !== null);
+  } catch {
+    return []; // image illisible par le navigateur : l'étape « déjà vue » ne trouve rien
+  }
+}
+
+function Step({
+  index,
+  icon,
+  title,
+  children,
+}: {
+  index: number;
+  icon: ReactNode;
+  title: string;
+  children: ReactNode;
+}) {
+  return (
+    <section
+      className={cn('grid content-start gap-2 rounded-xl border bg-card p-4', ENTER)}
+      style={{ animationDelay: `${index * 80}ms` }}
+    >
+      <h3 className="flex items-center gap-2 font-semibold">
+        {icon}
+        {index + 1}. {title}
+      </h3>
+      {children}
+    </section>
+  );
+}
+
+function AddToCase({ scan, caseOptions }: { scan: ScanView; caseOptions: CaseOption[] }) {
+  const [caseId, setCaseId] = useState(scan.alreadySeen?.caseId ?? caseOptions[0]?.id ?? '');
+  const [pending, startTransition] = useTransition();
+
+  function add() {
+    startTransition(async () => {
+      const result = await addScanToCase(scan.id, caseId);
+      if (!result.ok) {
+        toast.error(result.error.message);
+        return;
+      }
+      const plural = result.data.added > 1 ? 's' : '';
+      toast.success(`${result.data.added} pièce${plural} versée${plural} au dossier`, {
+        action: { label: 'Voir', onClick: () => window.location.assign(`/court/${caseId}`) },
+      });
+    });
+  }
+
+  if (caseOptions.length === 0) return null;
+  return (
+    <div className="flex flex-wrap items-end gap-2">
+      <div className="grid gap-1.5">
+        <Label htmlFor="scan-case">Verser les indices au dossier de</Label>
+        <select
+          id="scan-case"
+          value={caseId}
+          onChange={(event) => setCaseId(event.target.value)}
+          className="h-9 rounded-lg border bg-background px-3 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+        >
+          {caseOptions.map((option) => (
+            <option key={option.id} value={option.id}>
+              {option.title}
+            </option>
+          ))}
+        </select>
+      </div>
+      <Button variant="outline" onClick={add} disabled={pending || !caseId}>
+        <FolderInput aria-hidden />
+        {pending ? 'Versement…' : 'Verser au dossier'}
+      </Button>
+    </div>
+  );
+}
+
+function ImageResult({ scan, caseOptions }: { scan: ScanView; caseOptions: CaseOption[] }) {
+  const { report, alreadySeen, reading, outcome } = scan;
+  return (
+    <div className="grid gap-4" aria-live="polite">
+      {outcome && (
+        <div className={cn('grid gap-1 rounded-xl bg-muted p-4', ENTER)}>
+          <ToneBadge tone={SCAN_OUTCOME_TONES[outcome]} className="justify-self-start text-sm">
+            {SCAN_OUTCOME_LABELS[outcome]}
+          </ToneBadge>
+          <p className="text-pretty">{SCAN_OUTCOME_DESCRIPTIONS[outcome]}</p>
+        </div>
+      )}
+
+      <Step
+        index={0}
+        icon={<FileSearch aria-hidden className="size-5 text-primary" />}
+        title="Ce que dit le fichier"
+      >
+        {report ? (
+          <ul className="grid list-disc gap-1 pl-5">
+            {report.findings.map((finding) => (
+              <li key={finding}>{finding}</li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-muted-foreground">Le fichier n’a pas pu être lu.</p>
+        )}
+      </Step>
+
+      <Step
+        index={1}
+        icon={<History aria-hidden className="size-5 text-primary" />}
+        title="Déjà vue ?"
+      >
+        {alreadySeen ? (
+          <p className="text-pretty">
+            <span className="font-semibold">Oui.</span> Cette image a été publiée le{' '}
+            <span className="font-semibold">
+              {alreadySeen.publishedAt
+                ? formatDate(new Date(alreadySeen.publishedAt))
+                : 'à une date inconnue'}
+            </span>{' '}
+            par {alreadySeen.sourceName}, dans l’affaire{' '}
+            <Link
+              href={`/cases/${alreadySeen.caseId}`}
+              className="text-primary underline-offset-4 hover:underline"
+            >
+              « {alreadySeen.caseTitle} »
+            </Link>
+            .
+          </p>
+        ) : (
+          <p className="text-muted-foreground">Pas retrouvée parmi les images de nos affaires.</p>
+        )}
+      </Step>
+
+      <Step
+        index={2}
+        icon={<Sparkles aria-hidden className="size-5 text-primary" />}
+        title="Lecture par l’IA"
+      >
+        {reading?.description && <p className="text-pretty">{reading.description}</p>}
+        {reading && reading.observations.length > 0 ? (
+          <ul className="grid list-disc gap-1 pl-5">
+            {reading.observations.map((observation) => (
+              <li key={observation}>{observation}</li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-muted-foreground">Aucune bizarrerie visible relevée.</p>
+        )}
+        {reading?.textInImage && (
+          <p className="text-sm">
+            Texte dans l’image : <span className="italic">« {reading.textInImage} »</span>
+          </p>
+        )}
+        {scan.aiSource && <AiSourceBadge source={scan.aiSource} />}
+      </Step>
+
+      <AddToCase scan={scan} caseOptions={caseOptions} />
+    </div>
+  );
+}
+
+export function ImageScanner({
+  knownImages,
+  caseOptions,
+}: {
+  knownImages: KnownImage[];
+  caseOptions: CaseOption[];
+}) {
+  const [preview, setPreview] = useState<string | null>(null);
+  const [result, setResult] = useState<ScanView | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [pending, startTransition] = useTransition();
+
+  useEffect(
+    () => () => {
+      if (preview) URL.revokeObjectURL(preview);
+    },
+    [preview],
+  );
+
+  function analyze(file: File) {
+    setError(null);
+    setResult(null);
+    setPreview(URL.createObjectURL(file));
+    startTransition(async () => {
+      const matches = await findMatches(file, knownImages);
+      const formData = new FormData();
+      formData.set('file', file);
+      formData.set('matches', JSON.stringify(matches));
+      const response = await analyzeImage(formData);
+      if (response.ok) setResult(response.data);
+      else setError(response.error.message);
+    });
+  }
+
+  async function loadDemo(path: string) {
+    const response = await fetch(path);
+    const blob = await response.blob();
+    analyze(new File([blob], path.split('/').pop() ?? 'image', { type: blob.type }));
+  }
+
+  return (
+    <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid content-start gap-4">
+        <FileDrop
+          accept={IMAGE_TYPES.join(',')}
+          label="Déposez une image, ou cliquez pour la choisir"
+          hint="JPEG, PNG ou WebP, 8 Mo au plus"
+          onFile={analyze}
+          disabled={pending}
+        />
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-muted-foreground text-sm">Essayer avec :</span>
+          {DEMO_IMAGES.map((demo) => (
+            <Button
+              key={demo.path}
+              variant="secondary"
+              size="sm"
+              disabled={pending}
+              onClick={() => loadDemo(demo.path)}
+            >
+              {demo.label}
+            </Button>
+          ))}
+        </div>
+        {preview && (
+          <div className={styles.frame}>
+            {/* biome-ignore lint/performance/noImgElement: aperçu local d'un fichier choisi (URL blob), next/image ne s'applique pas. */}
+            <img src={preview} alt="Fichier en cours d’analyse" className="block w-full" />
+            {pending && (
+              <>
+                <div className={styles.dim} />
+                <div className={styles.beam} />
+              </>
+            )}
+          </div>
+        )}
+      </div>
+
+      <div className="grid content-start gap-4">
+        <FormMessage message={error} />
+        {pending && <LoadingState title="Analyse de l’image…" />}
+        {result && !pending && <ImageResult scan={result} caseOptions={caseOptions} />}
+        {!result && !pending && !error && (
+          <p className="rounded-xl border border-dashed p-6 text-muted-foreground">
+            Trois étapes : ce que dit le fichier, s’il a déjà été vu ailleurs, et ce qu’en lit l’IA.
+            Le scan relève des indices, il ne rend jamais de verdict.
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
