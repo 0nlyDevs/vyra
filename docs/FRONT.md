@@ -6,6 +6,27 @@ Une base concrète pour partir tous du même point. Ce ne sont pas des règles f
 Pour tout voir d'un coup : lancer l'application, entrer avec un profil, ouvrir **Kit d'interface**
 (`/kit`) dans la barre latérale.
 
+## Les skills front, toujours d'abord
+
+Avant tout travail d'interface, et surtout au début d'une tâche, on consulte les skills front de
+l'équipe. Ils sont dans le dépôt public `mindstack-frontend-skills`
+(https://github.com/mahery-oniniaina/mindstack-frontend-skills), qui s'installe en une commande
+(voir son README).
+
+| Besoin | Skill à consulter |
+|---|---|
+| Couleurs, jetons, échelles | `design-system` |
+| Composants shadcn, Tailwind, thème, mode sombre | `ui-styling` |
+| Concevoir, critiquer ou finir un écran | `impeccable`, `taste-skill` |
+| Donner un rendu haut de gamme, ou très épuré | `soft-skill`, `minimalist-skill` |
+| Détails de finition d'un composant | `emil-design-eng` |
+| Animations : en créer, en relire, en trouver | `animate`, `review-animations`, `find-animation-opportunities` |
+| Messages qui s'affichent en haut de l'écran | `ask-sonner` |
+| Choisir une bibliothèque d'interface | `pick-ui-library` |
+
+La base actuelle a été posée avec `design-system` (les jetons en trois couches) et `ui-styling`
+(les composants). Les skills de finition n'ont pas encore été passés dessus.
+
 ## Ce qui existe
 
 | Besoin | Où |
