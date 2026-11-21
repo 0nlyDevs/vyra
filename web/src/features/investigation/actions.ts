@@ -4,11 +4,13 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { type ActionResult, fail, ok } from '@/lib/action-result';
 import { ERRORS } from '@/lib/errors';
+import { addEvidence, getCaseFile } from '@/server/dal/cases';
+import { type FactCheck, findFactChecks, type WikipediaArticle } from '@/server/processing';
 import { getCurrentProfile } from '@/server/session';
 import { type ExploreResult, exploreLevel, exploreVersion } from './explore';
 import { type HarvestResult, refreshNewsIndex } from './news-index';
 import { openCaseFromClaim } from './open-case';
-import { caseIdSchema, exploreSchema, openCaseSchema } from './schema';
+import { addReferenceSchema, caseIdSchema, exploreSchema, openCaseSchema } from './schema';
 import { searchWebVersions, type WebSearchResult } from './web-versions';
 
 // Nouvelle analyse depuis /cases : ouvre l'affaire existante ou en crée une, puis y emmène.
@@ -85,4 +87,51 @@ export async function exploreNextLevel(
   const result = await exploreLevel(parsed.data);
   if (result.ok) revalidatePath(`/cases/${parsed.data}`);
   return result;
+}
+
+export type FactCheckResult = {
+  factChecks: FactCheck[];
+  wikipedia: WikipediaArticle[];
+  searched: boolean;
+};
+
+// Ce qu'en disent déjà les vérificateurs de faits, et Wikipédia, pour l'information de l'affaire.
+// Rien n'est enregistré : la personne choisit ce qu'elle verse au dossier.
+export async function searchFactChecks(caseId: string): Promise<ActionResult<FactCheckResult>> {
+  const profile = await getCurrentProfile();
+  if (!profile) return fail(ERRORS.UNAUTHORIZED);
+  const parsed = caseIdSchema.safeParse(caseId);
+  if (!parsed.success) return fail(ERRORS.VALIDATION_FAILED, parsed.error);
+  const file = await getCaseFile(parsed.data);
+  if (!file) return fail(ERRORS.NOT_FOUND);
+
+  const result = await findFactChecks(file.claim);
+  if (!result.ok) return result;
+  const { fact_checks, wikipedia, searched } = result.data;
+  return ok({ factChecks: fact_checks, wikipedia, searched });
+}
+
+// Verse une vérification publiée (pièce solide) ou un article Wikipédia (pièce fragile) au
+// dossier, comme contexte : c'est le tribunal qui dira ce qu'elle prouve.
+export async function addReferenceToCase(input: unknown): Promise<ActionResult<null>> {
+  const profile = await getCurrentProfile();
+  if (!profile) return fail(ERRORS.UNAUTHORIZED);
+  const parsed = addReferenceSchema.safeParse(input);
+  if (!parsed.success) return fail(ERRORS.VALIDATION_FAILED, parsed.error);
+  const { caseId, kind, url, title, content, sourceName, publishedAt } = parsed.data;
+  if (!(await getCaseFile(caseId))) return fail(ERRORS.NOT_FOUND);
+
+  await addEvidence(caseId, [
+    {
+      title,
+      content,
+      sourceName,
+      sourceUrl: url,
+      publishedAt: publishedAt ? new Date(publishedAt) : null,
+      stance: 'context',
+      strength: kind === 'fact_check' ? 'solid' : 'weak',
+    },
+  ]);
+  revalidatePath(`/cases/${caseId}`);
+  return ok(null);
 }

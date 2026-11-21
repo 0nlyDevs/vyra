@@ -4,6 +4,9 @@ from fastapi import APIRouter
 
 from app.core.config import SettingsDep
 from app.schemas.web import (
+    FactCheckOut,
+    FactChecksRequest,
+    FactChecksResponse,
     NewsFeedsRequest,
     NewsFeedsResponse,
     NewsItemOut,
@@ -12,8 +15,10 @@ from app.schemas.web import (
     WebArticleOut,
     WebSourcesRequest,
     WebSourcesResponse,
+    WikipediaArticleOut,
 )
 from app.services.ai_service import load_fallback
+from app.services.fact_checks import find_fact_checks
 from app.services.news_feeds import read_feeds
 from app.services.web_search import WebSearchUnavailableError, find_articles, read_pages
 
@@ -57,4 +62,17 @@ async def read_news_feeds(body: NewsFeedsRequest, settings: SettingsDep) -> News
     items, read = await read_feeds([(feed.url, feed.name) for feed in body.feeds])
     return NewsFeedsResponse(
         items=[NewsItemOut.model_validate(item.as_dict()) for item in items], feeds_read=read
+    )
+
+
+@router.post("/fact-checks", operation_id="findFactChecks")
+async def find_published_fact_checks(
+    body: FactChecksRequest, settings: SettingsDep
+) -> FactChecksResponse:
+    """Vérifications déjà publiées sur le sujet, et Wikipédia. Hors ligne : listes vides."""
+    checks, wiki, searched = await find_fact_checks(settings, body.claim)
+    return FactChecksResponse(
+        fact_checks=[FactCheckOut.model_validate(item) for item in checks],
+        wikipedia=[WikipediaArticleOut.model_validate(item) for item in wiki],
+        searched=searched,
     )

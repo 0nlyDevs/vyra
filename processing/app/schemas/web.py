@@ -59,3 +59,32 @@ class WebSourcesResponse(BaseModel):
     articles: list[WebArticleOut]
     # « fallback » : recherche impossible (hors ligne, GDELT indisponible).
     source: Literal["tavily", "gdelt", "fallback"]
+
+
+class FactChecksRequest(BaseModel):
+    claim: str = Field(min_length=10, max_length=2000)
+
+
+class FactCheckOut(BaseModel):
+    url: str
+    title: str
+    publisher: str
+    # Conclusion du vérificateur, mot pour mot ; None quand on n'a que l'article.
+    rating: str | None
+    claim: str | None
+    excerpt: str
+    published_at: str | None
+
+
+class WikipediaArticleOut(BaseModel):
+    url: str
+    title: str
+    language: str
+    summary: str
+
+
+class FactChecksResponse(BaseModel):
+    fact_checks: list[FactCheckOut]
+    wikipedia: list[WikipediaArticleOut]
+    # false : aucune recherche n'a pu se faire (hors ligne).
+    searched: bool

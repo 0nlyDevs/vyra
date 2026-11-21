@@ -60,10 +60,13 @@ class Settings(BaseSettings):
 
     # Clé de l'API Tavily (https://tavily.com) : recherche web. Absente : recherche GDELT.
     tavily_api_key: SecretStr | None = None
+    # Clé Google Cloud avec l'API Fact Check Tools (gratuite) : les vérifications publiées dans le
+    # monde. Absente : seulement les rubriques de vérification (par Tavily) et Wikipédia.
+    google_factcheck_api_key: SecretStr | None = None
     # true : jamais d'appel à Gemini, toujours les réponses de secours (répétition du plan B).
     demo_offline: bool = False
 
-    @field_validator("gemini_api_key", "tavily_api_key", mode="before")
+    @field_validator("gemini_api_key", "tavily_api_key", "google_factcheck_api_key", mode="before")
     @classmethod
     def _empty_as_missing(cls, value: object) -> object:
         # Une variable déclarée mais vide vaut « non configurée ».

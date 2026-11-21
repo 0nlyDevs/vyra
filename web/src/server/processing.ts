@@ -112,6 +112,41 @@ export async function readPages(urls: string[]): Promise<ActionResult<WebArticle
   return data ? ok(data.articles) : fail(ERRORS.WEB_SEARCH_UNAVAILABLE);
 }
 
+const factCheckSchema = z.object({
+  url: z.string(),
+  title: z.string(),
+  publisher: z.string(),
+  rating: z.string().nullable(),
+  claim: z.string().nullable(),
+  excerpt: z.string(),
+  published_at: z.string().nullable(),
+});
+export type FactCheck = z.infer<typeof factCheckSchema>;
+
+const wikipediaArticleSchema = z.object({
+  url: z.string(),
+  title: z.string(),
+  language: z.string(),
+  summary: z.string(),
+});
+export type WikipediaArticle = z.infer<typeof wikipediaArticleSchema>;
+
+// Vérifications déjà publiées sur le sujet (rubriques de vérification, Fact Check Tools) et
+// Wikipédia. `searched: false` : aucune recherche n'a pu se faire (hors ligne).
+export async function findFactChecks(
+  claim: string,
+): Promise<
+  ActionResult<{ fact_checks: FactCheck[]; wikipedia: WikipediaArticle[]; searched: boolean }>
+> {
+  const schema = z.object({
+    fact_checks: z.array(factCheckSchema),
+    wikipedia: z.array(wikipediaArticleSchema),
+    searched: z.boolean(),
+  });
+  const data = await post('/v1/fact-checks', { claim }, schema, WEB_SEARCH_TIMEOUT_MS);
+  return data ? ok(data) : fail(ERRORS.WEB_SEARCH_UNAVAILABLE);
+}
+
 const newsItemSchema = z.object({
   url: z.string(),
   title: z.string(),
