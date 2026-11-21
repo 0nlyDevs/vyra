@@ -1,29 +1,25 @@
 import {
   index,
   integer,
-  jsonb,
   pgTable,
   text,
   timestamp,
+  unique,
   uuid,
   varchar,
   vector,
 } from 'drizzle-orm/pg-core';
 // Chemin relatif (et non `@/lib/…`) : drizzle-kit lit ce fichier sans les alias de tsconfig.
 import {
-  AI_SOURCES,
   CASE_KINDS,
   CASE_STATUSES,
   CERTAINTY_LEVELS,
   CHANGE_TYPES,
   EVIDENCE_STANCES,
   EVIDENCE_STRENGTHS,
-  HEARING_STATUSES,
   LINK_CONFIDENCES,
-  MEDIA_KINDS,
   PROFILE_ROLES,
-  SCAN_OUTCOMES,
-  VOTES,
+  REPORT_REASONS,
 } from '../../lib/domain';
 
 // Taille des vecteurs : doit rester égale à EMBEDDING_DIMENSIONS côté processing (768).
@@ -144,89 +140,56 @@ export const evidence = pgTable(
 
 // ─── Tables des modules : chacun ajoute les siennes ici ─────────────────────────────────────
 
-// ─── Tribunal (lot de Mahery) ────────────────────────────────────────────────────────────────
-
-export type Pleading = { argument: string; cited: number[] };
-export type HearingFindings = { confirmed: string[]; contested: string[]; missing: string[] };
-
-// Une audience : les deux plaidoiries, le vote du juré, puis la conclusion du juge.
-export const hearings = pgTable(
-  'hearings',
+// ─── Boîte d'alertes ───
+// Un groupe réunit les signalements d'un même contenu, même formulé autrement. À
+// REPORT_CASE_THRESHOLD signaleurs différents, une affaire est ouverte et liée au groupe.
+export const reportGroups = pgTable(
+  'report_groups',
   {
     id: uuid('id').primaryKey().defaultRandom(),
-    caseId: uuid('case_id')
-      .notNull()
-      .references(() => cases.id, { onDelete: 'cascade' }),
-    profileId: varchar('profile_id', { length: 40 })
-      .notNull()
-      .references(() => profiles.id, { onDelete: 'cascade' }),
-    status: text('status', { enum: HEARING_STATUSES }).notNull().default('pleaded'),
-    prosecution: jsonb('prosecution').$type<Pleading>().notNull(),
-    defense: jsonb('defense').$type<Pleading>().notNull(),
-    pleadingsSource: text('pleadings_source', { enum: AI_SOURCES }).notNull(),
-    vote: text('vote', { enum: VOTES }),
-    certainty: text('certainty', { enum: CERTAINTY_LEVELS }),
-    findings: jsonb('findings').$type<HearingFindings>(),
-    conclusion: text('conclusion'),
-    whatToCheck: text('what_to_check'),
-    verdictSource: text('verdict_source', { enum: AI_SOURCES }),
+    // Le contenu en quelques mots, puis ce qu'il affirme (repris comme titre et texte de l'affaire).
+    title: text('title').notNull(),
+    summary: text('summary').notNull(),
+    // Publication du fil signalée, quand le signalement vient du fil. Pas encore de clé étrangère :
+    // la table du fil (`feed_posts`) arrive avec le module Fil d'actualité.
+    feedPostId: uuid('feed_post_id'),
+    // Vide tant que le seuil n'est pas atteint.
+    caseId: uuid('case_id').references(() => cases.id, { onDelete: 'set null' }),
+    // Vide quand l'IA était indisponible : le groupe reste trouvable par mots.
+    embedding: vector('embedding', { dimensions: EMBEDDING_DIMENSIONS }),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-    concludedAt: timestamp('concluded_at', { withTimezone: true }),
   },
-  (table) => [index('hearings_case_idx').on(table.caseId)],
+  (table) => [
+    index('report_groups_feed_post_idx').on(table.feedPostId),
+    index('report_groups_embedding_idx').using('hnsw', table.embedding.op('vector_cosine_ops')),
+  ],
 );
 
-// ─── Scan d'image et de vocal (lot de Mahery) ────────────────────────────────────────────────
-
-export type MediaReport = {
-  format: string;
-  aiSignature: boolean;
-  generator: string | null;
-  c2pa: boolean;
-  aiSourceType: boolean;
-  stripped: boolean;
-  takenAt: string | null;
-  camera: string | null;
-  software: string | null;
-  gps: boolean;
-  findings: string[];
-};
-export type AlreadySeen = {
-  versionId: string;
-  caseId: string;
-  caseTitle: string;
-  sourceName: string;
-  publishedAt: string | null;
-  distance: number;
-};
-export type ImageReading = { description: string; observations: string[]; textInImage: string };
-export type Transcript = {
-  transcript: string;
-  language: string;
-  translation: string;
-  claim: string;
-};
-
-// Un fichier examiné : ce que dit le fichier, s'il a déjà été vu, ce qu'en lit l'IA.
-export const scans = pgTable('scans', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  profileId: varchar('profile_id', { length: 40 })
-    .notNull()
-    .references(() => profiles.id, { onDelete: 'cascade' }),
-  kind: text('kind', { enum: MEDIA_KINDS }).notNull(),
-  fileName: text('file_name').notNull(),
-  mimeType: text('mime_type').notNull(),
-  sha256: varchar('sha256', { length: 64 }).notNull(),
-  report: jsonb('report').$type<MediaReport>(),
-  alreadySeen: jsonb('already_seen').$type<AlreadySeen>(),
-  reading: jsonb('reading').$type<ImageReading>(),
-  transcript: jsonb('transcript').$type<Transcript>(),
-  outcome: text('outcome', { enum: SCAN_OUTCOMES }),
-  aiSource: text('ai_source', { enum: AI_SOURCES }),
-  // L'affaire à laquelle le scan a été versé, ou celle qu'il a ouverte.
-  caseId: uuid('case_id').references(() => cases.id, { onDelete: 'set null' }),
-  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-});
+// Un signalement : qui, quoi, pourquoi. Son état se déduit de son groupe (voir domain.ts).
+export const reports = pgTable(
+  'reports',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    groupId: uuid('group_id')
+      .notNull()
+      .references(() => reportGroups.id, { onDelete: 'cascade' }),
+    reporterId: varchar('reporter_id', { length: 40 })
+      .notNull()
+      .references(() => profiles.id, { onDelete: 'cascade' }),
+    // Le texte signalé tel que la personne l'a vu (vide si elle n'a donné qu'un lien).
+    content: text('content').notNull().default(''),
+    url: text('url'),
+    feedPostId: uuid('feed_post_id'),
+    reason: text('reason', { enum: REPORT_REASONS }).notNull(),
+    description: text('description').notNull().default(''),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    // Une personne compte une seule fois par groupe.
+    unique('reports_group_reporter_unique').on(table.groupId, table.reporterId),
+    index('reports_reporter_idx').on(table.reporterId, table.createdAt),
+  ],
+);
 
 export type Profile = typeof profiles.$inferSelect;
 export type Note = typeof notes.$inferSelect;
@@ -234,5 +197,5 @@ export type Case = typeof cases.$inferSelect;
 export type CaseVersion = typeof caseVersions.$inferSelect;
 export type VersionLink = typeof versionLinks.$inferSelect;
 export type Evidence = typeof evidence.$inferSelect;
-export type Hearing = typeof hearings.$inferSelect;
-export type Scan = typeof scans.$inferSelect;
+export type ReportGroup = typeof reportGroups.$inferSelect;
+export type Report = typeof reports.$inferSelect;

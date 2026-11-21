@@ -1,13 +1,13 @@
 import 'server-only';
-import { eq } from 'drizzle-orm';
 import type { Database } from '@/server/db';
 import {
   cases,
   caseVersions,
   evidence,
-  hearings,
   notes,
   profiles,
+  reportGroups,
+  reports,
   versionLinks,
 } from '@/server/db/schema';
 
@@ -303,50 +303,121 @@ const DEMO_EVIDENCE: (typeof evidence.$inferInsert)[] = [
   },
 ];
 
-// Vrai dès qu'une affaire existe. Une base créée avant les affaires (profils seuls) est donc
-// complétée toute seule au prochain démarrage.
-// ─── Tribunal (lot de Mahery) ────────────────────────────────────────────────────────────────
+// ─── Boîte d'alertes ────────────────────────────────────────────────────────────────────────
+// Démo : quatre personnes ont déjà signalé la rumeur du riz ; le cinquième signalement, fait en
+// direct par Hery, ouvre une affaire.
 
-const WATER_HEARING: typeof hearings.$inferInsert = {
-  caseId: DEMO_CASE_IDS.water,
-  profileId: 'rasoa',
-  status: 'concluded',
-  prosecution: {
-    argument:
-      'L’avis officiel de la Régie des eaux annonce une coupure de 10 h à 14 h, dans deux quartiers seulement (pièce n° 1). Rien n’y parle de dix jours ni de toute la ville. Le message que vous avez reçu a transformé quatre heures en dix jours.',
-    cited: [1],
-  },
-  defense: {
-    argument:
-      'Une coupure est bien prévue lundi : la radio l’a annoncée (pièce n° 2) et la Régie aussi (pièce n° 1). Mais je n’ai aucune pièce pour la durée de dix jours ni pour l’étendue à toute la ville. Je ne défends que la coupure elle-même.',
-    cited: [1, 2],
-  },
-  pleadingsSource: 'fallback',
-  vote: 'misleading',
-  certainty: 'contradicted',
-  findings: {
-    confirmed: ['Une coupure d’eau est prévue lundi (pièces n° 1 et 2).'],
-    contested: [
-      'Dix jours de coupure : quatre heures seulement (pièce n° 1).',
-      'Toute la ville : deux quartiers concernés (pièce n° 1).',
-    ],
-    missing: [],
-  },
-  conclusion:
-    'L’information part d’un fait réel, une coupure lundi, mais sa durée et son étendue sont contredites par l’avis officiel. C’est une exagération qui pousse à faire des réserves inutiles.',
-  whatToCheck: 'La source d’origine : l’avis de la Régie donnait les horaires et les quartiers.',
-  verdictSource: 'fallback',
-  concludedAt: daysAgo(1, 21),
-};
+// Publication du fil qui porte la rumeur du riz : le module Fil d'actualité crée sa publication
+// avec cet identifiant, pour que le bouton « Signaler » rejoigne ce groupe.
+export const DEMO_REPORTED_POST_ID = id(900);
 
-// ─── Scan (lot de Mahery) ────────────────────────────────────────────────────────────────────
+export const DEMO_REPORT_GROUP_IDS = { rice: id(901), network: id(902), grant: id(903) } as const;
 
-// Images des versions de l'affaire de l'inondation (fichiers dans web/public/demo/).
-const DEMO_VERSION_IMAGES: [string, string][] = [
-  [id(101), '/demo/inondation-2019.png'],
-  [id(103), '/demo/inondation-virale.jpg'],
+// Les autres membres de la communauté : ils ne servent qu'à signaler.
+const DEMO_REPORTERS: (typeof profiles.$inferInsert)[] = [
+  { id: 'fara', name: 'Fara', role: 'member', headline: 'Signale les contenus suspects' },
+  { id: 'tojo', name: 'Tojo', role: 'member', headline: 'Signale les contenus suspects' },
+  { id: 'lova', name: 'Lova', role: 'member', headline: 'Signale les contenus suspects' },
+  { id: 'nirina', name: 'Nirina', role: 'member', headline: 'Signale les contenus suspects' },
 ];
 
+const DEMO_REPORT_GROUPS: (typeof reportGroups.$inferInsert)[] = [
+  {
+    id: DEMO_REPORT_GROUP_IDS.rice,
+    title: 'Le riz à 300 000 Ar',
+    summary: 'Le sac de riz passera à 300 000 Ar dès lundi : il faut tout acheter maintenant.',
+    feedPostId: DEMO_REPORTED_POST_ID,
+    createdAt: daysAgo(1, 7, 30),
+  },
+  {
+    id: DEMO_REPORT_GROUP_IDS.network,
+    title: 'Le réseau mobile coupé trois jours',
+    summary:
+      'Le réseau mobile sera coupé pendant trois jours dans toute la région pour des travaux.',
+    createdAt: daysAgo(2, 15),
+  },
+  {
+    id: DEMO_REPORT_GROUP_IDS.grant,
+    title: 'La bourse d’études à 2 000 000 Ar',
+    summary:
+      'Une bourse d’études de 2 000 000 Ar est offerte à tous les lycéens qui envoient leurs coordonnées.',
+    createdAt: daysAgo(3, 11),
+  },
+];
+
+const DEMO_REPORTS: (typeof reports.$inferInsert)[] = [
+  {
+    groupId: DEMO_REPORT_GROUP_IDS.rice,
+    reporterId: 'fara',
+    content: 'Le sac de riz passe à 300 000 Ar lundi, stockez tout de suite !',
+    feedPostId: DEMO_REPORTED_POST_ID,
+    reason: 'misleading',
+    description: 'Aucune source, et le message pousse à acheter dans la panique.',
+    createdAt: daysAgo(1, 7, 30),
+  },
+  {
+    groupId: DEMO_REPORT_GROUP_IDS.rice,
+    reporterId: 'tojo',
+    content: 'Riz à 300 000 Ar le sac dès lundi, les magasins vont être vidés.',
+    feedPostId: DEMO_REPORTED_POST_ID,
+    reason: 'fake',
+    description: 'Le prix annoncé est trois fois le prix actuel.',
+    createdAt: daysAgo(1, 9, 10),
+  },
+  {
+    groupId: DEMO_REPORT_GROUP_IDS.rice,
+    reporterId: 'lova',
+    content:
+      'Achetez votre riz avant lundi : 300 000 Ar le sac après. Commandez au numéro ci-dessous.',
+    feedPostId: DEMO_REPORTED_POST_ID,
+    reason: 'scam',
+    description: 'Un numéro pour commander : cela ressemble à une arnaque.',
+    createdAt: daysAgo(1, 12, 45),
+  },
+  {
+    groupId: DEMO_REPORT_GROUP_IDS.rice,
+    reporterId: 'nirina',
+    content: 'Le riz va tripler lundi, prévenez toute la famille.',
+    reason: 'misleading',
+    description: 'Reçu dans un groupe familial, sans aucune source.',
+    createdAt: daysAgo(1, 18, 20),
+  },
+  {
+    groupId: DEMO_REPORT_GROUP_IDS.network,
+    reporterId: 'fara',
+    content: 'Plus de réseau mobile pendant 3 jours dans toute la région, travaux prévus.',
+    reason: 'fake',
+    description: 'L’opérateur n’a rien annoncé.',
+    createdAt: daysAgo(2, 15),
+  },
+  {
+    groupId: DEMO_REPORT_GROUP_IDS.network,
+    reporterId: 'tojo',
+    content: 'Coupure du réseau mobile trois jours dans la région : faites vos appels avant.',
+    reason: 'misleading',
+    description: 'Message transféré plusieurs fois, sans date.',
+    createdAt: daysAgo(2, 17, 30),
+  },
+  {
+    groupId: DEMO_REPORT_GROUP_IDS.grant,
+    reporterId: 'lova',
+    content: 'Bourse de 2 000 000 Ar pour tous les lycéens : envoyez nom, âge et numéro.',
+    reason: 'scam',
+    description: 'On demande des données personnelles en échange d’argent.',
+    createdAt: daysAgo(3, 11),
+  },
+  {
+    groupId: DEMO_REPORT_GROUP_IDS.grant,
+    reporterId: 'hery',
+    content: 'Bourse d’études 2 000 000 Ar, il suffit d’envoyer ses coordonnées.',
+    reason: 'scam',
+    description: 'Vu sur une page qui n’indique aucun organisme.',
+    createdAt: daysAgo(2, 9),
+  },
+];
+
+// Vrai dès qu'une affaire existe. Une base créée avant les affaires (profils seuls) est donc
+// complétée toute seule au prochain démarrage.
 export async function hasDemoData(database: Database) {
   const [found] = await database.select({ id: cases.id }).from(cases).limit(1);
   return found !== undefined;
@@ -367,16 +438,11 @@ export async function resetDemoData(database: Database) {
 
     // Données des modules : chacun ajoute les siennes ici.
 
-    // Tribunal (lot de Mahery) : l'affaire de l'eau est déjà jugée, pour montrer « déjà jugé ».
-    await tx
-      .update(cases)
-      .set({ status: 'concluded', certainty: 'contradicted', conclusion: WATER_HEARING.conclusion })
-      .where(eq(cases.id, DEMO_CASE_IDS.water));
-    await tx.insert(hearings).values(WATER_HEARING);
-
-    // Scan (lot de Mahery) : la photo de l'inondation, d'origine puis devenue virale.
-    for (const [versionId, imagePath] of DEMO_VERSION_IMAGES) {
-      await tx.update(caseVersions).set({ imagePath }).where(eq(caseVersions.id, versionId));
-    }
+    // Boîte d'alertes. Les signalements partent avec leurs profils (supprimés plus haut) ; les
+    // groupes sont supprimés ici, y compris ceux créés pendant une répétition.
+    await tx.delete(reportGroups);
+    await tx.insert(profiles).values(DEMO_REPORTERS);
+    await tx.insert(reportGroups).values(DEMO_REPORT_GROUPS);
+    await tx.insert(reports).values(DEMO_REPORTS);
   });
 }
