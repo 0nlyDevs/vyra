@@ -52,6 +52,9 @@ L'équipe travaille sur Mac, Linux et Windows : pas de commande ni de chemin pro
 - Interface : consulter les skills front d'abord, puis le kit (`/kit`), puis seulement créer.
 - Un prompt d'IA = `processing/app/prompts/<nom>.md` + sa réponse de secours `processing/app/fallbacks/<nom>.json`.
 - Modifications ciblées : ne pas reformater ce qui n'est pas lié à la tâche.
+- **Avant chaque PR, se mettre à jour avec `main`** : `git fetch origin && git merge origin/main`
+  (pas de rebase sur une branche déjà poussée), régler les conflits, relancer `make check`, puis
+  pousser. Valable pour tout le monde, humain ou assistant.
 
 ## Interdit
 
