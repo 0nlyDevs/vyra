@@ -85,8 +85,8 @@ export function ReportGroups({
                       <li key={report.id} className="grid gap-1">
                         <p className="text-base">{report.content || report.url}</p>
                         <p className="text-muted-foreground">
-                          {report.reporterName} · {REPORT_REASON_LABELS[report.reason]} ·{' '}
-                          {formatDateTime(report.createdAt)}
+                          {report.reporterName ?? 'Sans compte'} ·{' '}
+                          {REPORT_REASON_LABELS[report.reason]} · {formatDateTime(report.createdAt)}
                           {report.description && ` · ${report.description}`}
                         </p>
                       </li>

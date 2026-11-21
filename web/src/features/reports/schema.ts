@@ -26,3 +26,17 @@ export const reportSchema = z
     message: 'Collez le texte du contenu (10 caractères au moins) ou son lien.',
     path: ['content'],
   });
+
+// Un signalement sans compte : le même contenu, sans publication du fil ni description.
+export const tipSchema = z
+  .object({
+    content: reportSchema.shape.content,
+    url: reportSchema.shape.url,
+    reason: reportSchema.shape.reason,
+  })
+  .refine((tip) => tip.content.length >= 10 || tip.url !== '', {
+    message: 'Collez le texte du contenu (10 caractères au moins) ou son lien.',
+    path: ['content'],
+  });
+
+export const followTokenSchema = z.string().regex(/^[A-Za-z0-9_-]{16,32}$/);
