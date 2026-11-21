@@ -72,116 +72,129 @@ export function FeedCard({
     (item.title ? `${item.title}. ${item.body}` : item.body).slice(0, 600),
   )}&url=${encodeURIComponent(item.url)}`;
 
+  const kindLabel = (
+    <>
+      <Icon aria-hidden className="size-3.5" />
+      {FEED_KIND_LABELS[item.kind]}
+      {showWorld && item.region === 'world' && (
+        <>
+          <span aria-hidden>·</span>
+          <Globe aria-hidden className="size-3.5" />
+          Monde
+        </>
+      )}
+    </>
+  );
+
   return (
     <article
       aria-labelledby={`post-${item.id}`}
-      className="grid grid-cols-[minmax(0,1fr)] gap-4 surface p-5"
+      className="group/card grid grid-cols-[minmax(0,1fr)] overflow-hidden surface"
     >
-      <header className="flex items-start gap-3">
-        <span
-          aria-hidden
-          className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-muted text-muted-foreground"
-        >
-          <Icon className="size-5" />
-        </span>
-        <div className="grid min-w-0 flex-1 gap-0.5 leading-tight">
-          <p id={`post-${item.id}`} className="truncate font-medium">
-            {item.sourceName}
-            {item.author && (
-              <span className="font-normal text-muted-foreground"> · {item.author}</span>
-            )}
-          </p>
-          <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-muted-foreground text-sm">
-            <ToneBadge tone={FEED_KIND_TONES[item.kind]}>{FEED_KIND_LABELS[item.kind]}</ToneBadge>
-            {showWorld && item.region === 'world' && (
-              <span className="inline-flex items-center gap-1">
-                <Globe aria-hidden className="size-3.5" />
-                Monde
-              </span>
-            )}
-            <span suppressHydrationWarning>
-              {item.kind === 'facebook' ? 'vu ' : ''}
-              {formatRelative(item.publishedAt)}
-            </span>
-            {reach && <span className="tabular-nums">· {reach}</span>}
-          </p>
-        </div>
-        <ToneBadge tone={FEED_STATUS_TONES[status]} className="shrink-0 text-sm">
-          {FEED_STATUS_LABELS[status]}
-          {status === 'reported' && (
-            <span className="tabular-nums">
-              {' '}
-              · {item.reporterCount} sur {REPORT_CASE_THRESHOLD}
-            </span>
-          )}
-        </ToneBadge>
-      </header>
-
-      <div className="grid gap-2">
-        {item.title && (
-          <h2 className="text-pretty font-semibold text-lg leading-snug">{item.title}</h2>
-        )}
-        <p className="line-clamp-6 whitespace-pre-line text-pretty leading-relaxed">{item.body}</p>
-        {topic && (
-          <Link
-            href={`/feed?sujet=${topic.id}`}
-            className="inline-flex items-center gap-1.5 justify-self-start font-medium text-primary text-sm underline-offset-4 hover:underline"
-          >
-            <Layers aria-hidden className="size-4" />
-            Repris par {topic.sources} sources
-          </Link>
-        )}
-      </div>
-
-      {item.imageUrl && <FeedImage src={item.imageUrl} />}
-
-      {status === 'concluded' && item.case?.certainty && (
-        <div className="grid gap-2 rounded-xl bg-muted p-4">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="font-medium text-sm">Conclusion du tribunal</span>
-            <CertaintyBadge level={item.case.certainty} />
-          </div>
-          {item.case.conclusion && <p className="text-pretty">{item.case.conclusion}</p>}
-          <Link
-            href={`/court/${item.case.id}`}
-            className="inline-flex items-center gap-1 justify-self-start text-primary text-sm underline-offset-4 hover:underline"
-          >
-            Voir l’audience
-            <ArrowRight aria-hidden className="size-3.5" />
-          </Link>
+      {item.imageUrl && (
+        <div className="overflow-hidden">
+          <FeedImage
+            src={item.imageUrl}
+            className="max-h-[22rem] rounded-none border-0 transition-transform duration-700 ease-out-strong group-hover/card:scale-[1.03]"
+          />
         </div>
       )}
 
-      <div className="flex flex-wrap items-center gap-2 border-t pt-4">
-        <form action={openFromPost}>
-          <input type="hidden" name="postId" value={item.id} />
-          <input type="hidden" name="target" value="case" />
-          <Button type="submit" variant="outline" size="sm">
-            <Waypoints aria-hidden />
-            Voir l’affaire
+      <div className="grid gap-4 p-6">
+        <header className="flex items-start justify-between gap-3">
+          <div className="grid min-w-0 gap-1 leading-tight">
+            <p id={`post-${item.id}`} className="truncate font-medium">
+              {item.sourceName}
+              {item.author && (
+                <span className="font-normal text-muted-foreground"> · {item.author}</span>
+              )}
+            </p>
+            <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-muted-foreground text-sm">
+              <ToneBadge tone={FEED_KIND_TONES[item.kind]}>{kindLabel}</ToneBadge>
+              <span suppressHydrationWarning>
+                {item.kind === 'facebook' ? 'vu ' : ''}
+                {formatRelative(item.publishedAt)}
+              </span>
+              {reach && <span className="tabular-nums">· {reach}</span>}
+            </p>
+          </div>
+          <ToneBadge tone={FEED_STATUS_TONES[status]} className="shrink-0 text-sm">
+            {FEED_STATUS_LABELS[status]}
+            {status === 'reported' && (
+              <span className="tabular-nums">
+                {' '}
+                · {item.reporterCount} sur {REPORT_CASE_THRESHOLD}
+              </span>
+            )}
+          </ToneBadge>
+        </header>
+
+        <div className="grid gap-2.5">
+          {item.title && (
+            <h2 className="display text-pretty text-[1.45rem] leading-[1.12]">{item.title}</h2>
+          )}
+          <p className="line-clamp-5 whitespace-pre-line text-pretty text-foreground/75 leading-relaxed">
+            {item.body}
+          </p>
+          {topic && (
+            <Link
+              href={`/feed?sujet=${topic.id}`}
+              className="inline-flex items-center gap-1.5 justify-self-start rounded-full bg-primary/10 px-3 py-1 font-medium text-primary text-sm transition-colors hover:bg-primary/15"
+            >
+              <Layers aria-hidden className="size-4" />
+              Repris par {topic.sources} sources
+            </Link>
+          )}
+        </div>
+
+        {status === 'concluded' && item.case?.certainty && (
+          <div className="grid gap-2 rounded-2xl bg-foreground/[0.04] p-4 shadow-[inset_0_0_0_1px_color-mix(in_oklch,var(--foreground)_7%,transparent)]">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="eyebrow">Conclusion du tribunal</span>
+              <CertaintyBadge level={item.case.certainty} />
+            </div>
+            {item.case.conclusion && <p className="text-pretty">{item.case.conclusion}</p>}
+            <Link href={`/court/${item.case.id}`} className="link-arrow justify-self-start text-sm">
+              Voir l’audience
+              <ArrowRight aria-hidden className="size-3.5" />
+            </Link>
+          </div>
+        )}
+
+        <div className="flex flex-wrap items-center gap-2 border-t pt-4">
+          <form action={openFromPost}>
+            <input type="hidden" name="postId" value={item.id} />
+            <input type="hidden" name="target" value="case" />
+            <Button type="submit" variant="secondary" size="sm">
+              <Waypoints aria-hidden />
+              Voir l’affaire
+            </Button>
+          </form>
+          <form action={openFromPost}>
+            <input type="hidden" name="postId" value={item.id} />
+            <input type="hidden" name="target" value="court" />
+            <Button type="submit" variant="secondary" size="sm">
+              <Gavel aria-hidden />
+              Ouvrir le tribunal
+            </Button>
+          </form>
+          <Button asChild variant="ghost" size="sm">
+            <Link href={reportHref}>
+              <Siren aria-hidden />
+              Signaler
+            </Link>
           </Button>
-        </form>
-        <form action={openFromPost}>
-          <input type="hidden" name="postId" value={item.id} />
-          <input type="hidden" name="target" value="court" />
-          <Button type="submit" variant="outline" size="sm">
-            <Gavel aria-hidden />
-            Ouvrir le tribunal
-          </Button>
-        </form>
-        <Button asChild variant="ghost" size="sm">
-          <Link href={reportHref}>
-            <Siren aria-hidden />
-            Signaler
-          </Link>
-        </Button>
-        <Button asChild variant="ghost" size="sm" className="ml-auto">
-          <a href={item.url} target="_blank" rel="noopener noreferrer">
+          <a
+            href={item.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="link-arrow ml-auto text-muted-foreground text-sm transition-colors hover:text-foreground"
+          >
             Source
-            <ArrowUpRight aria-hidden />
+            <ArrowUpRight aria-hidden className="size-3.5" />
             <span className="sr-only">(nouvel onglet)</span>
           </a>
-        </Button>
+        </div>
       </div>
     </article>
   );
