@@ -22,6 +22,12 @@ def test_unknown_prompt_is_404(offline_client: TestClient) -> None:
     assert response.status_code == 404
 
 
+def test_web_sources_use_fallback_when_offline(offline_client: TestClient) -> None:
+    response = offline_client.post("/v1/web-sources", json={"claim": "Une information à vérifier"})
+    assert response.status_code == 200
+    assert response.json() == {"articles": [], "source": "fallback"}
+
+
 def test_embeddings_unavailable_offline(offline_client: TestClient) -> None:
     response = offline_client.post("/v1/embeddings", json={"texts": ["bonjour"]})
     assert response.status_code == 503
