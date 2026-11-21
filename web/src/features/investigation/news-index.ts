@@ -120,5 +120,8 @@ function toArticle(item: {
     published_at: item.publishedAt?.toISOString() ?? null,
     excerpt: item.summary,
     language: null,
+    // L'index ne garde que le résumé : la comparaison se fait dessus.
+    body: '',
+    links: [],
   };
 }

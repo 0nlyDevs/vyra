@@ -17,6 +17,9 @@ class WebArticleOut(BaseModel):
     published_at: str | None
     excerpt: str
     language: str | None
+    # Début du texte de la page et ses liens sortants : pour retrouver qui reprend qui.
+    body: str = ""
+    links: list[str] = Field(default_factory=list)
 
 
 class NewsFeed(BaseModel):

@@ -105,7 +105,7 @@ export function WebSearchPanel({
             <strong className="font-semibold">
               {done.contradicting} {done.contradicting > 1 ? 'sources démentent' : 'source dément'}
             </strong>{' '}
-            cette information, selon l’IA : dans la toile, leur lien porte la mention « Dément
+            cette information, selon l’IA : dans l’arbre, leur lien porte la mention « Dément
             l’information ».
           </span>
         </p>
@@ -123,8 +123,8 @@ function WebSearchSummary({ done }: { done: Done }) {
           <strong className="font-semibold">
             {done.kept} {done.kept > 1 ? 'sources retrouvées' : 'source retrouvée'}
           </strong>{' '}
-          sur le web. Dans la toile, chacune est reliée à l’information analysée ; cliquez sur un
-          lien pour voir ce qui change, ou sur une source pour la lire.
+          sur le web. Dans l’arbre, chacune est reliée à celle qu’elle reprend ; cliquez sur un lien
+          pour voir ce qui change, ou sur une source pour la lire et l’explorer.
         </span>
       ) : (
         <span>
