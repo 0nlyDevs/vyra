@@ -1,5 +1,5 @@
 import 'server-only';
-import { cookies } from 'next/headers';
+import { cookies, headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { newToken } from '@/server/auth/tokens';
 import { createSession, deleteSession, findSessionProfile } from '@/server/dal/accounts';
@@ -10,8 +10,17 @@ import { createSession, deleteSession, findSessionProfile } from '@/server/dal/a
 const COOKIE_NAME = 'mindstack_session';
 const SESSION_DAYS = 30;
 
+// Le jeton de session : le cookie du site, ou `Authorization: Bearer <jeton>` pour l'application
+// mobile (même session, même table). Les modules n'ont pas à s'en soucier.
+async function readToken() {
+  const fromCookie = (await cookies()).get(COOKIE_NAME)?.value;
+  if (fromCookie) return fromCookie;
+  const authorization = (await headers()).get('authorization');
+  return authorization?.match(/^Bearer\s+(\S+)$/i)?.[1] ?? null;
+}
+
 export async function getCurrentProfile() {
-  const token = (await cookies()).get(COOKIE_NAME)?.value;
+  const token = await readToken();
   return token ? findSessionProfile(token) : null;
 }
 
@@ -23,7 +32,7 @@ export async function requireProfile() {
 
 // Jeton de la session en cours (pour la garder ouverte quand on ferme les autres).
 export async function currentSessionToken() {
-  return (await cookies()).get(COOKIE_NAME)?.value ?? null;
+  return readToken();
 }
 
 // À appeler depuis une server action ou une route (seuls endroits où l'on peut poser un cookie).
