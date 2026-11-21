@@ -79,8 +79,12 @@ export async function searchWebVersions(caseId: string): Promise<ActionResult<We
   // L'IA confirme chaque source proche par le sens : seule une source qui rapporte le même fait
   // devient une version. Celles qui le démentent sont comptées. Sans IA : les vecteurs suffisent.
   const relations = await confirmSameInformation(file.claim, unique.map(articleText));
-  const same = relations ? unique.filter((_, index) => relations[index] === 'same') : unique;
-  const contradicting = relations ? relations.filter((item) => item === 'contradicts').length : 0;
+  const same = relations
+    ? unique.filter((_, index) => relations[index]?.relation === 'same')
+    : unique;
+  const contradicting = relations
+    ? relations.filter((item) => item.relation === 'contradicts').length
+    : 0;
   const kept = same
     .sort((a, b) => dateValue(a.published_at) - dateValue(b.published_at))
     .slice(0, MAX_KEPT);
