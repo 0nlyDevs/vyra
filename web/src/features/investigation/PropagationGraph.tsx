@@ -1,7 +1,7 @@
 'use client';
 
 import { ArrowLeftRight, MousePointerClick } from 'lucide-react';
-import { type CSSProperties, useState } from 'react';
+import { type CSSProperties, useEffect, useRef, useState } from 'react';
 import { ToneBadge } from '@/components/common/ToneBadge';
 import { Button } from '@/components/ui/button';
 import {
@@ -15,7 +15,7 @@ import { formatDate } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import type { CaseFile } from '@/server/dal/cases';
 import styles from './graph.module.css';
-import { GRAPH, layoutGraph } from './graph-layout';
+import { fitColumnWidth, GRAPH, layoutGraph } from './graph-layout';
 import { VersionComparison, VersionDetail } from './VersionPanels';
 
 type Version = CaseFile['versions'][number];
@@ -43,7 +43,21 @@ const TONE_STROKE = {
 
 export function PropagationGraph({ versions, links }: { versions: Version[]; links: Link[] }) {
   const [selection, setSelection] = useState<Selection>(null);
-  const layout = layoutGraph(versions, links);
+  const [available, setAvailable] = useState<number | null>(null);
+  const frameRef = useRef<HTMLDivElement>(null);
+
+  // La largeur disponible décide de l'écart entre les versions : tout le graphe doit tenir.
+  useEffect(() => {
+    const frame = frameRef.current;
+    if (!frame) return;
+    const observer = new ResizeObserver(([entry]) => {
+      if (entry) setAvailable(entry.contentRect.width);
+    });
+    observer.observe(frame);
+    return () => observer.disconnect();
+  }, []);
+
+  const layout = layoutGraph(versions, links, fitColumnWidth(versions.length, available));
   const versionById = new Map(versions.map((version) => [version.id, version]));
   const oldest = layout.nodes[0];
   const newest = layout.nodes.at(-1);
@@ -84,13 +98,11 @@ export function PropagationGraph({ versions, links }: { versions: Version[]; lin
         )}
       </div>
 
-      <div className="-mx-2 overflow-x-auto px-2 pb-2">
-        <div
-          className="relative mx-auto"
-          style={{ width: layout.width, height: layout.height }}
-          role="group"
-          aria-label="Graphe des versions retrouvées, de la plus ancienne à la plus récente"
-        >
+      <div ref={frameRef} className="overflow-x-auto pb-2">
+        <figure className="relative mx-auto" style={{ width: layout.width, height: layout.height }}>
+          <figcaption className="sr-only">
+            Graphe des versions retrouvées, de la plus ancienne à la plus récente
+          </figcaption>
           <svg
             className="absolute inset-0 overflow-visible"
             width={layout.width}
@@ -209,7 +221,7 @@ export function PropagationGraph({ versions, links }: { versions: Version[]; lin
                     '--step': edge.column,
                     left: edge.middle.x,
                     top: edge.middle.y,
-                    maxWidth: GRAPH.columnWidth - GRAPH.radius * 2 - 20,
+                    maxWidth: layout.columnWidth - GRAPH.radius * 2 - 16,
                   } as CSSProperties
                 }
               >
@@ -222,7 +234,7 @@ export function PropagationGraph({ versions, links }: { versions: Version[]; lin
               </button>
             );
           })}
-        </div>
+        </figure>
       </div>
 
       <p className="text-muted-foreground text-sm">
@@ -230,11 +242,7 @@ export function PropagationGraph({ versions, links }: { versions: Version[]; lin
       </p>
 
       {compared?.before && compared.after ? (
-        <VersionComparison
-          before={compared.before}
-          after={compared.after}
-          link={compared.link}
-        />
+        <VersionComparison before={compared.before} after={compared.after} link={compared.link} />
       ) : detailed ? (
         <VersionDetail version={detailed} />
       ) : (

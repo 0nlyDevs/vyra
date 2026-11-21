@@ -10,8 +10,8 @@ import {
 import { PageHeader } from '@/components/common/PageHeader';
 import { ToneBadge } from '@/components/common/ToneBadge';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { PropagationGraph } from '@/features/investigation/PropagationGraph';
 import { EVIDENCE_STRENGTH_LABELS } from '@/lib/domain';
 import { formatDateTime } from '@/lib/format';

@@ -1,10 +1,6 @@
 import { ExternalLink } from 'lucide-react';
 import { ToneBadge } from '@/components/common/ToneBadge';
-import {
-  CHANGE_TYPE_LABELS,
-  CHANGE_TYPE_TONES,
-  LINK_CONFIDENCE_LABELS,
-} from '@/lib/domain';
+import { CHANGE_TYPE_LABELS, CHANGE_TYPE_TONES, LINK_CONFIDENCE_LABELS } from '@/lib/domain';
 import { formatDate } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import type { CaseFile } from '@/server/dal/cases';
@@ -61,9 +57,7 @@ export function VersionComparison({
         </h3>
         <ul className="flex flex-wrap gap-4 text-sm" aria-label="Légende">
           <li className="flex items-center gap-2">
-            <span className="rounded bg-muted px-1.5 text-muted-foreground line-through">
-              mot
-            </span>
+            <span className="rounded bg-muted px-1.5 text-muted-foreground line-through">mot</span>
             retiré
           </li>
           <li className="flex items-center gap-2">
