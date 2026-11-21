@@ -12,6 +12,10 @@ export const ERRORS = defineErrors({
     code: 'UNAUTHORIZED',
     message: 'Choisissez un profil pour continuer.',
   },
+  FORBIDDEN: {
+    code: 'FORBIDDEN',
+    message: 'Cette action est réservée aux vérificateurs.',
+  },
   NOT_FOUND: {
     code: 'NOT_FOUND',
     message: "L'élément demandé est introuvable.",
