@@ -1,0 +1,15 @@
+{
+  "versions": [
+    {
+      "id": "calm",
+      "label": "La version calme",
+      "text": "Une photo d'une rue inondée circule comme si elle datait de ce matin à Ambohitsoa-Nord. Elle a en réalité été publiée le 12 mars 2019 (pièce n° 1). La station météo a mesuré 2 mm de pluie en 24 heures (pièce n° 2) et la mairie indique que l'école est ouverte (pièce n° 3). Aucune pièce ne parle de victimes.",
+      "changes": [
+        "Retrait de « URGENT » et de « Partagez vite ! ».",
+        "« 3 morts » et « la mairie cache la vérité » ne sont plus affirmés : aucune pièce ne les appuie.",
+        "La date de la photo (12 mars 2019) est ajoutée, avec sa source."
+      ]
+    }
+  ],
+  "takeaway": "Avant de partager une photo choc, cherchez quand elle a été publiée pour la première fois."
+}

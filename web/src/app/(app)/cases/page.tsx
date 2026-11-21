@@ -1,6 +1,4 @@
-import { Waypoints } from 'lucide-react';
 import { CaseCard } from '@/components/common/CaseCard';
-import { ModulePlaceholder } from '@/components/common/ModulePlaceholder';
 import { PageHeader } from '@/components/common/PageHeader';
 import { EmptyState } from '@/components/states/States';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -52,13 +50,6 @@ export default async function CasesPage({
           ))}
         </div>
       )}
-      <ModulePlaceholder
-        icon={Waypoints}
-        todo={[
-          'What If? : la version calme d’un contenu réel, et trois versions pour une affaire fictive.',
-        ]}
-        doneWhen="What If? propose la version calme d’un contenu réel."
-      />
     </div>
   );
 }
