@@ -60,7 +60,7 @@ export async function runPrompt<T>(
   return data ? ok(data) : fail(ERRORS.AI_UNAVAILABLE);
 }
 
-// La recherche web (presse, via GDELT) est lente : elle tourne après l'affichage de la page.
+// La recherche web peut être lente (GDELT sans clé Tavily) : elle tourne après l'affichage.
 const WEB_SEARCH_TIMEOUT_MS = 90_000;
 
 const webArticleSchema = z.object({
@@ -73,16 +73,35 @@ const webArticleSchema = z.object({
 });
 export type WebArticle = z.infer<typeof webArticleSchema>;
 
-// Articles de presse qui rapportent l'information. `source: 'fallback'` : recherche impossible.
+// Articles et messages qui rapportent l'information (Tavily, sinon GDELT).
+// `source: 'fallback'` : recherche impossible.
 export async function findWebSources(
   claim: string,
-): Promise<ActionResult<{ articles: WebArticle[]; source: 'gdelt' | 'fallback' }>> {
+): Promise<ActionResult<{ articles: WebArticle[]; source: 'tavily' | 'gdelt' | 'fallback' }>> {
   const schema = z.object({
     articles: z.array(webArticleSchema),
-    source: z.enum(['gdelt', 'fallback']),
+    source: z.enum(['tavily', 'gdelt', 'fallback']),
   });
   const data = await post('/v1/web-sources', { claim }, schema, WEB_SEARCH_TIMEOUT_MS);
   return data ? ok(data) : fail(ERRORS.AI_UNAVAILABLE);
+}
+
+const newsItemSchema = z.object({
+  url: z.string(),
+  title: z.string(),
+  summary: z.string(),
+  published_at: z.string().nullable(),
+  source_name: z.string(),
+});
+export type NewsItem = z.infer<typeof newsItemSchema>;
+
+// Les derniers articles des flux RSS donnés (index de presse). Réseau coupé : `feeds_read` à 0.
+export async function readNewsFeeds(
+  feeds: { url: string; name: string }[],
+): Promise<ActionResult<{ items: NewsItem[]; feeds_read: number }>> {
+  const schema = z.object({ items: z.array(newsItemSchema), feeds_read: z.number() });
+  const data = await post('/v1/news-feeds', { feeds }, schema, WEB_SEARCH_TIMEOUT_MS);
+  return data ? ok(data) : fail(ERRORS.WEB_SEARCH_UNAVAILABLE);
 }
 
 // Un vecteur par texte (recherche par le sens). Hors ligne : AI_UNAVAILABLE.

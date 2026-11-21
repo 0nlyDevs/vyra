@@ -152,6 +152,26 @@ export const webSearches = pgTable('web_searches', {
   searchedAt: timestamp('searched_at', { withTimezone: true }).defaultNow().notNull(),
 });
 
+// Module Enquête : l'index de presse. Les derniers articles de journaux choisis, lus dans leurs
+// flux RSS et enregistrés avec leur vecteur : la recherche d'une information s'y fait sans réseau.
+export const newsArticles = pgTable(
+  'news_articles',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    url: text('url').notNull().unique(),
+    title: text('title').notNull(),
+    summary: text('summary').notNull(),
+    sourceName: text('source_name').notNull(),
+    publishedAt: timestamp('published_at', { withTimezone: true }),
+    // Vide quand l'IA était indisponible à la récolte : l'article reste trouvable par mots.
+    embedding: vector('embedding', { dimensions: EMBEDDING_DIMENSIONS }),
+    harvestedAt: timestamp('harvested_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index('news_articles_embedding_idx').using('hnsw', table.embedding.op('vector_cosine_ops')),
+  ],
+);
+
 export type Profile = typeof profiles.$inferSelect;
 export type Note = typeof notes.$inferSelect;
 export type Case = typeof cases.$inferSelect;
