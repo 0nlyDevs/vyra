@@ -1,12 +1,6 @@
 import 'server-only';
-import { z } from 'zod';
 import { type ActionResult, fail, ok } from '@/lib/action-result';
-import {
-  CHANGE_TYPES,
-  type InfoRelation,
-  LINK_CONFIDENCES,
-  type WebSearchStatus,
-} from '@/lib/domain';
+import type { WebSearchStatus } from '@/lib/domain';
 import { ERRORS } from '@/lib/errors';
 import { getCaseFile } from '@/server/dal/cases';
 import {
@@ -15,21 +9,21 @@ import {
   type OrderedVersion,
   saveWebSearch,
 } from '@/server/dal/investigation';
-import { embedTexts, findWebSources, runPrompt, type WebArticle } from '@/server/processing';
-import { guessChange } from './guess-change';
+import { embedTexts, findWebSources, type WebArticle } from '@/server/processing';
 import { refreshNewsIndex, searchNewsIndex } from './news-index';
 import { confirmSameInformation } from './same-information';
+import { describeTree } from './tree-links';
 import { significantWords, wordOverlap } from './word-match';
 
-// Recherche web d'une affaire : les articles de presse qui rapportent la même information
-// deviennent des versions du graphe, rangées par date et reliées entre elles.
+// Recherche web d'une affaire : les sources qui rapportent la même information deviennent des
+// versions, reliées en arbre de propagation (qui reprend qui), avec démentis et contexte.
 
 // Distance cosinus maximale entre l'information et un article (titre et extrait).
 const WEB_MAX_DISTANCE = 0.3;
 // Sans IA : part et nombre minimal de mots de l'information retrouvés dans l'article.
 const WEB_MIN_OVERLAP = 0.4;
 const WEB_MIN_SHARED = 3;
-// Sources autour du centre de la toile : au-delà, elle devient illisible au projecteur.
+// Sources dans l'arbre : au-delà, il devient illisible au projecteur.
 const MAX_KEPT = 8;
 const CONTENT_MAX_LENGTH = 600;
 
@@ -40,17 +34,19 @@ export type WebSearchResult = {
   contradicting: number;
 };
 
-const compareSchema = z.object({
-  links: z.array(
-    z.object({
-      changeType: z.enum(CHANGE_TYPES),
-      note: z.string().min(1),
-      confidence: z.enum(LINK_CONFIDENCES),
-    }),
-  ),
-});
+// Une seule recherche à la fois par affaire : si la page la relance pendant qu'elle tourne (page
+// montée deux fois, deux onglets), on attend la même au lieu de payer une seconde recherche.
+const running = new Map<string, Promise<ActionResult<WebSearchResult>>>();
 
-export async function searchWebVersions(caseId: string): Promise<ActionResult<WebSearchResult>> {
+export function searchWebVersions(caseId: string): Promise<ActionResult<WebSearchResult>> {
+  const current = running.get(caseId);
+  if (current) return current;
+  const task = search(caseId).finally(() => running.delete(caseId));
+  running.set(caseId, task);
+  return task;
+}
+
+async function search(caseId: string): Promise<ActionResult<WebSearchResult>> {
   const file = await getCaseFile(caseId);
   if (!file) return fail(ERRORS.NOT_FOUND);
 
@@ -83,7 +79,7 @@ export async function searchWebVersions(caseId: string): Promise<ActionResult<We
   // À adresse égale, l'article de l'index l'emporte : il porte le nom du journal.
   const unique = [...new Map([...fromWeb, ...fromIndex].map((item) => [item.url, item])).values()];
   // L'IA dit ce que chaque source proche par le sens rapporte par rapport à l'information : le même
-  // fait, un démenti, ou le même sujet (contexte). Toutes vont dans la toile, sauf les sources sans
+  // fait, un démenti, ou le même sujet (contexte). Toutes vont dans l'arbre, sauf les sources sans
   // rapport. Sans IA : les vecteurs suffisent, toutes sont prises pour le même fait.
   const confirmations = await confirmSameInformation(file.claim, unique.map(articleText));
   const judged = unique.flatMap((article, index) => {
@@ -106,7 +102,39 @@ export async function searchWebVersions(caseId: string): Promise<ActionResult<We
     })),
     { id: received.id },
   ];
-  const links = await linkToReceived(kept, received.content);
+  // L'arbre : qui reprend qui parmi les sources et le texte reçu, puis démentis et contexte.
+  const receivedKey = 'received';
+  const treeLinks = await describeTree([
+    ...kept.map(({ article, relation, reason }, index) => ({
+      key: String(index),
+      relation,
+      text: articleText(article),
+      body: article.body,
+      url: article.url,
+      site: article.site,
+      links: article.links,
+      time: article.published_at ? Date.parse(article.published_at) : null,
+      reason,
+    })),
+    {
+      key: receivedKey,
+      relation: 'same',
+      text: received.content,
+      body: '',
+      url: received.sourceUrl,
+      site: received.sourceName,
+      links: [],
+      time: received.publishedAt?.getTime() ?? Date.now(),
+    },
+  ]);
+  const indexOf = (key: string) => (key === receivedKey ? kept.length : Number(key));
+  const links: LinkBetween[] = treeLinks.map((link) => ({
+    from: indexOf(link.from),
+    to: indexOf(link.to),
+    changeType: link.changeType,
+    note: link.note,
+    confidence: link.confidence,
+  }));
 
   const status = kept.length > 0 ? 'found' : 'nothing_found';
   await saveWebSearch({
@@ -140,55 +168,6 @@ function keepSameInformation(
     return overlap.ratio >= WEB_MIN_OVERLAP && overlap.shared >= WEB_MIN_SHARED;
   });
 }
-
-// Un lien entre chaque source et le texte reçu (le dernier de `ordered`) : un démenti ou un même
-// sujet garde la phrase de l'IA ; une version du même fait dit ce qui a changé, selon l'IA ou à
-// défaut estimé d'après les mots.
-async function linkToReceived(
-  kept: { article: WebArticle; relation: InfoRelation; reason: string | undefined }[],
-  received: string,
-): Promise<LinkBetween[]> {
-  const center = kept.length;
-  const versions = kept.flatMap((item, index) => (item.relation === 'same' ? [index] : []));
-  const pairs = versions.map((index) => ({
-    before: articleText(kept[index]?.article ?? emptyArticle),
-    after: received,
-  }));
-  const described =
-    pairs.length > 0 ? await runPrompt('compare-versions', { pairs }, compareSchema) : null;
-  const fromAi =
-    described?.ok && described.data.result.links.length === pairs.length
-      ? described.data.result.links
-      : null;
-
-  return kept.map((item, index) => {
-    if (item.relation !== 'same') {
-      return {
-        from: index,
-        to: center,
-        changeType: item.relation === 'contradicts' ? 'contradicts' : 'related',
-        note: item.reason ?? 'Selon l’IA.',
-        confidence: 'medium',
-      };
-    }
-    const pairIndex = versions.indexOf(index);
-    const pair = pairs[pairIndex];
-    return {
-      from: index,
-      to: center,
-      ...(fromAi?.[pairIndex] ?? guessChange(pair?.before ?? '', received)),
-    };
-  });
-}
-
-const emptyArticle: WebArticle = {
-  url: '',
-  title: '',
-  site: '',
-  published_at: null,
-  excerpt: '',
-  language: null,
-};
 
 function articleText(article: WebArticle) {
   const text = article.excerpt ? `${article.title}. ${article.excerpt}` : article.title;
