@@ -1,0 +1,206 @@
+'use server';
+
+import { revalidatePath } from 'next/cache';
+import { type ActionResult, fail, ok } from '@/lib/action-result';
+import {
+  CERTAINTY_CRITERIA,
+  CERTAINTY_LABELS,
+  type CertaintyLevel,
+  EVIDENCE_STANCE_LABELS,
+  EVIDENCE_STRENGTH_LABELS,
+} from '@/lib/domain';
+import { ERRORS } from '@/lib/errors';
+import { formatDate } from '@/lib/format';
+import { getCaseFile } from '@/server/dal/cases';
+import { concludeHearing, createHearing, findJudgedCase, getHearing } from '@/server/dal/court';
+import type { Hearing, Pleading } from '@/server/db/schema';
+import { demoVariantForCase } from '@/server/demo/variants';
+import { embedTexts, runPrompt } from '@/server/processing';
+import { getCurrentProfile } from '@/server/session';
+import { computeCertainty } from './certainty';
+import {
+  judgedSearchSchema,
+  openHearingSchema,
+  pleadingSchema,
+  verdictSchema,
+  voteSchema,
+} from './schema';
+
+// Le tribunal : deux plaidoiries (accusation, défense), le vote du juré, la conclusion du juge.
+// Toujours dans cet ordre : connexion → validation Zod → droits → action via la DAL.
+
+export type HearingView = Pick<
+  Hearing,
+  | 'id'
+  | 'status'
+  | 'prosecution'
+  | 'defense'
+  | 'pleadingsSource'
+  | 'vote'
+  | 'certainty'
+  | 'findings'
+  | 'conclusion'
+  | 'whatToCheck'
+  | 'verdictSource'
+>;
+
+function toView(hearing: Hearing): HearingView {
+  return {
+    id: hearing.id,
+    status: hearing.status,
+    prosecution: hearing.prosecution,
+    defense: hearing.defense,
+    pleadingsSource: hearing.pleadingsSource,
+    vote: hearing.vote,
+    certainty: hearing.certainty,
+    findings: hearing.findings,
+    conclusion: hearing.conclusion,
+    whatToCheck: hearing.whatToCheck,
+    verdictSource: hearing.verdictSource,
+  };
+}
+
+type CaseFile = NonNullable<Awaited<ReturnType<typeof getCaseFile>>>;
+
+// Les pièces telles que l'IA les lit : numéro, contenu, source, date, solidité.
+function piecesForAi(file: CaseFile, withStance: boolean) {
+  return file.evidence.map((piece) => ({
+    number: piece.number,
+    title: piece.title,
+    content: piece.content,
+    source: piece.sourceName,
+    date: piece.publishedAt ? formatDate(piece.publishedAt) : 'date inconnue',
+    strength: EVIDENCE_STRENGTH_LABELS[piece.strength].toLowerCase(),
+    ...(withStance ? { stance: EVIDENCE_STANCE_LABELS[piece.stance].toLowerCase() } : {}),
+  }));
+}
+
+// Une plaidoirie ne peut citer que des pièces du dossier : les autres numéros sont retirés.
+function keepExistingPieces(pleading: Pleading, file: CaseFile): Pleading {
+  const numbers = new Set(file.evidence.map((piece) => piece.number));
+  return {
+    argument: pleading.argument,
+    cited: [...new Set(pleading.cited)].filter((n) => numbers.has(n)),
+  };
+}
+
+export async function openHearing(caseId: string): Promise<ActionResult<HearingView>> {
+  const profile = await getCurrentProfile();
+  if (!profile) return fail(ERRORS.UNAUTHORIZED);
+  const parsed = openHearingSchema.safeParse({ caseId });
+  if (!parsed.success) return fail(ERRORS.VALIDATION_FAILED, parsed.error);
+
+  const file = await getCaseFile(parsed.data.caseId);
+  if (!file) return fail(ERRORS.NOT_FOUND);
+
+  const payload = { claim: file.claim, evidence: piecesForAi(file, false) };
+  const options = { fallbackVariant: demoVariantForCase(file.id) };
+  // Les deux avocats préparent leur plaidoirie en même temps.
+  const [prosecution, defense] = await Promise.all([
+    runPrompt('prosecution', payload, pleadingSchema, options),
+    runPrompt('defense', payload, pleadingSchema, options),
+  ]);
+  if (!prosecution.ok) return prosecution;
+  if (!defense.ok) return defense;
+
+  const fromModel = prosecution.data.source === 'gemini' && defense.data.source === 'gemini';
+  const hearing = await createHearing({
+    caseId: file.id,
+    profileId: profile.id,
+    prosecution: keepExistingPieces(prosecution.data.result, file),
+    defense: keepExistingPieces(defense.data.result, file),
+    pleadingsSource: fromModel ? 'gemini' : 'fallback',
+  });
+  if (!hearing) return fail(ERRORS.INTERNAL);
+  revalidatePath(`/court/${file.id}`);
+  return ok(toView(hearing));
+}
+
+export async function voteAndJudge(
+  hearingId: string,
+  vote: string,
+): Promise<ActionResult<HearingView>> {
+  const profile = await getCurrentProfile();
+  if (!profile) return fail(ERRORS.UNAUTHORIZED);
+  const parsed = voteSchema.safeParse({ hearingId, vote });
+  if (!parsed.success) return fail(ERRORS.VALIDATION_FAILED, parsed.error);
+
+  const hearing = await getHearing(parsed.data.hearingId);
+  if (!hearing) return fail(ERRORS.NOT_FOUND);
+  if (hearing.status === 'concluded') return ok(toView(hearing));
+  const file = await getCaseFile(hearing.caseId);
+  if (!file) return fail(ERRORS.NOT_FOUND);
+
+  // Le niveau vient de la règle ; le juge l'explique et classe les affirmations.
+  const certainty: CertaintyLevel = computeCertainty(file.evidence);
+  const payload = {
+    claim: file.claim,
+    certainty: {
+      level: certainty,
+      label: CERTAINTY_LABELS[certainty],
+      criterion: CERTAINTY_CRITERIA[certainty],
+    },
+    evidence: piecesForAi(file, true),
+    prosecution: hearing.prosecution,
+    defense: hearing.defense,
+  };
+  const [verdict, vectors] = await Promise.all([
+    runPrompt('judge', payload, verdictSchema, { fallbackVariant: demoVariantForCase(file.id) }),
+    embedTexts([file.claim]),
+  ]);
+  if (!verdict.ok) return verdict;
+
+  const { confirmed, contested, missing, conclusion, whatToCheck } = verdict.data.result;
+  const concluded = await concludeHearing({
+    hearingId: hearing.id,
+    caseId: file.id,
+    vote: parsed.data.vote,
+    certainty,
+    findings: { confirmed, contested, missing },
+    conclusion,
+    whatToCheck,
+    verdictSource: verdict.data.source,
+    embedding: vectors.ok ? (vectors.data[0] ?? null) : null,
+  });
+  if (!concluded) return fail(ERRORS.INTERNAL);
+  revalidatePath('/court');
+  revalidatePath('/dashboard');
+  revalidatePath(`/court/${file.id}`);
+  return ok(toView(concluded));
+}
+
+export type JudgedMatch = {
+  mode: 'meaning' | 'words';
+  item: {
+    id: string;
+    title: string;
+    certainty: CertaintyLevel | null;
+    conclusion: string | null;
+  } | null;
+};
+
+// « Déjà jugé » : cette information ressemble-t-elle à une affaire déjà conclue ?
+export async function checkAlreadyJudged(
+  _previous: ActionResult<JudgedMatch> | null,
+  formData: FormData,
+): Promise<ActionResult<JudgedMatch>> {
+  const profile = await getCurrentProfile();
+  if (!profile) return fail(ERRORS.UNAUTHORIZED);
+  const parsed = judgedSearchSchema.safeParse({ query: formData.get('query') });
+  if (!parsed.success) return fail(ERRORS.VALIDATION_FAILED, parsed.error);
+
+  const vectors = await embedTexts([parsed.data.query]);
+  const embedding = vectors.ok ? (vectors.data[0] ?? null) : null;
+  const found = await findJudgedCase(parsed.data.query, embedding);
+  return ok({
+    mode: found?.mode ?? (embedding ? 'meaning' : 'words'),
+    item: found
+      ? {
+          id: found.id,
+          title: found.title,
+          certainty: found.certainty,
+          conclusion: found.conclusion,
+        }
+      : null,
+  });
+}

@@ -9,6 +9,11 @@ export const PROFILE_ROLE_LABELS = {
   member: 'Citoyen',
 } satisfies Record<ProfileRole, string>;
 
+// Le vérificateur voit les groupes d'alertes et peut ouvrir une affaire sans attendre le seuil.
+export function isVerifier(role: ProfileRole) {
+  return role === 'admin';
+}
+
 // Ton d'un badge ou d'un encadré : il choisit la couleur d'état (voir ToneBadge).
 export const TONES = ['success', 'info', 'warning', 'danger', 'neutral'] as const;
 export type Tone = (typeof TONES)[number];
@@ -190,3 +195,166 @@ export const AI_SOURCE_LABELS = {
   gemini: 'Réponse de l’IA',
   fallback: 'Réponse préparée (hors ligne)',
 } satisfies Record<AiSource, string>;
+
+// ─── Boîte d'alertes ────────────────────────────────────────────────────────────────────────
+
+// Pourquoi une personne signale un contenu.
+export const REPORT_REASONS = [
+  'fake',
+  'misleading',
+  'out_of_context',
+  'generated_media',
+  'scam',
+] as const;
+export type ReportReason = (typeof REPORT_REASONS)[number];
+
+export const REPORT_REASON_LABELS = {
+  fake: 'Faux',
+  misleading: 'Trompeur',
+  out_of_context: 'Sorti de son contexte',
+  generated_media: 'Image ou voix générée',
+  scam: 'Arnaque',
+} satisfies Record<ReportReason, string>;
+
+// Où en est un signalement (et son groupe). Cet état n'est pas enregistré : il se déduit du nombre
+// de signaleurs du groupe et de l'affaire ouverte pour lui (voir server/dal/reports.ts).
+export const REPORT_STATES = ['received', 'grouped', 'verifying', 'concluded'] as const;
+export type ReportState = (typeof REPORT_STATES)[number];
+
+export const REPORT_STATE_LABELS = {
+  received: 'Reçu',
+  grouped: 'Regroupé',
+  verifying: 'En vérification',
+  concluded: 'Conclu',
+} satisfies Record<ReportState, string>;
+
+export const REPORT_STATE_TONES = {
+  received: 'neutral',
+  grouped: 'info',
+  verifying: 'warning',
+  concluded: 'success',
+} satisfies Record<ReportState, Tone>;
+
+// À ce nombre de signaleurs différents, une affaire est ouverte pour le groupe.
+export const REPORT_CASE_THRESHOLD = 5;
+// Signalements permis par personne sur 24 heures.
+export const REPORT_DAILY_LIMIT = 10;
+
+// ─── Tribunal ───────────────────────────────────────────────────────────────────────────────
+
+// Le vote du juré, enregistré avant la conclusion du juge.
+export const VOTES = ['accurate', 'misleading', 'unsure'] as const;
+export type Vote = (typeof VOTES)[number];
+
+export const VOTE_LABELS = {
+  accurate: 'Exacte',
+  misleading: 'Trompeuse',
+  unsure: 'Je ne sais pas',
+} satisfies Record<Vote, string>;
+
+// Le vote qui rejoint chaque niveau de certitude : sert à comparer le vote et la conclusion.
+export const VOTE_MATCHING_CERTAINTY = {
+  established: 'accurate',
+  probable: 'accurate',
+  uncertain: 'unsure',
+  contradicted: 'misleading',
+  insufficient: 'unsure',
+} satisfies Record<CertaintyLevel, Vote>;
+
+export const HEARING_STATUSES = ['pleaded', 'concluded'] as const;
+export type HearingStatus = (typeof HEARING_STATUSES)[number];
+
+// ─── Scan d'image et de vocal ───────────────────────────────────────────────────────────────
+
+export const MEDIA_KINDS = ['image', 'audio'] as const;
+export type MediaKind = (typeof MEDIA_KINDS)[number];
+
+// Résultat global d'un scan d'image : jamais « c'est une IA », seulement ce qu'on a relevé.
+export const SCAN_OUTCOMES = ['ai_signature', 'clues', 'no_clue'] as const;
+export type ScanOutcome = (typeof SCAN_OUTCOMES)[number];
+
+export const SCAN_OUTCOME_LABELS = {
+  ai_signature: 'Signature IA trouvée',
+  clues: 'Des indices, sans certitude',
+  no_clue: 'Aucun indice, ce qui ne prouve rien',
+} satisfies Record<ScanOutcome, string>;
+
+export const SCAN_OUTCOME_DESCRIPTIONS = {
+  ai_signature: 'Le fichier déclare lui-même avoir été produit par un outil d’IA.',
+  clues: 'Des éléments méritent une vérification. Aucun ne suffit à conclure seul.',
+  no_clue:
+    'Rien de suspect n’a été relevé. Une image peut pourtant être authentique et sortie de son contexte.',
+} satisfies Record<ScanOutcome, string>;
+
+export const SCAN_OUTCOME_TONES = {
+  ai_signature: 'danger',
+  clues: 'warning',
+  no_clue: 'neutral',
+} satisfies Record<ScanOutcome, Tone>;
+
+// ─── Comptes ────────────────────────────────────────────────────────────────────────────────
+
+// Lien à usage unique envoyé par e-mail.
+export const AUTH_TOKEN_PURPOSES = ['verify_email', 'reset_password'] as const;
+export type AuthTokenPurpose = (typeof AUTH_TOKEN_PURPOSES)[number];
+
+// ─── Jeu vrai ou fake ───────────────────────────────────────────────────────────────────────
+
+// La réponse du joueur, et la bonne réponse d'une information du jeu.
+export const GAME_ANSWERS = ['true', 'fake', 'cannot_tell'] as const;
+export type GameAnswer = (typeof GAME_ANSWERS)[number];
+
+export const GAME_ANSWER_LABELS = {
+  true: 'Vrai',
+  fake: 'Fake',
+  cannot_tell: 'Impossible à dire',
+} satisfies Record<GameAnswer, string>;
+
+export const GAME_ANSWER_TONES = {
+  true: 'success',
+  fake: 'danger',
+  cannot_tell: 'neutral',
+} satisfies Record<GameAnswer, Tone>;
+
+// Les indices qu'on retourne pour juger une information.
+export const CLUE_KINDS = ['source', 'date', 'image', 'author', 'other_media'] as const;
+export type ClueKind = (typeof CLUE_KINDS)[number];
+
+export const CLUE_KIND_LABELS = {
+  source: 'La source',
+  date: 'La date',
+  image: 'L’image',
+  author: 'L’auteur',
+  other_media: 'Les autres médias',
+} satisfies Record<ClueKind, string>;
+
+// La note que le joueur donne à un indice.
+export const CLUE_RATINGS = ['reliable', 'suspicious'] as const;
+export type ClueRating = (typeof CLUE_RATINGS)[number];
+
+export const CLUE_RATING_LABELS = {
+  reliable: 'Fiable',
+  suspicious: 'Suspect',
+} satisfies Record<ClueRating, string>;
+
+// Le grade d'une série, d'après la part de bonnes réponses.
+export const GAME_GRADES = ['beginner', 'vigilant', 'expert'] as const;
+export type GameGrade = (typeof GAME_GRADES)[number];
+
+export const GAME_GRADE_LABELS = {
+  beginner: 'Débutant',
+  vigilant: 'Vigilant',
+  expert: 'Expert',
+} satisfies Record<GameGrade, string>;
+
+export const GAME_GRADE_TONES = {
+  beginner: 'neutral',
+  vigilant: 'info',
+  expert: 'success',
+} satisfies Record<GameGrade, Tone>;
+
+// Sur une série de 5 : 0 à 2 bonnes réponses = débutant, 3 ou 4 = vigilant, 5 = expert.
+export function gameGradeOf(score: number, total: number): GameGrade {
+  if (total > 0 && score >= total) return 'expert';
+  return total > 0 && score / total >= 0.6 ? 'vigilant' : 'beginner';
+}
