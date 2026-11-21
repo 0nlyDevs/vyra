@@ -1,9 +1,16 @@
 import { ExternalLink } from 'lucide-react';
 import { ToneBadge } from '@/components/common/ToneBadge';
-import { CHANGE_TYPE_LABELS, CHANGE_TYPE_TONES, LINK_CONFIDENCE_LABELS } from '@/lib/domain';
+import {
+  CHANGE_TYPE_LABELS,
+  CHANGE_TYPE_TONES,
+  LINK_CONFIDENCE_LABELS,
+  SOURCE_KIND_LABELS,
+  SOURCE_KIND_TONES,
+} from '@/lib/domain';
 import { formatDate } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import type { CaseFile } from '@/server/dal/cases';
+import { sourceKind } from './source-kind';
 import { type DiffPart, diffWords } from './word-diff';
 
 type Version = CaseFile['versions'][number];
@@ -95,11 +102,23 @@ export function VersionComparison({
 
 function VersionHeading({ version }: { version: Version }) {
   return (
-    <p className="text-muted-foreground text-sm">
-      <span className="font-semibold text-foreground">Version {version.position}</span> ·{' '}
-      {version.sourceName} ·{' '}
+    <p className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-muted-foreground text-sm">
+      <span className="font-semibold text-foreground">Version {version.position}</span> ·
+      <span>{version.sourceName}</span> ·
       <time dateTime={version.publishedAt?.toISOString()}>{formatDate(version.publishedAt)}</time>
+      <SourceKindBadge version={version} />
     </p>
+  );
+}
+
+// Le type de la source (presse reconnue, forum, réseau social…), déduit de son adresse ou de son nom.
+export function SourceKindBadge({ version, className }: { version: Version; className?: string }) {
+  const kind = sourceKind(version.sourceUrl, version.sourceName);
+  if (kind === 'unknown') return null;
+  return (
+    <ToneBadge tone={SOURCE_KIND_TONES[kind]} className={className}>
+      {SOURCE_KIND_LABELS[kind]}
+    </ToneBadge>
   );
 }
 

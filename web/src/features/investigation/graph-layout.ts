@@ -15,7 +15,7 @@ export const GRAPH = {
   // Largeur du texte sous chaque point (date, source).
   labelWidth: 156,
   // Hauteur réservée au texte sous le point le plus bas.
-  labelHeight: 124,
+  labelHeight: 150,
 } as const;
 
 const MARGIN_X = GRAPH.labelWidth / 2;
