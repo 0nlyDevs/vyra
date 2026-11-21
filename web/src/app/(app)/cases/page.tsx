@@ -3,6 +3,8 @@ import { CaseCard } from '@/components/common/CaseCard';
 import { ModulePlaceholder } from '@/components/common/ModulePlaceholder';
 import { PageHeader } from '@/components/common/PageHeader';
 import { EmptyState } from '@/components/states/States';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { NewCaseForm } from '@/features/investigation/NewCaseForm';
 import { listCases } from '@/server/dal/cases';
 
 export default async function CasesPage() {
@@ -15,6 +17,14 @@ export default async function CasesPage() {
         title="Enquêtes"
         description="Retracer l’histoire d’une information : ses versions retrouvées et ce qui a changé de l’une à l’autre."
       />
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-xl">Nouvelle analyse</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <NewCaseForm />
+        </CardContent>
+      </Card>
       {caseList.length === 0 ? (
         <EmptyState title="Aucune affaire pour l’instant." />
       ) : (
@@ -27,7 +37,6 @@ export default async function CasesPage() {
       <ModulePlaceholder
         icon={Waypoints}
         todo={[
-          'Coller un texte ou un lien et chercher les versions proches dans la base.',
           'Afficher le graphe des versions, la plus ancienne retrouvée à gauche.',
           'Comparer deux versions, avec les mots changés surlignés.',
           'What If? : la version calme d’un contenu réel, et trois versions pour une affaire fictive.',
