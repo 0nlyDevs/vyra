@@ -1,15 +1,17 @@
 'use client';
 
-import { useActionState } from 'react';
+import { useActionState, useRef } from 'react';
 import { FormField, FormMessage } from '@/components/form/FormField';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { appendText, DictateButton } from '@/features/dictation/DictateButton';
 import { openCase } from './actions';
 
 // Coller une information suspecte : la plateforme retrouve son affaire ou en ouvre une.
 export function NewCaseForm() {
   const [state, formAction, pending] = useActionState(openCase, null);
+  const claimRef = useRef<HTMLTextAreaElement>(null);
 
   const fieldErrors = state && !state.ok ? state.error.fieldErrors : undefined;
   const claimError = fieldErrors?.claim?.[0];
@@ -20,6 +22,7 @@ export function NewCaseForm() {
       <div className="grid gap-2">
         <Label htmlFor="claim">L’information à analyser</Label>
         <Textarea
+          ref={claimRef}
           id="claim"
           name="claim"
           rows={4}
@@ -33,6 +36,11 @@ export function NewCaseForm() {
             {claimError}
           </p>
         )}
+        <DictateButton
+          onText={(text) => {
+            if (claimRef.current) claimRef.current.value = appendText(claimRef.current.value, text);
+          }}
+        />
       </div>
       <FormField
         name="sourceUrl"
