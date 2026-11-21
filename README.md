@@ -6,7 +6,8 @@ Tout tourne en local sur un PC : le jury juge la **démo en direct** et la prés
 ## Démarrer : une seule commande, sur Mac, Linux et Windows
 
 Prérequis : **Git** et **Docker** (Docker Desktop sur Mac et Windows). Rien d'autre : Node,
-Python et Postgres tournent dans Docker.
+Python et Postgres tournent dans Docker. Pas de Docker (Windows surtout) : voir
+[Sans Docker](#sans-docker-windows-mac-ou-linux).
 
 ```bash
 git clone git@github.com:mahery-oniniaina/mindstack-devfest-2026.git
@@ -29,6 +30,72 @@ VS Code s'ouvre sur ce dossier avec `code .` depuis le terminal Ubuntu.
 
 Dernier recours si le dépôt reste dans `C:\…` et que les modifications ne s'affichent pas :
 créer un fichier `.env` à la racine avec `WATCH_POLL_INTERVAL_MS=1000`, puis relancer.
+
+### Sans Docker (Windows, Mac ou Linux)
+
+Pour un poste où Docker Desktop ne s'installe pas ou rame. Compter 15 minutes, wifi compris.
+Les commandes ci-dessous sont pour **PowerShell** (Windows) ; sur Mac ou Linux, remplacer
+`.venv\Scripts\python` par `.venv/bin/python` et `Copy-Item` par `cp`.
+
+**1. Installer** Git, **Node 22** (https://nodejs.org, version 22) et **Python 3.12**
+(https://www.python.org/downloads/, cocher « Add python.exe to PATH »).
+
+**2. La base : Postgres gratuit chez Neon** (avec pgvector, rien à installer) :
+
+1. Créer un compte sur https://neon.tech, puis un projet (région Europe).
+2. Dans **SQL Editor**, lancer : `CREATE EXTENSION IF NOT EXISTS vector;`
+3. Bouton **Connect** : décocher « Connection pooling », copier l'adresse (elle commence par
+   `postgresql://` et finit par `?sslmode=require`).
+
+Chacun a sa propre base. Elle demande le wifi.
+
+**3. Le service processing (l'IA)**, dans un premier terminal, depuis le dossier du dépôt :
+
+```powershell
+cd processing
+py -3.12 -m venv .venv
+.venv\Scripts\python -m pip install -r requirements-dev.txt
+Copy-Item .env.example .env
+.venv\Scripts\python -m uvicorn app.main:app --reload --port 8000
+```
+
+Mettre sa clé Gemini dans `processing/.env` (voir [L'IA](#lia--trois-modes-gemini-par-défaut)),
+puis vérifier http://127.0.0.1:8000/health.
+
+**4. Le web**, dans un second terminal :
+
+```powershell
+cd web
+Copy-Item .env.example .env.local
+```
+
+Dans `web/.env.local`, remplacer la ligne `DATABASE_URL=…` par l'adresse Neon. Puis :
+
+```powershell
+npm install
+npm run db:push
+npm run db:seed
+npm run dev
+```
+
+Ouvrir **http://localhost:3000**.
+
+**Les jours suivants** : seulement la dernière commande de chaque terminal (`uvicorn …` et
+`npm run dev`). Après un `git pull` qui change les tables : `npm run db:push`. Remettre les
+données de démo : `npm run db:seed`.
+
+**Ce qui change sans Docker** :
+
+- **E-mails** : Mailpit n'est pas lancé, donc les e-mails ne s'affichent nulle part (l'inscription
+  marche quand même ; les comptes de démo suffisent). Pour les voir : télécharger Mailpit (un seul
+  fichier, https://github.com/axllent/mailpit/releases), le lancer, puis http://localhost:8025.
+- **Vérifications** : `make` n'existe pas sous Windows. À la place de `make check` :
+  `npm run lint` et `npm run typecheck` dans `web`, puis
+  `.venv\Scripts\python -m ruff check .`, `.venv\Scripts\python -m ruff format --check .` et
+  `.venv\Scripts\python -m pytest` dans `processing`.
+- **Base sur le PC plutôt que chez Neon** : installer PostgreSQL 17, puis pgvector
+  (https://github.com/pgvector/pgvector#windows, demande Visual Studio), créer une base
+  `mindstack` et mettre son adresse dans `DATABASE_URL`. Plus long : Neon est conseillé.
 
 ### L'IA : trois modes, Gemini par défaut
 
