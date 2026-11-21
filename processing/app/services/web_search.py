@@ -1,10 +1,13 @@
-"""Recherche d'articles de presse qui rapportent une information (GDELT), puis lecture des pages.
+"""Recherche sur le web des articles et messages qui rapportent une information.
 
-GDELT (https://www.gdeltproject.org) recense la presse mondiale : gratuit, sans clé, articles
-des trois derniers mois, une requête toutes les cinq secondes au plus. On y cherche par
-mots-clés ; le serveur web garde ensuite les articles proches par le sens.
+- Tavily (https://tavily.com), si sa clé est configurée : rapide (2 à 3 s), presse, forums,
+  Reddit, pages publiques de réseaux sociaux. On cherche avec la phrase entière.
+- Sinon GDELT (https://www.gdeltproject.org) : gratuit, sans clé, presse des trois derniers
+  mois, mais lent et souvent saturé. On y cherche par mots-clés, puis on lit chaque page.
 
-Toute panne (réseau coupé, GDELT saturé, `DEMO_OFFLINE`) lève `WebSearchUnavailableError` :
+Le serveur web garde ensuite les résultats proches par le sens.
+
+Toute panne (réseau coupé, moteur saturé, `DEMO_OFFLINE`) lève `WebSearchUnavailableError` :
 la route renvoie alors la réponse de secours `app/fallbacks/web-sources.json`.
 """
 
@@ -16,6 +19,7 @@ import re
 import unicodedata
 from dataclasses import dataclass
 from datetime import UTC, datetime
+from email.utils import parsedate_to_datetime
 from html.parser import HTMLParser
 from typing import Any
 from urllib.parse import urlparse
@@ -32,6 +36,11 @@ GDELT_SPACING_SECONDS = 5.5
 GDELT_RETRIES = 2
 # GDELT met souvent plus de dix secondes à répondre.
 GDELT_TIMEOUT_SECONDS = 25.0
+TAVILY_URL = "https://api.tavily.com/search"
+TAVILY_TIMEOUT_SECONDS = 15.0
+TAVILY_QUERY_MAX_CHARS = 380
+# Temps accordé pour aller lire la date des articles que la recherche n'a pas datés.
+DATE_SECONDS = 6.0
 MAX_ARTICLES = 8
 PAGE_TIMEOUT_SECONDS = 8.0
 PAGES_TOTAL_SECONDS = 14.0
@@ -281,21 +290,13 @@ def _shorten(text: str) -> str:
     return cut[: cut.rfind(" ")].rstrip(" ,;:") + "…"
 
 
-async def _read_article(client: httpx.AsyncClient, item: dict[str, Any]) -> WebArticle:
-    url = str(item["url"])
-    article = WebArticle(
-        url=url,
-        title=" ".join(str(item.get("title") or "").split()),
-        site=str(item.get("domain") or urlparse(url).hostname or url),
-        published_at=_gdelt_date(item.get("seendate")),
-        excerpt="",
-        language=str(item["language"]) if item.get("language") else None,
-    )
+async def _fetch_page(client: httpx.AsyncClient, url: str) -> dict[str, str | None] | None:
+    """Titre, date et extrait d'une page web ; None si elle ne se lit pas (bloquée, lente…)."""
     try:
         async with client.stream("GET", url, timeout=PAGE_TIMEOUT_SECONDS) as response:
             response.raise_for_status()
             if "html" not in response.headers.get("content-type", ""):
-                return article
+                return None
             body = b""
             async for chunk in response.aiter_bytes():
                 body += chunk
@@ -303,21 +304,148 @@ async def _read_article(client: httpx.AsyncClient, item: dict[str, Any]) -> WebA
                     break
             html = body.decode(response.encoding or "utf-8", errors="replace")
     except httpx.HTTPError:
-        # Page illisible (bloquée, trop lente) : on garde ce que GDELT en dit.
+        return None
+    return read_page(html)
+
+
+async def _read_article(client: httpx.AsyncClient, item: dict[str, Any]) -> WebArticle:
+    url = str(item["url"])
+    article = WebArticle(
+        url=url,
+        title=" ".join(str(item.get("title") or "").split()),
+        site=str(item.get("domain") or _site(url)),
+        published_at=_gdelt_date(item.get("seendate")),
+        excerpt="",
+        language=str(item["language"]) if item.get("language") else None,
+    )
+    page = await _fetch_page(client, url)
+    if page is None:
+        # Page illisible : on garde ce que GDELT en dit.
         return article
-    page = read_page(html)
     article.title = page["title"] or article.title
     article.published_at = page["published_at"] or article.published_at
     article.excerpt = page["excerpt"] or ""
     return article
 
 
+def _site(url: str) -> str:
+    host = urlparse(url).hostname or url
+    return host.removeprefix("www.")
+
+
+async def _finish(tasks: list[asyncio.Task[Any]], seconds: float) -> list[Any]:
+    """Résultats des tâches finies à temps ; les autres sont abandonnées."""
+    if not tasks:
+        return []
+    done, pending = await asyncio.wait(tasks, timeout=seconds)
+    for task in pending:
+        task.cancel()
+    await asyncio.gather(*pending, return_exceptions=True)
+    return [task.result() for task in done if not task.exception()]
+
+
 async def find_articles(
     settings: Settings, claim: str, *, transport: httpx.AsyncBaseTransport | None = None
-) -> list[WebArticle]:
-    """Articles de presse proches de l'information, lus et datés. Lève WebSearchUnavailableError."""
+) -> tuple[list[WebArticle], str]:
+    """Articles proches de l'information, datés, et le moteur utilisé (« tavily » ou « gdelt »).
+
+    Tavily si sa clé est configurée (rapide, presse et forums), sinon GDELT (presse seulement).
+    Lève WebSearchUnavailableError si la recherche ne peut pas se faire.
+    """
     if settings.demo_offline:
         raise WebSearchUnavailableError("offline")
+    if settings.tavily_api_key is not None:
+        key = settings.tavily_api_key.get_secret_value()
+        return await _find_with_tavily(key, claim, transport), "tavily"
+    return await _find_with_gdelt(claim, transport), "gdelt"
+
+
+async def _tavily(
+    client: httpx.AsyncClient, key: str, claim: str, topic: str
+) -> list[dict[str, Any]]:
+    response = await client.post(
+        TAVILY_URL,
+        headers={"Authorization": f"Bearer {key}"},
+        json={
+            # Tavily accepte une phrase entière : l'information elle-même est la meilleure requête.
+            "query": claim[:TAVILY_QUERY_MAX_CHARS],
+            "topic": topic,
+            "search_depth": "basic",
+            "max_results": MAX_ARTICLES,
+        },
+    )
+    response.raise_for_status()
+    data = response.json()
+    results = data.get("results", []) if isinstance(data, dict) else []
+    return [item for item in results if isinstance(item, dict) and item.get("url")]
+
+
+def _from_tavily(item: dict[str, Any]) -> WebArticle:
+    url = str(item["url"])
+    published = item.get("published_date")
+    return WebArticle(
+        url=url,
+        title=" ".join(str(item.get("title") or "").split()),
+        site=_site(url),
+        published_at=_rfc_date(published) if isinstance(published, str) else None,
+        # Le contenu renvoyé est du Markdown : on garde le texte.
+        excerpt=_shorten(
+            " ".join(re.sub(r"[#*_>`|]+", " ", str(item.get("content") or "")).split())
+        ),
+        language=None,
+    )
+
+
+def _rfc_date(value: str) -> str | None:
+    """Date au format des actualités (« Thu, 12 Nov 2026 00:00:00 GMT ») ou ISO, en ISO."""
+    try:
+        return parsedate_to_datetime(value).astimezone(UTC).isoformat()
+    except (TypeError, ValueError, IndexError):
+        return _iso_date(value)
+
+
+async def _find_with_tavily(
+    key: str, claim: str, transport: httpx.AsyncBaseTransport | None
+) -> list[WebArticle]:
+    headers = {"User-Agent": USER_AGENT}
+    async with httpx.AsyncClient(
+        timeout=TAVILY_TIMEOUT_SECONDS, follow_redirects=True, headers=headers, transport=transport
+    ) as client:
+        # Actualités (datées) et web général (forums, Reddit, blogs) en même temps.
+        responses = await asyncio.gather(
+            _tavily(client, key, claim, "news"),
+            _tavily(client, key, claim, "general"),
+            return_exceptions=True,
+        )
+        if all(isinstance(response, BaseException) for response in responses):
+            logger.warning("tavily : recherche impossible (%s)", type(responses[0]).__name__)
+            raise WebSearchUnavailableError("tavily")
+
+        articles: dict[str, WebArticle] = {}
+        for response in responses:
+            if isinstance(response, BaseException):
+                continue
+            for item in response:
+                article = _from_tavily(item)
+                if article.title:
+                    articles.setdefault(article.url, article)
+
+        # Sans date, on va la lire sur la page, en temps limité : sinon l'article reste non daté.
+        undated = [article for article in articles.values() if article.published_at is None]
+
+        async def complete(article: WebArticle) -> None:
+            page = await _fetch_page(client, article.url)
+            if page is not None:
+                article.published_at = page["published_at"]
+
+        await _finish([asyncio.create_task(complete(article)) for article in undated], DATE_SECONDS)
+    logger.info("tavily : %d articles, %d sans date au départ", len(articles), len(undated))
+    return list(articles.values())
+
+
+async def _find_with_gdelt(
+    claim: str, transport: httpx.AsyncBaseTransport | None
+) -> list[WebArticle]:
     headers = {"User-Agent": USER_AGENT}
     async with httpx.AsyncClient(
         timeout=GDELT_TIMEOUT_SECONDS, follow_redirects=True, headers=headers, transport=transport
@@ -340,12 +468,6 @@ async def find_articles(
 
         unique = list({str(item["url"]): item for item in found}.values())[:MAX_ARTICLES]
         tasks = [asyncio.create_task(_read_article(client, item)) for item in unique]
-        if not tasks:
-            return []
-        done, pending = await asyncio.wait(tasks, timeout=PAGES_TOTAL_SECONDS)
-        for task in pending:
-            task.cancel()
-        await asyncio.gather(*pending, return_exceptions=True)
-    articles = [task.result() for task in done if not task.exception()]
+        articles: list[WebArticle] = await _finish(tasks, PAGES_TOTAL_SECONDS)
     logger.info("gdelt : %d articles trouvés, %d lus", len(unique), len(articles))
     return [article for article in articles if article.title]
