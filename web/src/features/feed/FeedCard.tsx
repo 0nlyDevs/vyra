@@ -75,7 +75,7 @@ export function FeedCard({
   return (
     <article
       aria-labelledby={`post-${item.id}`}
-      className="grid grid-cols-[minmax(0,1fr)] gap-4 rounded-2xl border bg-card p-5"
+      className="grid grid-cols-[minmax(0,1fr)] gap-4 surface p-5"
     >
       <header className="flex items-start gap-3">
         <span

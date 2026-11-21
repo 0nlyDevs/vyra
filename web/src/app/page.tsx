@@ -1,71 +1,64 @@
 import { ArrowRight } from 'lucide-react';
 import Link from 'next/link';
+import { LogoMark } from '@/components/brand/Logo';
 import { Button } from '@/components/ui/button';
 import { Comparison } from '@/features/landing/Comparison';
+import { CourtShowcase } from '@/features/landing/CourtShowcase';
 import { FeatureBento } from '@/features/landing/FeatureBento';
-import { HearingPreview } from '@/features/landing/HearingPreview';
+import { Hero } from '@/features/landing/Hero';
 import { LandingNav } from '@/features/landing/LandingNav';
+import { Manifesto } from '@/features/landing/Manifesto';
+import { SourcesMarquee } from '@/features/landing/SourcesMarquee';
+import { AFTER_SIGN_IN_PATH } from '@/lib/navigation';
 import { getCurrentProfile } from '@/server/session';
 
-const ENTER =
-  'animate-in fade-in slide-in-from-bottom-3 fill-mode-both duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] motion-reduce:animate-none';
-
-// Page d'accueil publique : le premier écran du pitch.
+// Page d'accueil publique : le premier écran du pitch. Toujours en thème nuit (direction
+// « Nuit rouge », reprise du site Kovity), quel que soit le thème choisi dans l'application.
 export default async function HomePage() {
   const signedIn = Boolean(await getCurrentProfile());
 
   return (
-    <div className="min-h-[100dvh]">
+    <div className="dark min-h-[100dvh] overflow-x-clip bg-background text-foreground">
       <LandingNav signedIn={signedIn} />
       <main>
-        <section className="mx-auto grid max-w-6xl items-center gap-12 px-6 pt-16 pb-20 md:pt-24 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
-          <div className="grid gap-6">
-            <h1
-              className={`text-balance font-semibold text-4xl leading-[1.08] tracking-tight md:text-5xl lg:text-[3.1rem] ${ENTER}`}
-            >
-              Une info douteuse ? Faites-la juger.
-            </h1>
-            <p
-              className={`max-w-[48ch] text-lg text-muted-foreground [animation-delay:100ms] ${ENTER}`}
-            >
-              Voyez d’où elle vient, écoutez les deux camps, puis concluez seulement quand les
-              preuves le permettent.
-            </p>
-            <div className={`flex flex-wrap gap-3 [animation-delay:200ms] ${ENTER}`}>
-              <Button asChild size="lg">
-                <Link href="/signup">
-                  Créer un compte
-                  <ArrowRight aria-hidden data-icon="inline-end" />
-                </Link>
-              </Button>
-              <Button asChild size="lg" variant="outline">
-                <Link href="/login#demo">Voir la démo</Link>
-              </Button>
-            </div>
-          </div>
-          <HearingPreview />
-        </section>
-
+        <Hero signedIn={signedIn} />
+        <Manifesto />
         <FeatureBento />
+        <SourcesMarquee />
+        <CourtShowcase />
         <Comparison />
 
-        <section className="mx-auto grid max-w-6xl justify-items-start gap-6 px-6 py-20">
-          <h2 className="max-w-2xl font-semibold text-3xl md:text-4xl">
-            Vérifier avant de partager, en quelques clics.
-          </h2>
-          <Button asChild size="lg">
-            <Link href="/signup">
-              Créer un compte
-              <ArrowRight aria-hidden data-icon="inline-end" />
-            </Link>
-          </Button>
+        <section className="relative overflow-hidden">
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-x-0 bottom-[-40%] mx-auto aspect-square max-w-[70rem] rounded-full bg-[radial-gradient(closest-side,oklch(0.6_0.23_24/0.35),oklch(0.4_0.16_24/0.12)_55%,transparent)]"
+          />
+          <div className="relative mx-auto grid max-w-[84rem] justify-items-center gap-8 px-5 py-32 text-center lg:px-10">
+            <LogoMark className="size-12" />
+            <h2 className="display max-w-[16ch] text-[clamp(2.2rem,5.4vw,4.6rem)]">
+              Vérifier avant de partager.
+            </h2>
+            <p className="max-w-[44ch] text-[1.05rem] text-muted-foreground">
+              Quelques clics suffisent pour savoir d’où vient une information, et ce qu’elle vaut.
+            </p>
+            <Button asChild variant="solid" size="lg" className="group/btn pr-1.5">
+              <Link href={signedIn ? AFTER_SIGN_IN_PATH : '/signup'}>
+                {signedIn ? 'Ouvrir MindStack' : 'Créer un compte'}
+                <span className="btn-swap size-8 rounded-full bg-background text-foreground">
+                  <ArrowRight aria-hidden className="size-4" />
+                  <ArrowRight aria-hidden className="size-4" />
+                </span>
+              </Link>
+            </Button>
+          </div>
         </section>
       </main>
       <footer className="border-t">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-6 py-6 text-muted-foreground text-sm">
-          <span>Équipe MindStack, DevFest Antananarivo 2026</span>
-          <Link href="/login" className="underline-offset-4 hover:underline">
+        <div className="mx-auto flex max-w-[84rem] flex-wrap items-center justify-between gap-3 px-5 py-8 text-muted-foreground text-sm lg:px-10">
+          <span>Équipe MindStack · DevFest Antananarivo 2026</span>
+          <Link href="/login" className="link-arrow">
             Se connecter
+            <ArrowRight aria-hidden className="size-3.5" />
           </Link>
         </div>
       </footer>

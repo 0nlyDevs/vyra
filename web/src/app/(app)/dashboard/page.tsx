@@ -29,7 +29,7 @@ export default async function DashboardPage() {
             <Link
               key={item.href}
               href={item.href}
-              className="grid gap-3 rounded-xl border bg-card p-5 outline-none transition-colors hover:border-primary/40 hover:bg-accent/40 focus-visible:ring-3 focus-visible:ring-ring/50"
+              className="grid gap-3 surface p-5 outline-none transition-colors hover:border-primary/40 hover:bg-accent/40 focus-visible:ring-3 focus-visible:ring-ring/50"
             >
               <span className="flex size-10 items-center justify-center rounded-lg bg-accent text-accent-foreground">
                 <item.icon aria-hidden className="size-5" />
