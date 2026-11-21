@@ -42,8 +42,10 @@ export function LandingMotion() {
       if (el.hasAttribute('data-lines')) {
         gsap.fromTo(
           el.querySelectorAll('.line > span'),
-          { yPercent: 112 },
-          { yPercent: 0, duration: 1.05, stagger: 0.09, ease: 'power4.out' },
+          // `y: 0` : la règle CSS de départ (translateY(112%)) est lue par gsap comme un décalage en
+          // pixels ; sans ce zéro, il resterait en place et le titre finirait caché sous son masque.
+          { yPercent: 112, y: 0 },
+          { yPercent: 0, y: 0, duration: 1.05, stagger: 0.09, ease: 'power4.out' },
         );
       } else if (el.dataset.reveal === 'stagger') {
         gsap.fromTo(
