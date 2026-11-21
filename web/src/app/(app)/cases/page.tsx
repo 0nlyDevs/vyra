@@ -1,6 +1,4 @@
-import { Waypoints } from 'lucide-react';
 import { CaseCard } from '@/components/common/CaseCard';
-import { ModulePlaceholder } from '@/components/common/ModulePlaceholder';
 import { PageHeader } from '@/components/common/PageHeader';
 import { EmptyState } from '@/components/states/States';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,7 +8,13 @@ import { PressIndexBar } from '@/features/investigation/PressIndexBar';
 import { listCases } from '@/server/dal/cases';
 import { getNewsIndexState } from '@/server/dal/news-index';
 
-export default async function CasesPage() {
+// `?information=…&lien=…` pré-remplit l'analyse (envoyé par l'extension du navigateur).
+export default async function CasesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ information?: string; lien?: string }>;
+}) {
+  const { information, lien } = await searchParams;
   const [caseList, pressIndex] = await Promise.all([listCases(), getNewsIndexState()]);
 
   return (
@@ -25,7 +29,10 @@ export default async function CasesPage() {
           <CardTitle className="text-xl">Nouvelle analyse</CardTitle>
         </CardHeader>
         <CardContent>
-          <NewCaseForm />
+          <NewCaseForm
+            defaultClaim={(information ?? '').slice(0, 3000)}
+            defaultUrl={lien?.startsWith('http') ? lien.slice(0, 2000) : ''}
+          />
         </CardContent>
       </Card>
       <PressIndexBar
@@ -43,11 +50,6 @@ export default async function CasesPage() {
           ))}
         </div>
       )}
-      <ModulePlaceholder
-        icon={Waypoints}
-        todo={['Bulle dans Chrome : analyser un texte sélectionné sur n’importe quelle page.']}
-        doneWhen="la bulle ouvre une enquête depuis une page web."
-      />
     </div>
   );
 }

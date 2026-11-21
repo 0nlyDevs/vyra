@@ -1,0 +1,78 @@
+:root {
+  color-scheme: dark;
+  --bg: #120809;
+  --panel: #1d1213;
+  --line: #34262a;
+  --text: #f2ebe3;
+  --muted: #b3a69c;
+  --red: #e5383b;
+  --success: #3fb37f;
+  --info: #5b9cf5;
+  --warning: #e5a13b;
+  --danger: #e5484d;
+  --neutral: #9a8f87;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--line);
+}
+header button { margin-left: auto; }
+main, #settings { display: grid; gap: 14px; padding: 16px; }
+section { display: grid; gap: 10px; }
+label { font-weight: 600; font-size: 14px; }
+textarea, input {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--panel);
+  color: var(--text);
+  font: inherit;
+}
+button {
+  justify-self: start;
+  padding: 9px 16px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--red);
+  color: #fff;
+  font: 600 14px/1 inherit;
+  cursor: pointer;
+}
+button.ghost { background: transparent; color: var(--muted); border: 1px solid var(--line); }
+button:disabled { opacity: 0.6; cursor: wait; }
+a { color: #ff8b8d; }
+blockquote {
+  margin: 0;
+  padding: 10px 12px;
+  border-left: 3px solid var(--red);
+  background: var(--panel);
+  border-radius: 0 10px 10px 0;
+  white-space: pre-wrap;
+  max-height: 220px;
+  overflow: auto;
+}
+#preview-image { max-width: 100%; border-radius: 10px; }
+.muted { color: var(--muted); font-size: 13px; margin: 0; }
+.eyebrow { color: var(--red); font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; margin: 0; }
+.card { display: grid; gap: 8px; padding: 12px; border: 1px solid var(--line); border-radius: 14px; background: var(--panel); }
+.card h2 { margin: 0; font-size: 15px; }
+.card p, .card ul { margin: 0; }
+.card ul { padding-left: 18px; display: grid; gap: 4px; }
+.badge { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 12px; font-weight: 600; background: color-mix(in srgb, var(--tone) 22%, transparent); color: var(--tone); }
+.tone-success { --tone: var(--success); }
+.tone-info { --tone: var(--info); }
+.tone-warning { --tone: var(--warning); }
+.tone-danger { --tone: var(--danger); }
+.tone-neutral { --tone: var(--neutral); }
+.links { display: flex; flex-wrap: wrap; gap: 8px; }
