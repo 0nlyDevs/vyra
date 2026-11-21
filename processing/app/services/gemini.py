@@ -16,6 +16,7 @@ import httpx
 
 from app.core.config import Settings
 from app.schemas.ai import InlineFile
+from app.services.connect_retry import call_with_connect_retry
 from app.services.llm_common import AiUnavailableError, extract_json
 
 logger = logging.getLogger(__name__)
@@ -38,10 +39,15 @@ def _post(
 ) -> dict[str, Any]:
     # La clé part dans un en-tête, jamais dans l'adresse : elle n'apparaît pas dans les journaux.
     headers = {"x-goog-api-key": _api_key(settings)}
-    with httpx.Client(
-        timeout=timeout or settings.ai_timeout_seconds, transport=transport
-    ) as client:
-        response = client.post(url, json=body, headers=headers)
+    # Les nouveaux essais (DNS du conteneur instable) restent dans le temps prévu pour l'appel.
+    deadline = time.monotonic() + (timeout or settings.ai_timeout_seconds)
+    with httpx.Client(transport=transport) as client:
+        response = call_with_connect_retry(
+            lambda: client.post(
+                url, json=body, headers=headers, timeout=deadline - time.monotonic()
+            ),
+            deadline=deadline,
+        )
     response.raise_for_status()
     data = response.json()
     if not isinstance(data, dict):

@@ -93,9 +93,44 @@ données de démo : `npm run db:seed`.
   `npm run lint` et `npm run typecheck` dans `web`, puis
   `.venv\Scripts\python -m ruff check .`, `.venv\Scripts\python -m ruff format --check .` et
   `.venv\Scripts\python -m pytest` dans `processing`.
-- **Base sur le PC plutôt que chez Neon** : installer PostgreSQL 17, puis pgvector
-  (https://github.com/pgvector/pgvector#windows, demande Visual Studio), créer une base
-  `mindstack` et mettre son adresse dans `DATABASE_URL`. Plus long : Neon est conseillé.
+- **Base sur le PC plutôt que chez Neon** : voir
+  [Postgres déjà installé sur le PC](#postgres-déjà-installé-sur-le-pc-windows) ci-dessous.
+- **`git pull` refuse avec « SSL peer certificate or SSH remote key was not OK »** (souvent un
+  antivirus ou un proxy qui inspecte le HTTPS ; `gh repo sync` échoue pareil, car il passe par
+  `git`) : utiliser les certificats de Windows, pour une commande
+  `git -c http.sslBackend=schannel pull`, ou une fois pour toutes
+  `git config --global http.sslBackend schannel`.
+
+#### Postgres déjà installé sur le PC (Windows)
+
+Sans wifi ni compte Neon, si PostgreSQL (version 13 à 18) est déjà installé, par exemple dans
+`C:\Program Files\PostgreSQL\14`. Il lui manque pgvector, qui n'a pas de version Windows
+officielle toute prête : on prend celle compilée par la communauté
+(https://github.com/andreiramani/pgvector_pgsql_windows/releases), sans Visual Studio.
+
+1. Télécharger le zip qui correspond à sa version de Postgres (`vector.v…-pg14.zip` pour la 14)
+   et le décompresser, par exemple dans `Downloads\pgvector`.
+2. Dans un PowerShell **lancé en administrateur** (remplacer `14` par sa version) :
+
+   ```powershell
+   $pg = "C:\Program Files\PostgreSQL\14"
+   $src = "$HOME\Downloads\pgvector"
+   Copy-Item "$src\lib\vector.dll" "$pg\lib\"
+   Copy-Item "$src\share\extension\vector*" "$pg\share\extension\"
+   ```
+
+3. Créer l'utilisateur et la base (mot de passe de l'utilisateur `postgres` demandé) :
+
+   ```powershell
+   $psql = "C:\Program Files\PostgreSQL\14\bin\psql.exe"
+   & $psql -U postgres -h localhost -c "CREATE ROLE mindstack LOGIN PASSWORD 'mindstack'"
+   & $psql -U postgres -h localhost -c "CREATE DATABASE mindstack OWNER mindstack"
+   & $psql -U postgres -h localhost -d mindstack -c "CREATE EXTENSION vector"
+   ```
+
+4. À l'étape 4 ci-dessus, dans `web/.env.local`, garder la ligne `DATABASE_URL` mais avec le
+   port **5432** (celui de Postgres sur le PC ; 5433 est celui de Docker) :
+   `DATABASE_URL=postgres://mindstack:mindstack@localhost:5432/mindstack`.
 
 ### L'IA : trois modes, Gemini par défaut
 
