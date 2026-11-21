@@ -1,0 +1,25 @@
+# Service processing (FastAPI) en ligne sur Render, redéployé à chaque push sur main.
+# Render → New → Blueprint → ce dépôt. Le web (Next.js) est sur Vercel, la base chez Neon.
+services:
+  - type: web
+    name: vyra-processing
+    runtime: python
+    plan: free
+    # Comme la base Neon et les fonctions Vercel (fra1) : le plus proche de Madagascar.
+    region: frankfurt
+    rootDir: processing
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.8
+      - key: AI_MODE
+        value: gemini
+      # Demandées à la création du Blueprint (jamais écrites dans le dépôt).
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: PROCESSING_TOKEN
+        sync: false
+      - key: TAVILY_API_KEY
+        sync: false

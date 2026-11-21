@@ -65,8 +65,17 @@ class Settings(BaseSettings):
     google_factcheck_api_key: SecretStr | None = None
     # true : jamais d'appel à Gemini, toujours les réponses de secours (répétition du plan B).
     demo_offline: bool = False
+    # Secret partagé avec le web (même valeur des deux côtés), exigé dans l'en-tête
+    # X-Processing-Token. Obligatoire en ligne ; absent (sur le PC) : pas de contrôle.
+    processing_token: SecretStr | None = None
 
-    @field_validator("gemini_api_key", "tavily_api_key", "google_factcheck_api_key", mode="before")
+    @field_validator(
+        "gemini_api_key",
+        "tavily_api_key",
+        "google_factcheck_api_key",
+        "processing_token",
+        mode="before",
+    )
     @classmethod
     def _empty_as_missing(cls, value: object) -> object:
         # Une variable déclarée mais vide vaut « non configurée ».
