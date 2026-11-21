@@ -53,10 +53,10 @@ export function ClueCard({
   const expected: ClueRating = clue.reliable ? 'reliable' : 'suspicious';
 
   return (
-    <div className="perspective-distant">
+    <div className="h-full perspective-distant">
       <div
         className={cn(
-          'grid transition-transform duration-400 ease-[cubic-bezier(0.23,1,0.32,1)] transform-3d motion-reduce:transform-none motion-reduce:transition-none',
+          'grid h-full transition-transform duration-400 ease-[cubic-bezier(0.23,1,0.32,1)] transform-3d motion-reduce:transform-none motion-reduce:transition-none',
           revealed && 'rotate-y-180',
         )}
       >
@@ -71,8 +71,8 @@ export function ClueCard({
         >
           <Icon aria-hidden className="size-6" />
           <span className="font-semibold">{label}</span>
-          <span className="flex items-center gap-1.5 text-sm opacity-80">
-            <RotateCw aria-hidden className="size-3.5" />
+          <span className="text-balance text-center text-sm opacity-80">
+            <RotateCw aria-hidden className="mr-1.5 inline size-3.5 align-[-0.15em]" />
             Retourner l’indice
           </span>
         </button>
