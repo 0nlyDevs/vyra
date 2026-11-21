@@ -1,4 +1,4 @@
-import type { FeedStatus, FeedView } from '@/lib/domain';
+import type { FeedStatus } from '@/lib/domain';
 import type { FeedItem } from '@/server/dal/feed';
 
 // L'état d'une publication, du plus avancé au moins avancé : conclue, en vérification (une
@@ -11,10 +11,4 @@ export function feedStatusOf(
   if (item.reportState === 'verifying' || item.reportState === 'concluded') return 'verifying';
   if (item.reporterCount > 0) return 'reported';
   return 'unverified';
-}
-
-export function matchesView(status: FeedStatus, view: FeedView) {
-  if (view === 'concluded') return status === 'concluded';
-  if (view === 'verifying') return status === 'reported' || status === 'verifying';
-  return true;
 }
