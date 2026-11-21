@@ -9,6 +9,8 @@ const serverSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   DATABASE_URL: z.string().startsWith('postgres', 'doit commencer par postgres://'),
   PROCESSING_URL: z.url().default('http://127.0.0.1:8000'),
+  // Secret partagé avec processing (même valeur des deux côtés). Obligatoire en ligne.
+  PROCESSING_TOKEN: z.string().optional(),
   // Adresse de l'application, pour les liens des e-mails et le retour de Google.
   APP_URL: z.url().default('http://localhost:3000'),
   // Serveur d'envoi des e-mails. Par défaut : Mailpit (docker-compose.yml), qui les affiche sur
