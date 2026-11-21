@@ -18,6 +18,7 @@ import { PropagationGraph } from '@/features/investigation/PropagationGraph';
 import { SourceKindBadge } from '@/features/investigation/SourceKindBadge';
 import { WebSearchPanel } from '@/features/investigation/WebSearchPanel';
 import { WarningSigns } from '@/features/signals/WarningSigns';
+import { WhatIfPanel } from '@/features/whatif/WhatIfPanel';
 import { EVIDENCE_STRENGTH_LABELS, MATCH_KIND_LABELS, MATCH_KINDS } from '@/lib/domain';
 import { formatDateTime } from '@/lib/format';
 import { getCaseFile } from '@/server/dal/cases';
@@ -130,6 +131,7 @@ export default async function CaseFilePage({
       </Card>
 
       <FactCheckPanel caseId={file.id} />
+      <WhatIfPanel caseId={file.id} kind={file.kind} />
 
       <div className="grid gap-6">
         <Card>

@@ -45,10 +45,7 @@ export default async function CasesPage() {
       )}
       <ModulePlaceholder
         icon={Waypoints}
-        todo={[
-          'What If? : la version calme d’un contenu réel, et trois versions pour une affaire fictive.',
-          'Bulle dans Chrome : analyser un texte sélectionné sur n’importe quelle page.',
-        ]}
+        todo={['Bulle dans Chrome : analyser un texte sélectionné sur n’importe quelle page.']}
         doneWhen="la bulle ouvre une enquête depuis une page web."
       />
     </div>
