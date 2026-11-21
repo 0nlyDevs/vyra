@@ -10,7 +10,13 @@ import { PressIndexBar } from '@/features/investigation/PressIndexBar';
 import { listCases } from '@/server/dal/cases';
 import { getNewsIndexState } from '@/server/dal/news-index';
 
-export default async function CasesPage() {
+// `?information=…&lien=…` pré-remplit l'analyse (envoyé par l'extension du navigateur).
+export default async function CasesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ information?: string; lien?: string }>;
+}) {
+  const { information, lien } = await searchParams;
   const [caseList, pressIndex] = await Promise.all([listCases(), getNewsIndexState()]);
 
   return (
@@ -25,7 +31,10 @@ export default async function CasesPage() {
           <CardTitle className="text-xl">Nouvelle analyse</CardTitle>
         </CardHeader>
         <CardContent>
-          <NewCaseForm />
+          <NewCaseForm
+            defaultClaim={(information ?? '').slice(0, 3000)}
+            defaultUrl={lien?.startsWith('http') ? lien.slice(0, 2000) : ''}
+          />
         </CardContent>
       </Card>
       <PressIndexBar
@@ -47,9 +56,8 @@ export default async function CasesPage() {
         icon={Waypoints}
         todo={[
           'What If? : la version calme d’un contenu réel, et trois versions pour une affaire fictive.',
-          'Bulle dans Chrome : analyser un texte sélectionné sur n’importe quelle page.',
         ]}
-        doneWhen="la bulle ouvre une enquête depuis une page web."
+        doneWhen="What If? propose la version calme d’un contenu réel."
       />
     </div>
   );
