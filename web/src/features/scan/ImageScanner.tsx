@@ -1,6 +1,6 @@
 'use client';
 
-import { FileSearch, FolderInput, History, Sparkles } from 'lucide-react';
+import { ExternalLink, FileSearch, FolderInput, History, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 import { type ReactNode, useEffect, useState, useTransition } from 'react';
 import { toast } from 'sonner';
@@ -73,6 +73,38 @@ function Step({
       </h3>
       {children}
     </section>
+  );
+}
+
+// Recherche inversée : ces services retrouvent les pages qui montrent déjà la même image. On
+// n'envoie rien nous-mêmes : la personne y dépose l'image, et la plus ancienne page date la photo.
+const REVERSE_SEARCH = [
+  { name: 'Google Lens', url: 'https://lens.google.com/' },
+  { name: 'TinEye', url: 'https://tineye.com/' },
+  { name: 'Yandex Images', url: 'https://yandex.com/images/' },
+  { name: 'Bing Visual Search', url: 'https://www.bing.com/visualsearch' },
+];
+
+function ReverseSearchLinks() {
+  return (
+    <div className="grid gap-2 border-t pt-3">
+      <p className="text-muted-foreground text-sm text-pretty">
+        Chercher ailleurs sur le web : déposez la même image sur l’un de ces services. La page la
+        plus ancienne qui la montre dit souvent d’où elle vient. Aucun résultat ne prouve rien.
+      </p>
+      <ul className="flex flex-wrap gap-2">
+        {REVERSE_SEARCH.map((service) => (
+          <li key={service.name}>
+            <Button variant="outline" size="sm" asChild>
+              <a href={service.url} target="_blank" rel="noopener noreferrer">
+                {service.name}
+                <ExternalLink aria-hidden />
+              </a>
+            </Button>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }
 
@@ -174,6 +206,7 @@ function ImageResult({ scan, caseOptions }: { scan: ScanView; caseOptions: CaseO
         ) : (
           <p className="text-muted-foreground">Pas retrouvée parmi les images de nos affaires.</p>
         )}
+        <ReverseSearchLinks />
       </Step>
 
       <Step
