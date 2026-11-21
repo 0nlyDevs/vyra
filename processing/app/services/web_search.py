@@ -27,6 +27,7 @@ from urllib.parse import urljoin, urlparse
 import httpx
 
 from app.core.config import Settings
+from app.services.connect_retry import call_with_connect_retry_async
 
 logger = logging.getLogger(__name__)
 
@@ -199,13 +200,13 @@ async def _gdelt(client: httpx.AsyncClient, words: list[str]) -> list[dict[str, 
         "maxrecords": str(MAX_ARTICLES * 2),
         "sort": "hybridrel",
     }
-    response = await client.get(GDELT_URL, params=params)
+    response = await call_with_connect_retry_async(lambda: client.get(GDELT_URL, params=params))
     for _ in range(GDELT_RETRIES):
         if response.status_code != 429:
             break
         # Saturé : GDELT demande d'attendre cinq secondes entre deux requêtes.
         await asyncio.sleep(GDELT_SPACING_SECONDS)
-        response = await client.get(GDELT_URL, params=params)
+        response = await call_with_connect_retry_async(lambda: client.get(GDELT_URL, params=params))
     response.raise_for_status()
     try:
         data = response.json()
@@ -325,22 +326,26 @@ def _shorten(text: str) -> str:
     return cut[: cut.rfind(" ")].rstrip(" ,;:") + "…"
 
 
+async def _download_page(client: httpx.AsyncClient, url: str) -> str | None:
+    async with client.stream("GET", url, timeout=PAGE_TIMEOUT_SECONDS) as response:
+        response.raise_for_status()
+        if "html" not in response.headers.get("content-type", ""):
+            return None
+        body = b""
+        async for chunk in response.aiter_bytes():
+            body += chunk
+            if len(body) >= PAGE_MAX_BYTES:
+                break
+        return body.decode(response.encoding or "utf-8", errors="replace")
+
+
 async def _fetch_page(client: httpx.AsyncClient, url: str) -> dict[str, Any] | None:
-    """Titre, date et extrait d'une page web ; None si elle ne se lit pas (bloquée, lente…)."""
+    """Titre, date, extrait, texte et liens d'une page web ; None si elle ne se lit pas."""
     try:
-        async with client.stream("GET", url, timeout=PAGE_TIMEOUT_SECONDS) as response:
-            response.raise_for_status()
-            if "html" not in response.headers.get("content-type", ""):
-                return None
-            body = b""
-            async for chunk in response.aiter_bytes():
-                body += chunk
-                if len(body) >= PAGE_MAX_BYTES:
-                    break
-            html = body.decode(response.encoding or "utf-8", errors="replace")
+        html = await call_with_connect_retry_async(lambda: _download_page(client, url))
     except httpx.HTTPError:
         return None
-    return read_page(html, url)
+    return read_page(html, url) if html is not None else None
 
 
 async def _read_article(client: httpx.AsyncClient, item: dict[str, Any]) -> WebArticle:
@@ -420,7 +425,10 @@ async def _tavily(
     }
     if domains:
         body["include_domains"] = domains
-    response = await client.post(TAVILY_URL, headers={"Authorization": f"Bearer {key}"}, json=body)
+    headers = {"Authorization": f"Bearer {key}"}
+    response = await call_with_connect_retry_async(
+        lambda: client.post(TAVILY_URL, headers=headers, json=body)
+    )
     response.raise_for_status()
     data = response.json()
     results = data.get("results", []) if isinstance(data, dict) else []

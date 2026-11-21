@@ -8,9 +8,9 @@ import {
   SOURCE_KIND_LABELS,
   SOURCE_KIND_TONES,
 } from '@/lib/domain';
-import { formatDate } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import type { CaseFile } from '@/server/dal/cases';
+import { formatDay as formatDate } from './dates';
 import { sourceKind } from './source-kind';
 import { type DiffPart, diffWords } from './word-diff';
 

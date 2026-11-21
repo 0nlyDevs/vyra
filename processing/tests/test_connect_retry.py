@@ -107,6 +107,9 @@ def test_no_new_attempt_when_the_deadline_is_too_close() -> None:
 
 def test_tavily_search_survives_two_dns_failures() -> None:
     def reply(request: httpx.Request) -> httpx.Response:
+        if request.method == "GET":
+            # Les pages des résultats, lues pour leur texte et leurs liens.
+            return httpx.Response(200, html="<html><head><title>Article</title></head></html>")
         topic = json.loads(request.content)["topic"]
         item = {
             "url": f"https://exemple.mg/{topic}",
@@ -126,7 +129,9 @@ def test_tavily_search_survives_two_dns_failures() -> None:
         "https://exemple.mg/general",
         "https://exemple.mg/news",
     ]
-    assert sorted(calls.values()) == [3, 3]
+    # Trois recherches (actualités, web, réseaux sociaux) et deux pages lues pour leur texte :
+    # chaque appel passe au troisième essai.
+    assert sorted(calls.values()) == [3, 3, 3, 3, 3]
 
 
 def test_gdelt_search_and_page_reading_survive_two_dns_failures() -> None:
@@ -145,7 +150,10 @@ def test_gdelt_search_and_page_reading_survive_two_dns_failures() -> None:
     transport, calls = _flaky(reply)
     articles, engine = asyncio.run(
         web_search.find_articles(
-            make_settings(), "Le cyclone Batsirai frappe Toamasina", transport=transport
+            # Sans clé Tavily, même si le conteneur en a une : c'est GDELT qu'on teste.
+            make_settings(tavily_api_key=None),
+            "Le cyclone Batsirai frappe Toamasina",
+            transport=transport,
         )
     )
     assert engine == "gdelt"
