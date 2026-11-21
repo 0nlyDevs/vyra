@@ -57,10 +57,13 @@ class Settings(BaseSettings):
     local_ai_timeout_seconds: float = 60.0
     # Mode « gemini-then-local » : temps laissé à Gemma 4 après Gemini (le web attend 65 s en tout).
     local_ai_backup_timeout_seconds: float = 40.0
+
+    # Clé de l'API Tavily (https://tavily.com) : recherche web. Absente : recherche GDELT.
+    tavily_api_key: SecretStr | None = None
     # true : jamais d'appel à Gemini, toujours les réponses de secours (répétition du plan B).
     demo_offline: bool = False
 
-    @field_validator("gemini_api_key", mode="before")
+    @field_validator("gemini_api_key", "tavily_api_key", mode="before")
     @classmethod
     def _empty_as_missing(cls, value: object) -> object:
         # Une variable déclarée mais vide vaut « non configurée ».

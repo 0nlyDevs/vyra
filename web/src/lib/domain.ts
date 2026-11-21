@@ -100,6 +100,59 @@ export const CHANGE_TYPE_LABELS = {
   tone_hardened: 'Ton durci',
 } satisfies Record<ChangeType, string>;
 
+// Couleur d'un lien du graphe : plus le changement déforme l'information, plus il est appuyé.
+export const CHANGE_TYPE_TONES = {
+  shared_unchanged: 'neutral',
+  title_changed: 'info',
+  figure_changed: 'danger',
+  image_added: 'warning',
+  passage_cut: 'warning',
+  translated: 'info',
+  tone_hardened: 'danger',
+} satisfies Record<ChangeType, Tone>;
+
+// Type de source d'une version du graphe, déduit de son adresse ou de son nom.
+export const SOURCE_KINDS = [
+  'press',
+  'official',
+  'media',
+  'website',
+  'blog',
+  'forum',
+  'social',
+  'messaging',
+  'unknown',
+] as const;
+export type SourceKind = (typeof SOURCE_KINDS)[number];
+
+export const SOURCE_KIND_LABELS = {
+  press: 'Presse reconnue',
+  official: 'Source officielle',
+  media: 'Média',
+  website: 'Site web',
+  blog: 'Blog',
+  forum: 'Forum',
+  social: 'Réseau social',
+  messaging: 'Messagerie',
+  unknown: 'Source inconnue',
+} satisfies Record<SourceKind, string>;
+
+export const SOURCE_KIND_TONES = {
+  press: 'success',
+  official: 'success',
+  media: 'info',
+  website: 'neutral',
+  blog: 'neutral',
+  forum: 'warning',
+  social: 'warning',
+  messaging: 'danger',
+  unknown: 'neutral',
+} satisfies Record<SourceKind, Tone>;
+
+// Recherche web d'une affaire (module Enquête) : faite une fois, son résultat est gardé.
+export const WEB_SEARCH_STATUSES = ['found', 'nothing_found'] as const;
+export type WebSearchStatus = (typeof WEB_SEARCH_STATUSES)[number];
+
 // Confiance dans un lien du graphe : « cette version reprend bien celle-là ».
 export const LINK_CONFIDENCES = ['high', 'medium', 'low'] as const;
 export type LinkConfidence = (typeof LINK_CONFIDENCES)[number];

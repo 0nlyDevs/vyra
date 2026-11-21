@@ -14,14 +14,19 @@ const TIMEOUT_MS = 65_000;
 
 export type AiSource = 'gemini' | 'fallback';
 
-async function post<T>(path: string, body: unknown, schema: z.ZodType<T>): Promise<T | null> {
+async function post<T>(
+  path: string,
+  body: unknown,
+  schema: z.ZodType<T>,
+  timeoutMs = TIMEOUT_MS,
+): Promise<T | null> {
   const started = Date.now();
   try {
     const response = await fetch(`${env.PROCESSING_URL}${path}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
-      signal: AbortSignal.timeout(TIMEOUT_MS),
+      signal: AbortSignal.timeout(timeoutMs),
       cache: 'no-store',
     });
     if (!response.ok) {
@@ -67,6 +72,50 @@ export async function runPrompt<T>(
   const body = { payload, files: options.files ?? [], fallbackVariant: options.fallbackVariant };
   const data = await post(`/v1/prompts/${encodeURIComponent(name)}`, body, schema);
   return data ? ok(data) : fail(ERRORS.AI_UNAVAILABLE);
+}
+
+// La recherche web peut être lente (GDELT sans clé Tavily) : elle tourne après l'affichage.
+const WEB_SEARCH_TIMEOUT_MS = 90_000;
+
+const webArticleSchema = z.object({
+  url: z.string(),
+  title: z.string(),
+  site: z.string(),
+  published_at: z.string().nullable(),
+  excerpt: z.string(),
+  language: z.string().nullable(),
+});
+export type WebArticle = z.infer<typeof webArticleSchema>;
+
+// Articles et messages qui rapportent l'information (Tavily, sinon GDELT).
+// `source: 'fallback'` : recherche impossible.
+export async function findWebSources(
+  claim: string,
+): Promise<ActionResult<{ articles: WebArticle[]; source: 'tavily' | 'gdelt' | 'fallback' }>> {
+  const schema = z.object({
+    articles: z.array(webArticleSchema),
+    source: z.enum(['tavily', 'gdelt', 'fallback']),
+  });
+  const data = await post('/v1/web-sources', { claim }, schema, WEB_SEARCH_TIMEOUT_MS);
+  return data ? ok(data) : fail(ERRORS.AI_UNAVAILABLE);
+}
+
+const newsItemSchema = z.object({
+  url: z.string(),
+  title: z.string(),
+  summary: z.string(),
+  published_at: z.string().nullable(),
+  source_name: z.string(),
+});
+export type NewsItem = z.infer<typeof newsItemSchema>;
+
+// Les derniers articles des flux RSS donnés (index de presse). Réseau coupé : `feeds_read` à 0.
+export async function readNewsFeeds(
+  feeds: { url: string; name: string }[],
+): Promise<ActionResult<{ items: NewsItem[]; feeds_read: number }>> {
+  const schema = z.object({ items: z.array(newsItemSchema), feeds_read: z.number() });
+  const data = await post('/v1/news-feeds', { feeds }, schema, WEB_SEARCH_TIMEOUT_MS);
+  return data ? ok(data) : fail(ERRORS.WEB_SEARCH_UNAVAILABLE);
 }
 
 const mediaReportSchema = z.object({
