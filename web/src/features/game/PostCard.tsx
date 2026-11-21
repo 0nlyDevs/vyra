@@ -33,7 +33,7 @@ export function PostCard({
           alt="Photo jointe à la publication"
           width={1200}
           height={800}
-          className="h-auto w-full rounded-lg border"
+          className="max-h-80 w-full rounded-lg border object-cover"
         />
       )}
     </article>
