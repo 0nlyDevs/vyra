@@ -50,7 +50,14 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
         </header>
         {account && !account.emailVerifiedAt && <VerifyEmailBanner email={account.email} />}
         <AppTopNav />
-        <main className="mx-auto w-full max-w-6xl flex-1 px-6 py-10 lg:px-10">{children}</main>
+        <div className="relative isolate flex flex-1 flex-col">
+          {/* Lueur rouge en haut de chaque page, comme la lumière d'horizon de l'accueil. */}
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[28rem] bg-[radial-gradient(60%_70%_at_30%_0%,color-mix(in_oklch,var(--glow)_16%,transparent),transparent_70%)] dark:bg-[radial-gradient(60%_70%_at_30%_0%,color-mix(in_oklch,var(--glow)_22%,transparent),transparent_70%)]"
+          />
+          <main className="mx-auto w-full max-w-6xl flex-1 px-6 py-10 lg:px-10">{children}</main>
+        </div>
       </div>
     </div>
   );
