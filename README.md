@@ -30,12 +30,21 @@ VS Code s'ouvre sur ce dossier avec `code .` depuis le terminal Ubuntu.
 Dernier recours si le dépôt reste dans `C:\…` et que les modifications ne s'affichent pas :
 créer un fichier `.env` à la racine avec `WATCH_POLL_INTERVAL_MS=1000`, puis relancer.
 
-### L'IA (Gemini)
+### L'IA : Gemini pour développer, Gemma 4 en local pour la démo
 
-Copier `processing/.env.example` en `processing/.env` et y mettre une clé gratuite
-(https://aistudio.google.com/apikey) : `GEMINI_API_KEY=…`. Puis `docker compose restart processing`.
-Sans clé, l'application marche avec les réponses de secours.
-Vérifier : http://127.0.0.1:8000/health doit afficher `"ai": "gemini"`.
+Deux façons de faire répondre l'IA, avec les mêmes consignes. On choisit dans `processing/.env`
+(copié depuis `processing/.env.example`), puis `docker compose restart processing`.
+
+| | Gemini (par défaut) | Modèle local (démo) |
+|---|---|---|
+| Réglage | `AI_PROVIDER=gemini` | `AI_PROVIDER=local` |
+| À installer | Rien : une clé gratuite sur https://aistudio.google.com/apikey dans `GEMINI_API_KEY` | [Ollama](https://ollama.com), puis `ollama pull gemma4:e4b` et `ollama pull embeddinggemma` (environ 10 Go) |
+| Wifi | Nécessaire | Inutile |
+| Pour qui | Toute l'équipe pendant le développement | Le PC de la démo (16 Go de mémoire conseillés) |
+
+Sans IA (pas de clé, wifi coupé, Ollama arrêté), l'application marche avec les réponses de
+secours. Vérifier : http://127.0.0.1:8000/health affiche `"ai": "gemini"` ou `"ai": "local"`.
+Après un changement d'IA, lancer `make seed` : les vecteurs des deux IA ne se comparent pas.
 
 ## Les commandes
 
