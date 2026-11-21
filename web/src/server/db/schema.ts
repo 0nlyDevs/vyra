@@ -203,6 +203,25 @@ export const evidence = pgTable(
 
 // ─── Tables des modules : chacun ajoute les siennes ici ─────────────────────────────────────
 
+// ─── Fil d'actualité (lot de Mahery) ─────────────────────────────────────────────────────────
+
+// Une publication qui circule. `caseId` : l'affaire ouverte sur elle, s'il y en a une. Les
+// signalements la retrouvent par `feed_post_id` (tables de la boîte d'alertes).
+export const feedPosts = pgTable(
+  'feed_posts',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    sourceName: text('source_name').notNull(),
+    body: text('body').notNull(),
+    sourceUrl: text('source_url'),
+    // Chemin d'une image dans web/public (ex. « /demo/inondation-virale.jpg »).
+    imagePath: text('image_path'),
+    publishedAt: timestamp('published_at', { withTimezone: true }).notNull(),
+    caseId: uuid('case_id').references(() => cases.id, { onDelete: 'set null' }),
+  },
+  (table) => [index('feed_posts_published_idx').on(table.publishedAt)],
+);
+
 // Module Enquête : la recherche web d'une affaire, faite une fois. Les articles retenus sont
 // enregistrés comme versions (`case_versions`, avec leur lien) et reliés dans `version_links`.
 export const webSearches = pgTable('web_searches', {
@@ -419,6 +438,7 @@ export const gameRuns = pgTable(
 );
 
 export type Profile = typeof profiles.$inferSelect;
+export type FeedPost = typeof feedPosts.$inferSelect;
 export type Account = typeof accounts.$inferSelect;
 export type Note = typeof notes.$inferSelect;
 export type Case = typeof cases.$inferSelect;
