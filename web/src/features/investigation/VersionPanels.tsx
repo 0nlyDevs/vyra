@@ -16,6 +16,10 @@ import { type DiffPart, diffWords } from './word-diff';
 type Version = CaseFile['versions'][number];
 type Link = CaseFile['links'][number];
 
+// Le lien affiché entre une source et l'information analysée. `estimated` : calculé sans IA, à
+// partir des mots ajoutés et retirés, faute de lien enregistré.
+export type ShownLink = Pick<Link, 'changeType' | 'note' | 'confidence'> & { estimated: boolean };
+
 // Panneau d'une version : son texte, sa source, sa date.
 export function VersionDetail({ version }: { version: Version }) {
   return (
@@ -42,7 +46,8 @@ export function VersionDetail({ version }: { version: Version }) {
   );
 }
 
-// Deux versions côte à côte : mots retirés à gauche, mots ajoutés à droite.
+// Une source à côté de l'information analysée : mots absents de l'information à gauche, mots
+// ajoutés par l'information à droite.
 export function VersionComparison({
   before,
   after,
@@ -50,18 +55,16 @@ export function VersionComparison({
 }: {
   before: Version;
   after: Version;
-  link: Link | null;
+  link: ShownLink | null;
 }) {
   const diff = diffWords(before.content, after.content);
   return (
     <section
-      aria-label={`Comparaison des versions ${before.position} et ${after.position}`}
+      aria-label={`Comparaison de la version ${before.position} et de l’information analysée`}
       className="grid gap-5 rounded-xl border bg-card p-5 shadow-sm"
     >
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h3 className="font-semibold text-lg">
-          Version {before.position} → version {after.position}
-        </h3>
+        <h3 className="font-semibold text-lg">Version {before.position} → information analysée</h3>
         <ul className="flex flex-wrap gap-4 text-sm" aria-label="Légende">
           <li className="flex items-center gap-2">
             <span className="rounded bg-muted px-1.5 text-muted-foreground line-through">mot</span>
@@ -82,6 +85,7 @@ export function VersionComparison({
           <span>{link.note}</span>
           <span className="text-muted-foreground text-sm">
             Confiance : {LINK_CONFIDENCE_LABELS[link.confidence].toLowerCase()}.
+            {link.estimated && ' Estimation sans IA.'}
           </span>
         </p>
       )}

@@ -78,7 +78,8 @@ export const CASE_STATUS_TONES = {
   concluded: 'success',
 } satisfies Record<CaseStatus, Tone>;
 
-// Ce qui a changé entre deux versions d'une même information.
+// Ce qu'une source dit par rapport à l'information analysée (le lien qui la relie au centre de la
+// toile) : ce qui a changé, ou bien un démenti, ou le même sujet sans le même fait.
 export const CHANGE_TYPES = [
   'shared_unchanged',
   'title_changed',
@@ -87,6 +88,8 @@ export const CHANGE_TYPES = [
   'passage_cut',
   'translated',
   'tone_hardened',
+  'contradicts',
+  'related',
 ] as const;
 export type ChangeType = (typeof CHANGE_TYPES)[number];
 
@@ -98,6 +101,8 @@ export const CHANGE_TYPE_LABELS = {
   passage_cut: 'Passage coupé',
   translated: 'Traduit',
   tone_hardened: 'Ton durci',
+  contradicts: 'Dément l’information',
+  related: 'Même sujet, autre fait',
 } satisfies Record<ChangeType, string>;
 
 // Couleur d'un lien du graphe : plus le changement déforme l'information, plus il est appuyé.
@@ -109,6 +114,8 @@ export const CHANGE_TYPE_TONES = {
   passage_cut: 'warning',
   translated: 'info',
   tone_hardened: 'danger',
+  contradicts: 'success',
+  related: 'neutral',
 } satisfies Record<ChangeType, Tone>;
 
 // Type de source d'une version du graphe, déduit de son adresse ou de son nom.
