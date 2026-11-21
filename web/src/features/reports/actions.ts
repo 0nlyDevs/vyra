@@ -1,8 +1,9 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
+import { z } from 'zod';
 import { type ActionResult, fail, ok } from '@/lib/action-result';
-import { REPORT_CASE_THRESHOLD, REPORT_DAILY_LIMIT } from '@/lib/domain';
+import { isVerifier, REPORT_CASE_THRESHOLD, REPORT_DAILY_LIMIT } from '@/lib/domain';
 import { ERRORS } from '@/lib/errors';
 import {
   addReport,
@@ -99,4 +100,21 @@ export async function submitReport(
     revalidatePath('/cases');
   }
   return ok({ reporterCount, caseId });
+}
+
+// Le vérificateur ouvre l'affaire d'un groupe sans attendre le seuil.
+export async function openCaseNow(groupId: string): Promise<ActionResult<{ caseId: string }>> {
+  const profile = await getCurrentProfile();
+  if (!profile) return fail(ERRORS.UNAUTHORIZED);
+  const parsed = z.uuid().safeParse(groupId);
+  if (!parsed.success) return fail(ERRORS.VALIDATION_FAILED);
+  if (!isVerifier(profile.role)) return fail(ERRORS.FORBIDDEN);
+
+  const caseId = await openCaseForGroup(parsed.data);
+  if (!caseId) return fail(ERRORS.NOT_FOUND);
+
+  revalidatePath('/reports');
+  revalidatePath('/dashboard');
+  revalidatePath('/cases');
+  return ok({ caseId });
 }

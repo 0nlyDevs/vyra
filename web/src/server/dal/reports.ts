@@ -1,6 +1,7 @@
 import 'server-only';
 import {
   and,
+  asc,
   cosineDistance,
   count,
   desc,
@@ -13,7 +14,7 @@ import {
 } from 'drizzle-orm';
 import type { CaseStatus, ReportReason, ReportState } from '@/lib/domain';
 import { db } from '@/server/db';
-import { cases, reportGroups, reports } from '@/server/db/schema';
+import { cases, profiles, reportGroups, reports } from '@/server/db/schema';
 
 // Accès aux signalements et à leurs groupes (Boîte d'alertes). Les règles (seuil, limite par jour,
 // une fois par groupe) sont appliquées par les server actions de features/reports.
@@ -286,6 +287,26 @@ export async function listGroupsByReporterCount() {
   });
 }
 
+// Vue du vérificateur : les signalements de ces groupes, avec le nom de chaque signaleur.
+export async function listReportsOfGroups(groupIds: string[]) {
+  if (groupIds.length === 0) return [];
+  return db
+    .select({
+      id: reports.id,
+      groupId: reports.groupId,
+      content: reports.content,
+      url: reports.url,
+      reason: reports.reason,
+      description: reports.description,
+      createdAt: reports.createdAt,
+      reporterName: profiles.name,
+    })
+    .from(reports)
+    .innerJoin(profiles, eq(profiles.id, reports.reporterId))
+    .where(inArray(reports.groupId, groupIds))
+    .orderBy(asc(reports.createdAt));
+}
+
 // Pour le fil d'actualité : les signalements de chaque publication (badge « signalé »).
 export async function getReportStatsByFeedPost(feedPostIds: string[]) {
   if (feedPostIds.length === 0) return [];
@@ -309,3 +330,4 @@ export async function getReportStatsByFeedPost(feedPostIds: string[]) {
 
 export type ReportListItem = Awaited<ReturnType<typeof listReportsByReporter>>[number];
 export type ReportGroupListItem = Awaited<ReturnType<typeof listGroupsByReporterCount>>[number];
+export type GroupReportItem = Awaited<ReturnType<typeof listReportsOfGroups>>[number];

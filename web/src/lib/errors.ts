@@ -12,6 +12,10 @@ export const ERRORS = defineErrors({
     code: 'UNAUTHORIZED',
     message: 'Choisissez un profil pour continuer.',
   },
+  FORBIDDEN: {
+    code: 'FORBIDDEN',
+    message: 'Cette action est réservée aux vérificateurs.',
+  },
   NOT_FOUND: {
     code: 'NOT_FOUND',
     message: "L'élément demandé est introuvable.",
@@ -31,6 +35,18 @@ export const ERRORS = defineErrors({
   REPORT_LIMIT_REACHED: {
     code: 'REPORT_LIMIT_REACHED',
     message: 'Vous avez atteint la limite de signalements pour aujourd’hui. Réessayez demain.',
+  },
+  FILE_TOO_LARGE: {
+    code: 'FILE_TOO_LARGE',
+    message: 'Le fichier est trop lourd : 8 Mo au maximum.',
+  },
+  FILE_NOT_SUPPORTED: {
+    code: 'FILE_NOT_SUPPORTED',
+    message: 'Ce type de fichier n’est pas pris en charge.',
+  },
+  NOTHING_TO_ADD: {
+    code: 'NOTHING_TO_ADD',
+    message: 'Ce scan n’a relevé aucun indice à verser au dossier.',
   },
   INTERNAL: {
     code: 'INTERNAL',
