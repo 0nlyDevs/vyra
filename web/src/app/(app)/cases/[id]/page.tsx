@@ -16,6 +16,7 @@ import { frontierOf } from '@/features/investigation/explore';
 import { FactCheckPanel } from '@/features/investigation/FactCheckPanel';
 import { PropagationGraph } from '@/features/investigation/PropagationGraph';
 import { WebSearchPanel } from '@/features/investigation/WebSearchPanel';
+import { WarningSigns } from '@/features/signals/WarningSigns';
 import { EVIDENCE_STRENGTH_LABELS, MATCH_KIND_LABELS, MATCH_KINDS } from '@/lib/domain';
 import { formatDateTime } from '@/lib/format';
 import { getCaseFile } from '@/server/dal/cases';
@@ -91,6 +92,8 @@ export default async function CaseFilePage({
           </AlertDescription>
         </Alert>
       )}
+
+      <WarningSigns text={file.claim} />
 
       <WebSearchPanel
         caseId={file.id}
