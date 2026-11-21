@@ -21,6 +21,9 @@ cas limites qu'on ne montrera pas. Des données simulées sont acceptées.
 2. `docs/CONVENTIONS.md` : les règles de code.
 3. `web/AGENTS.md` pour du code Next.js (version récente : lire la doc de `web/node_modules/next/dist/docs/`).
 4. L'exemple complet `web/src/features/notes/` : une fonctionnalité se calque dessus.
+5. `docs/FRONT.md` et la page `/kit` : la base de l'interface, à réutiliser avant de créer un composant.
+6. **Pour tout travail d'interface : les skills front de l'équipe, au début de la tâche**, avant d'écrire
+   la première ligne (`docs/FRONT.md` dit lequel consulter selon le besoin).
 
 ## Commandes
 
@@ -44,7 +47,9 @@ L'équipe travaille sur Mac, Linux et Windows : pas de commande ni de chemin pro
   calculs, et n'est appelé que depuis `web/src/server/processing.ts`.
 - Toute server action qui modifie des données : connexion → validation Zod → droits → DAL.
 - Code et noms en anglais ; textes de l'interface, messages et documentation en français.
-- Réutiliser l'existant (`src/components/ui/`, `src/lib/errors.ts`, DAL) avant de créer.
+- Réutiliser l'existant (`src/components/ui/`, `src/components/common/`, `src/lib/errors.ts`, DAL)
+  avant de créer.
+- Interface : consulter les skills front d'abord, puis le kit (`/kit`), puis seulement créer.
 - Un prompt d'IA = `processing/app/prompts/<nom>.md` + sa réponse de secours `processing/app/fallbacks/<nom>.json`.
 - Modifications ciblées : ne pas reformater ce qui n'est pas lié à la tâche.
 
