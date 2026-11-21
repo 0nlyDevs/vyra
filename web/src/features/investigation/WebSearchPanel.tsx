@@ -8,9 +8,10 @@ import { Button } from '@/components/ui/button';
 import type { WebSearchStatus } from '@/lib/domain';
 import { searchWeb } from './actions';
 
-const STEPS = ['Recherche dans la presse', 'Lecture des articles', 'Comparaison du sens'];
-// Passage indicatif aux étapes suivantes : GDELT met souvent 10 à 20 secondes à répondre.
-const STEP_AT_MS = [14_000, 22_000];
+const STEPS = ['Recherche sur le web', 'Lecture des sources', 'Comparaison du sens'];
+// Passage indicatif aux étapes suivantes : la recherche répond en 2 à 3 secondes, puis on lit
+// la date des sources qui n'en ont pas.
+const STEP_AT_MS = [3_000, 8_000];
 
 type Done = { status: WebSearchStatus; kept: number };
 
@@ -68,8 +69,7 @@ export function WebSearchPanel({
         </p>
         <Steps steps={STEPS} current={step} />
         <p className="text-muted-foreground text-sm">
-          Articles de presse des trois derniers mois (GDELT). Cela prend souvent une vingtaine de
-          secondes.
+          Presse, forums, Reddit et pages publiques des réseaux sociaux. Quelques secondes.
         </p>
       </section>
     );
@@ -100,17 +100,16 @@ export function WebSearchPanel({
       {done.status === 'found' ? (
         <span>
           <strong className="font-semibold">
-            {done.kept}{' '}
-            {done.kept > 1 ? 'articles de presse retrouvés' : 'article de presse retrouvé'}
+            {done.kept} {done.kept > 1 ? 'sources retrouvées' : 'source retrouvée'}
           </strong>{' '}
-          sur le web. Ils sont rangés par date dans le graphe ; cliquez sur un point pour lire
-          l’article et ouvrir sa source.
+          sur le web. Elles sont rangées par date dans le graphe ; cliquez sur un point pour lire le
+          texte et ouvrir la source.
         </span>
       ) : (
         <span>
-          <strong className="font-semibold">Aucun article de presse</strong> des trois derniers mois
-          ne rapporte cette information. Cette absence ne prouve rien : elle circule peut-être
-          seulement sur les réseaux sociaux.
+          <strong className="font-semibold">Aucune source publique</strong> ne rapporte cette
+          information. Cette absence ne prouve rien : elle circule peut-être dans des groupes privés
+          (WhatsApp, Facebook), que personne ne peut fouiller.
         </span>
       )}
     </p>

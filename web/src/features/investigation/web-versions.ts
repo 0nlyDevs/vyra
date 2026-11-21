@@ -12,6 +12,7 @@ import {
 } from '@/server/dal/investigation';
 import { embedTexts, findWebSources, runPrompt, type WebArticle } from '@/server/processing';
 import { guessChange } from './guess-change';
+import { refreshNewsIndex, searchNewsIndex } from './news-index';
 import { significantWords, wordOverlap } from './word-match';
 
 // Recherche web d'une affaire : les articles de presse qui rapportent la même information
@@ -47,11 +48,21 @@ export async function searchWebVersions(caseId: string): Promise<ActionResult<We
   const received = file.versions[0];
   if (file.versions.length !== 1 || !received) return ok({ status: 'prepared', kept: 0 });
 
-  const search = await findWebSources(file.claim);
-  if (!search.ok || search.data.source === 'fallback') return fail(ERRORS.WEB_SEARCH_UNAVAILABLE);
-  const found = search.data.articles;
+  // Le web (Tavily) et la mise à jour de l'index de presse en même temps.
+  const [search] = await Promise.all([findWebSources(file.claim), refreshNewsIndex()]);
+  const webReached = search.ok && search.data.source !== 'fallback';
+  const found = webReached ? search.data.articles : [];
 
-  const kept = (await keepSameInformation(file.claim, found))
+  const vectors = await embedTexts([file.claim, ...found.map(articleText)]);
+  const claimVector = vectors.ok ? (vectors.data[0] ?? null) : null;
+  const fromWeb = keepSameInformation(file.claim, found, vectors.ok ? vectors.data.slice(1) : null);
+  const fromIndex = await searchNewsIndex(file.claim, claimVector);
+  // Ni web ni index : on n'enregistre rien, la personne peut relancer.
+  if (!webReached && fromIndex.length === 0) return fail(ERRORS.WEB_SEARCH_UNAVAILABLE);
+
+  // À adresse égale, l'article de l'index l'emporte : il porte le nom du journal.
+  const unique = [...new Map([...fromWeb, ...fromIndex].map((item) => [item.url, item])).values()];
+  const kept = unique
     .sort((a, b) => dateValue(a.published_at) - dateValue(b.published_at))
     .slice(0, MAX_KEPT);
 
@@ -71,21 +82,24 @@ export async function searchWebVersions(caseId: string): Promise<ActionResult<We
   await saveWebSearch({
     caseId,
     status: kept.length > 0 ? 'found' : 'nothing_found',
-    foundCount: found.length,
+    foundCount: found.length + fromIndex.length,
     ordered,
     links,
   });
   return ok({ status: kept.length > 0 ? 'found' : 'nothing_found', kept: kept.length });
 }
 
-// Garde les articles qui disent la même chose : par le sens si l'IA répond, sinon par mots.
-async function keepSameInformation(claim: string, articles: WebArticle[]) {
-  if (articles.length === 0) return [];
-  const vectors = await embedTexts([claim, ...articles.map(articleText)]);
-  const claimVector = vectors.ok ? vectors.data[0] : undefined;
-  if (vectors.ok && claimVector) {
+// Garde les articles qui disent la même chose : par le sens si l'IA a donné les vecteurs
+// (le premier est celui de l'information), sinon par mots.
+function keepSameInformation(
+  claim: string,
+  articles: WebArticle[],
+  vectors: number[][] | null,
+): WebArticle[] {
+  const [claimVector, ...articleVectors] = vectors ?? [];
+  if (claimVector) {
     return articles.filter((_, index) => {
-      const vector = vectors.data[index + 1];
+      const vector = articleVectors[index];
       return vector !== undefined && cosineDistance(claimVector, vector) <= WEB_MAX_DISTANCE;
     });
   }

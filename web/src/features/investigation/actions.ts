@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation';
 import { type ActionResult, fail, ok } from '@/lib/action-result';
 import { ERRORS } from '@/lib/errors';
 import { getCurrentProfile } from '@/server/session';
+import { type HarvestResult, refreshNewsIndex } from './news-index';
 import { openCaseFromClaim } from './open-case';
 import { caseIdSchema, openCaseSchema } from './schema';
 import { searchWebVersions, type WebSearchResult } from './web-versions';
@@ -43,4 +44,13 @@ export async function searchWeb(caseId: string): Promise<ActionResult<WebSearchR
   const result = await searchWebVersions(parsed.data);
   if (result.ok && result.data.kept > 0) revalidatePath(`/cases/${parsed.data}`);
   return result.ok ? ok(result.data) : result;
+}
+
+// Récolte des flux RSS de l'index de presse, à la demande (avant une démo, par exemple).
+export async function refreshPressIndex(): Promise<ActionResult<HarvestResult>> {
+  const profile = await getCurrentProfile();
+  if (!profile) return fail(ERRORS.UNAUTHORIZED);
+  const result = await refreshNewsIndex(true);
+  if (result.ok) revalidatePath('/cases');
+  return result;
 }

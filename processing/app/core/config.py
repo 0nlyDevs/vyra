@@ -6,7 +6,7 @@ par la dépendance `get_settings` (voir `SettingsDep`), jamais par `os.environ`.
 
 from functools import cache
 from pathlib import Path
-from typing import Annotated
+from typing import Annotated, Literal
 
 from fastapi import Depends
 from pydantic import SecretStr, field_validator
@@ -24,15 +24,40 @@ class Settings(BaseSettings):
         hide_input_in_errors=True,
     )
 
+    # Mode de l'IA. Dans tous les modes, si aucune IA ne répond, la réponse préparée s'affiche.
+    # - « gemini » (par défaut) : Gemini seul. Rien à installer.
+    # - « gemini-then-local » : Gemini, puis Gemma 4 en local (Ollama) si Gemini ne répond pas.
+    # - « local » : Gemma 4 en local seul, sans wifi.
+    ai_mode: Literal["gemini", "gemini-then-local", "local"] = "gemini"
+
     # Clé de l'API Gemini (https://aistudio.google.com/apikey). Absente : réponses de secours.
     gemini_api_key: SecretStr | None = None
-    # Alias tenu à jour par Google : pointe toujours vers le dernier modèle Flash.
-    gemini_model: str = "gemini-flash-latest"
+    # Modèle principal. Mesuré le 21/11 : réponse en 2 à 3 secondes, quand « gemini-flash-latest »
+    # (le dernier Flash) était saturé.
+    gemini_model: str = "gemini-3-flash-preview"
+    # Essayés dans l'ordre quand le modèle précédent est saturé, trop lent ou retiré, dans la
+    # limite de `ai_timeout_seconds` au total.
+    gemini_fallback_models: list[str] = ["gemini-flash-latest", "gemini-3.1-flash-lite"]
+    # Temps laissé à chaque modèle avant de passer au suivant (un modèle saturé peut ne rien dire).
+    gemini_attempt_timeout_seconds: float = 8.0
     gemini_embedding_model: str = "gemini-embedding-001"
     # Doit rester égal à la taille de la colonne `vector` du schéma web (src/server/db/schema.ts).
     embedding_dimensions: int = 768
     # Sous les 30 s : la personne attend la réponse à l'écran, devant le jury.
     ai_timeout_seconds: float = 20.0
+
+    # IA locale : serveur compatible OpenAI (Ollama). Depuis Docker, le PC s'appelle
+    # host.docker.internal ; processing lancé hors Docker : http://127.0.0.1:11434/v1.
+    local_ai_url: str = "http://host.docker.internal:11434/v1"
+    # Gemma 4 E4B lit le texte, les images et le son (environ 10 Go à télécharger).
+    local_ai_model: str = "gemma4:e4b"
+    # 768 dimensions, comme la colonne `vector` de la base.
+    local_embedding_model: str = "embeddinggemma"
+    # Plus long qu'avec Gemini : le premier appel charge le modèle en mémoire.
+    local_ai_timeout_seconds: float = 60.0
+    # Mode « gemini-then-local » : temps laissé à Gemma 4 après Gemini (le web attend 65 s en tout).
+    local_ai_backup_timeout_seconds: float = 40.0
+
     # Clé de l'API Tavily (https://tavily.com) : recherche web. Absente : recherche GDELT.
     tavily_api_key: SecretStr | None = None
     # true : jamais d'appel à Gemini, toujours les réponses de secours (répétition du plan B).
