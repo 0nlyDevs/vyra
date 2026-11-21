@@ -67,6 +67,24 @@ comparent pas.
   Sans ces deux valeurs, le bouton « Continuer avec Google » n'apparaît pas.
 - « Réinitialiser la démo » supprime les comptes créés pendant la démo ; les comptes de démo restent.
 
+### Le fil d'actualité : uniquement du réel
+
+Le fil (`/feed`) ne contient aucune publication inventée. Il lit des sources publiques, sans compte,
+au plus toutes les 10 minutes (bouton « Actualiser » pour forcer) :
+
+| Région | Sources |
+|---|---|
+| Madagascar | Midi Madagasikara, 2424.mg, Madagascar Tribune, Le Monde et France 24 (pages Madagascar), TV Plus et Newsmada (YouTube), Facebook public, Mastodon #madagascar |
+| Monde | RFI, Le Monde, BBC, Les Décodeurs, Les Observateurs, recherches Google qui montent (France, États-Unis, Afrique du Sud, Nigeria), tendances Mastodon |
+
+- La région se choisit à la première visite (cookie), et se change en haut du fil.
+- **Facebook public** : pages et groupes publics trouvés par Tavily (`TAVILY_API_KEY`), au plus
+  une fois par heure. Sans la clé, le fil marche sans Facebook. Les groupes privés et WhatsApp
+  restent invisibles : ils passent par la boîte d'alertes.
+- **Sujets qui reviennent** : publications proches par le sens venues de sources différentes. Il
+  faut l'IA (vecteurs Gemini) ; sans elle, la colonne reste vide et le reste du fil marche.
+- Liste des sources et raisons des absents : `web/src/features/feed/sources.ts`.
+
 ## Les commandes
 
 Avec `make` (Mac, Linux) ou la commande complète (partout, y compris Windows) :

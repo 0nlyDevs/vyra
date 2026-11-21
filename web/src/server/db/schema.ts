@@ -23,6 +23,8 @@ import {
   type ClueRating,
   EVIDENCE_STANCES,
   EVIDENCE_STRENGTHS,
+  FEED_KINDS,
+  FEED_REGIONS,
   GAME_ANSWERS,
   type GameAnswer,
   HEARING_STATUSES,
@@ -205,21 +207,38 @@ export const evidence = pgTable(
 
 // ─── Fil d'actualité (lot de Mahery) ─────────────────────────────────────────────────────────
 
-// Une publication qui circule. `caseId` : l'affaire ouverte sur elle, s'il y en a une. Les
-// signalements la retrouvent par `feed_post_id` (tables de la boîte d'alertes).
+// Une publication réelle récoltée dans une source publique (presse, TV, Facebook, réseaux,
+// tendances). `caseId` : l'affaire ouverte sur elle, s'il y en a une. Les signalements la
+// retrouvent par `feed_post_id` (tables de la boîte d'alertes).
 export const feedPosts = pgTable(
   'feed_posts',
   {
     id: uuid('id').primaryKey().defaultRandom(),
+    url: text('url').notNull().unique(),
+    kind: text('kind', { enum: FEED_KINDS }).notNull(),
+    // Région de la source : « mg » pour Madagascar, « world » pour le reste du monde.
+    region: text('region', { enum: FEED_REGIONS }).notNull(),
     sourceName: text('source_name').notNull(),
+    // Compte, page ou groupe qui publie. Jamais le nom d'une personne pour Facebook.
+    author: text('author'),
+    title: text('title'),
     body: text('body').notNull(),
-    sourceUrl: text('source_url'),
-    // Chemin d'une image dans web/public (ex. « /demo/inondation-virale.jpg »).
-    imagePath: text('image_path'),
+    // Adresse de l'image chez la source (non copiée chez nous).
+    imageUrl: text('image_url'),
+    // Vues, partages ou recherches, selon la source (FEED_REACH_UNITS).
+    reach: integer('reach'),
+    // Date donnée par la source, sinon celle où on l'a vue la première fois.
     publishedAt: timestamp('published_at', { withTimezone: true }).notNull(),
+    // Dernière récolte où la source la montrait encore.
+    seenAt: timestamp('seen_at', { withTimezone: true }).defaultNow().notNull(),
     caseId: uuid('case_id').references(() => cases.id, { onDelete: 'set null' }),
+    // Sens du texte, pour repérer les sujets repris par plusieurs sources. Vide sans IA.
+    embedding: vector('embedding', { dimensions: EMBEDDING_DIMENSIONS }),
   },
-  (table) => [index('feed_posts_published_idx').on(table.publishedAt)],
+  (table) => [
+    index('feed_posts_published_idx').on(table.publishedAt),
+    index('feed_posts_region_idx').on(table.region),
+  ],
 );
 
 // Module Enquête : la recherche web d'une affaire, faite une fois. Les articles retenus sont
