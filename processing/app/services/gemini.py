@@ -2,7 +2,10 @@
 
 Toute panne (clé absente, réseau coupé, délai dépassé, réponse illisible) lève
 `AiUnavailableError` ; `ai_service` bascule alors sur les réponses de secours.
+On n'appelle pas ce module directement : passer par `providers`.
 """
+
+__all__ = ["AiUnavailableError", "embed_texts", "generate_json"]
 
 import json
 import logging
@@ -12,31 +15,18 @@ from typing import Any
 import httpx
 
 from app.core.config import Settings
+from app.schemas.ai import InlineFile
+from app.services.llm_common import AiUnavailableError, extract_json
 
 logger = logging.getLogger(__name__)
 
 GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models"
 
 
-class AiUnavailableError(Exception):
-    """L'IA n'a pas pu répondre (non configurée, hors ligne, réponse inutilisable)."""
-
-
 def _api_key(settings: Settings) -> str:
     if settings.demo_offline or settings.gemini_api_key is None:
         raise AiUnavailableError("offline or not configured")
     return settings.gemini_api_key.get_secret_value()
-
-
-def _extract_json(content: str) -> dict[str, Any]:
-    """Objet JSON de la réponse, même entouré de ```json ou de texte."""
-    start, end = content.find("{"), content.rfind("}")
-    if start == -1 or end <= start:
-        raise ValueError("no JSON object")
-    parsed = json.loads(content[start : end + 1])
-    if not isinstance(parsed, dict):
-        raise ValueError("JSON is not an object")
-    return parsed
 
 
 def _post(
@@ -57,14 +47,16 @@ def generate_json(
     system_prompt: str,
     payload: dict[str, Any],
     *,
+    files: list[InlineFile] | None = None,
     transport: httpx.BaseTransport | None = None,
 ) -> dict[str, Any]:
-    """Envoie la consigne et les données ; renvoie l'objet JSON produit par le modèle."""
+    """Envoie la consigne, les données et d'éventuels fichiers ; renvoie le JSON du modèle."""
+    parts: list[dict[str, Any]] = [{"text": json.dumps(payload, ensure_ascii=False)}]
+    # Image ou son joint, en base64 : le modèle Flash lit les deux.
+    parts += [{"inline_data": {"mime_type": f.mime_type, "data": f.data}} for f in files or []]
     body = {
         "system_instruction": {"parts": [{"text": system_prompt}]},
-        "contents": [
-            {"role": "user", "parts": [{"text": json.dumps(payload, ensure_ascii=False)}]}
-        ],
+        "contents": [{"role": "user", "parts": parts}],
         "generationConfig": {"temperature": 0.3, "responseMimeType": "application/json"},
     }
     url = f"{GEMINI_URL}/{settings.gemini_model}:generateContent"
@@ -74,7 +66,7 @@ def generate_json(
         parts = data["candidates"][0]["content"]["parts"]
         # Un modèle qui « réfléchit » peut renvoyer des parties de réflexion : on les saute.
         text = "".join(part.get("text", "") for part in parts if not part.get("thought"))
-        result = _extract_json(text)
+        result = extract_json(text)
     except AiUnavailableError:
         raise
     except (httpx.HTTPError, KeyError, IndexError, TypeError, ValueError, AttributeError) as exc:
