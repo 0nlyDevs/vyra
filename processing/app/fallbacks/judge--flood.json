@@ -1,0 +1,16 @@
+{
+  "confirmed": [
+    "Il a plu dans la nuit, faiblement (pièces n° 2 et 4)."
+  ],
+  "contested": [
+    "L'inondation « ce matin » : la photo date de mars 2019 (pièce n° 1).",
+    "De fortes pluies : 2 mm mesurés en 24 heures (pièce n° 2).",
+    "L'école fermée : elle est ouverte (pièce n° 3)."
+  ],
+  "missing": [
+    "Les « 3 morts » : aucune pièce n'en parle.",
+    "« La mairie cache la vérité » : aucune pièce ne l'appuie."
+  ],
+  "conclusion": "Trois pièces solides et indépendantes contredisent l'information. La photo est authentique, mais elle date de 2019 : elle a été sortie de son contexte, puis enrichie de détails sans source.",
+  "whatToCheck": "La date de la photo : une recherche de l'image retrouvait sa première publication, en 2019."
+}

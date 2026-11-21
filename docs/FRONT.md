@@ -33,7 +33,7 @@ La base actuelle a été posée avec `design-system` (les jetons en trois couche
 |---|---|
 | Couleurs, polices, thème clair et sombre | `web/src/app/globals.css` |
 | Composants de base (bouton, carte, fenêtre, onglets, sélecteur, message…) | `web/src/components/ui/` |
-| En-tête de page, badges d'état, étapes, bulle de parole, import de fichier | `web/src/components/common/` |
+| En-tête de page, badges d'état, étapes, bulle de parole, import de fichier, lecture à voix haute | `web/src/components/common/` |
 | États d'une page : vide, erreur, chargement | `web/src/components/states/States.tsx` |
 | Champ de formulaire avec aide et erreur | `web/src/components/form/FormField.tsx` |
 | Barre latérale et en-tête de l'espace connecté | `web/src/components/shell/` et `web/src/app/(app)/layout.tsx` |
