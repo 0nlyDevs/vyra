@@ -11,10 +11,11 @@ import {
   type LinkConfidence,
   type Tone,
 } from '@/lib/domain';
-import { formatDate } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import type { CaseFile } from '@/server/dal/cases';
+import { formatDay as formatDate } from './dates';
 import { ExploreButton } from './ExploreButton';
+import { ExploreLevelButton } from './ExploreLevelButton';
 import styles from './graph.module.css';
 import { DISTORTING_TYPES, layoutTree, pathTo, TREE } from './graph-layout';
 import { SourceKindBadge, VersionComparison, VersionDetail } from './VersionPanels';
@@ -59,15 +60,19 @@ export function PropagationGraph({
   links,
   claim,
   explored,
+  frontier,
 }: {
   caseId: string;
   versions: Version[];
   links: Link[];
   claim: string;
+  // Sources en bout de branche pas encore explorées (bouton « Explorer un niveau de plus »).
+  frontier: number;
   // Sources déjà explorées, avec le nombre de reprises ajoutées : pas de seconde exploration.
   explored: { versionId: string; addedCount: number }[];
 }) {
   const [selection, setSelection] = useState<Selection>(null);
+  const [showContext, setShowContext] = useState(false);
   const [available, setAvailable] = useState<number | null>(null);
   const frameRef = useRef<HTMLDivElement>(null);
 
@@ -84,9 +89,23 @@ export function PropagationGraph({
 
   const center = findCenter(versions, claim);
   if (!center) return null;
-  const layout = layoutTree(versions, links, center.id, available);
+
+  // Le contexte (« même sujet, autre fait ») d'un grand arbre est replié par défaut : il noierait
+  // le chemin de l'information. Un bouton l'affiche.
+  const contextIds = new Set(
+    links.filter((link) => link.changeType === 'related').map((link) => link.fromVersionId),
+  );
+  const foldable = versions.length > TREE.compactFrom && contextIds.size > 0;
+  const hidden = foldable && !showContext ? contextIds : new Set<string>();
+  const shownVersions = versions.filter((version) => !hidden.has(version.id));
+  const shownLinks = links.filter(
+    (link) => !hidden.has(link.fromVersionId) && !hidden.has(link.toVersionId),
+  );
+  const layout = layoutTree(shownVersions, shownLinks, center.id, available);
   const versionById = new Map(versions.map((version) => [version.id, version]));
   const nodeById = new Map(layout.nodes.map((node) => [node.id, node]));
+  // Grand arbre : étiquettes un peu plus étroites que leur case, pour ne pas se toucher.
+  const labelWidth = layout.compact ? 140 : TREE.labelWidth;
 
   // Le chemin de la plus ancienne source à l'information analysée, et sur ce chemin le premier
   // lien qui déforme l'information : le point de déformation.
@@ -146,6 +165,17 @@ export function PropagationGraph({
           </Button>
         </div>
       )}
+
+      <div className="flex flex-wrap items-center gap-3">
+        <ExploreLevelButton caseId={caseId} frontier={frontier} />
+        {foldable && (
+          <Button variant="outline" onClick={() => setShowContext((value) => !value)}>
+            {showContext
+              ? 'Masquer le contexte'
+              : `Afficher le contexte (${contextIds.size} sources : même sujet, autre fait)`}
+          </Button>
+        )}
+      </div>
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <GraphLegend />
@@ -227,9 +257,9 @@ export function PropagationGraph({
                 style={
                   {
                     '--step': node.depth,
-                    left: node.cx - TREE.labelWidth / 2,
+                    left: node.cx - labelWidth / 2,
                     top: node.cy - radius,
-                    width: TREE.labelWidth,
+                    width: labelWidth,
                   } as CSSProperties
                 }
               >
@@ -252,7 +282,12 @@ export function PropagationGraph({
                   {isCenter && (
                     <span className="font-semibold text-primary text-xs">Information analysée</span>
                   )}
-                  <span className="font-semibold text-sm tabular-nums">
+                  <span
+                    className={cn(
+                      'font-semibold tabular-nums',
+                      layout.compact ? 'text-xs' : 'text-sm',
+                    )}
+                  >
                     {formatDate(version.publishedAt)}
                   </span>
                   <span className="line-clamp-1 text-muted-foreground text-xs">
@@ -261,7 +296,7 @@ export function PropagationGraph({
                   <span className="flex flex-wrap justify-center gap-1">
                     <SourceKindBadge version={version} />
                   </span>
-                  {isRoot && (
+                  {isRoot && !layout.compact && (
                     <span className="font-medium text-primary text-xs">
                       Plus ancienne retrouvée
                     </span>
@@ -279,6 +314,16 @@ export function PropagationGraph({
               selection?.kind === 'compare' &&
               selection.leftId === edge.leftId &&
               selection.rightId === edge.rightId;
+            // Grand arbre : seules les étiquettes qui racontent l'histoire restent (chemin vers
+            // l'information, déformation, démentis, lien choisi) ; les autres liens gardent leur
+            // couleur et se cliquent quand même.
+            const important =
+              !layout.compact ||
+              isDeformation ||
+              active ||
+              link.changeType === 'contradicts' ||
+              onPath.has(`${edge.leftId}>${edge.rightId}`);
+            if (!important) return null;
             const left = versionById.get(edge.leftId);
             const right = versionById.get(edge.rightId);
             return (

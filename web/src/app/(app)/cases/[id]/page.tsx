@@ -12,6 +12,7 @@ import { ToneBadge } from '@/components/common/ToneBadge';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { frontierOf } from '@/features/investigation/explore';
 import { PropagationGraph } from '@/features/investigation/PropagationGraph';
 import { WebSearchPanel } from '@/features/investigation/WebSearchPanel';
 import { EVIDENCE_STRENGTH_LABELS, MATCH_KIND_LABELS, MATCH_KINDS } from '@/lib/domain';
@@ -35,7 +36,11 @@ export default async function CaseFilePage({
 
   const file = await getCaseFile(id);
   if (!file) notFound();
-  const [webSearch, explored] = await Promise.all([getWebSearch(id), listExploredVersions(id)]);
+  const [webSearch, explored, frontier] = await Promise.all([
+    getWebSearch(id),
+    listExploredVersions(id),
+    frontierOf(id),
+  ]);
 
   return (
     <div className="grid gap-8">
@@ -114,6 +119,7 @@ export default async function CaseFilePage({
             links={file.links}
             claim={file.claim}
             explored={explored}
+            frontier={frontier.length}
           />
         </CardContent>
       </Card>
