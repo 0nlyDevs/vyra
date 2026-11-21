@@ -51,7 +51,7 @@ web/src/
 
 processing/app/
 ├── routers/              /health, /v1/prompts/{nom}, /v1/embeddings
-├── services/providers.py choix de l'IA : Gemini ou modèle local (AI_PROVIDER)
+├── services/providers.py mode de l'IA (AI_MODE) : Gemini, Gemini puis Gemma 4, ou Gemma 4
 ├── services/gemini.py    appels à l'API Gemini (REST)
 ├── services/local_ai.py  appels au modèle local (Ollama, Gemma 4)
 ├── services/media_inspect.py informations cachées d'une image (sans IA)
