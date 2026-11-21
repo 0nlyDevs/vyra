@@ -1,4 +1,4 @@
-"""Santé du service : indique aussi si Gemini est configuré (utile avant de monter sur scène)."""
+"""Santé du service : indique aussi quelle IA répond (utile avant de monter sur scène)."""
 
 from fastapi import APIRouter
 from pydantic import BaseModel
@@ -16,9 +16,11 @@ class HealthResponse(BaseModel):
 
 @router.get("/health", operation_id="getHealth")
 def get_health(settings: SettingsDep) -> HealthResponse:
-    """« ok » si le service tourne ; `ai` vaut gemini, offline ou not-configured."""
+    """« ok » si le service tourne ; `ai` vaut gemini, local, offline ou not-configured."""
     if settings.demo_offline:
         ai = "offline"
+    elif settings.ai_provider == "local":
+        ai = "local"
     elif settings.gemini_api_key is None:
         ai = "not-configured"
     else:

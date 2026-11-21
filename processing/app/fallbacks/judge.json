@@ -1,0 +1,7 @@
+{
+  "confirmed": [],
+  "contested": [],
+  "missing": [],
+  "conclusion": "L'IA est hors ligne. Le niveau de certitude affiché vient de la règle appliquée aux pièces solides du dossier.",
+  "whatToCheck": "Les pièces solides : ce sont elles qui fixent le niveau de certitude."
+}
