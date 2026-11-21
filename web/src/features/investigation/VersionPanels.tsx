@@ -1,4 +1,5 @@
 import { ExternalLink } from 'lucide-react';
+import type { ReactNode } from 'react';
 import { ToneBadge } from '@/components/common/ToneBadge';
 import {
   CHANGE_TYPE_LABELS,
@@ -20,8 +21,8 @@ type Link = CaseFile['links'][number];
 // partir des mots ajoutés et retirés, faute de lien enregistré.
 export type ShownLink = Pick<Link, 'changeType' | 'note' | 'confidence'> & { estimated: boolean };
 
-// Panneau d'une version : son texte, sa source, sa date.
-export function VersionDetail({ version }: { version: Version }) {
+// Panneau d'une version : son texte, sa source, sa date, et une action (explorer ses reprises).
+export function VersionDetail({ version, action }: { version: Version; action?: ReactNode }) {
   return (
     <section
       aria-label={`Version ${version.position}`}
@@ -42,29 +43,34 @@ export function VersionDetail({ version }: { version: Version }) {
           <ExternalLink className="size-3.5" aria-hidden />
         </a>
       )}
+      {action}
     </section>
   );
 }
 
-// Une source à côté de l'information analysée : mots absents de l'information à gauche, mots
-// ajoutés par l'information à droite.
+// Deux versions côte à côte : mots retirés à gauche, mots ajoutés à droite.
 export function VersionComparison({
   before,
   after,
   link,
+  afterIsCenter = false,
 }: {
   before: Version;
   after: Version;
   link: ShownLink | null;
+  afterIsCenter?: boolean;
 }) {
   const diff = diffWords(before.content, after.content);
+  const target = afterIsCenter ? 'information analysée' : `version ${after.position}`;
   return (
     <section
-      aria-label={`Comparaison de la version ${before.position} et de l’information analysée`}
+      aria-label={`Comparaison de la version ${before.position} et de la ${target}`}
       className="grid gap-5 rounded-xl border bg-card p-5 shadow-sm"
     >
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h3 className="font-semibold text-lg">Version {before.position} → information analysée</h3>
+        <h3 className="font-semibold text-lg">
+          Version {before.position} → {target}
+        </h3>
         <ul className="flex flex-wrap gap-4 text-sm" aria-label="Légende">
           <li className="flex items-center gap-2">
             <span className="rounded bg-muted px-1.5 text-muted-foreground line-through">mot</span>
