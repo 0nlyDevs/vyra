@@ -28,6 +28,7 @@ import httpx
 
 from app.core.config import Settings
 from app.services.connect_retry import call_with_connect_retry_async
+from app.services.safe_url import Resolver, public_only_hook, resolve_host
 
 logger = logging.getLogger(__name__)
 
@@ -552,10 +553,15 @@ async def _find_with_gdelt(
 
 
 async def read_pages(
-    settings: Settings, urls: list[str], *, transport: httpx.AsyncBaseTransport | None = None
+    settings: Settings,
+    urls: list[str],
+    *,
+    transport: httpx.AsyncBaseTransport | None = None,
+    resolve: Resolver = resolve_host,
 ) -> list[WebArticle]:
     """Titre, date, extrait, texte et liens de pages données (les liens d'un article qu'on suit
-    pour remonter à ses sources). Les pages illisibles ou trop lentes sont ignorées."""
+    pour remonter à ses sources). Les pages illisibles ou trop lentes sont ignorées, comme celles
+    d'une adresse interne : ces adresses viennent de l'extérieur (voir safe_url)."""
     if settings.demo_offline:
         raise WebSearchUnavailableError("offline")
     unique = list(dict.fromkeys(url for url in urls if url.startswith("http")))[:PAGES_MAX]
@@ -564,6 +570,7 @@ async def read_pages(
         follow_redirects=True,
         headers={"User-Agent": USER_AGENT},
         transport=transport,
+        event_hooks={"request": [public_only_hook(resolve)]},
     ) as client:
 
         async def read(url: str) -> WebArticle | None:
