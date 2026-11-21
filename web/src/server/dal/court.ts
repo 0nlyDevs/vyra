@@ -163,3 +163,12 @@ export async function listOpenRealCases() {
     .where(and(eq(cases.kind, 'real'), ne(cases.status, 'concluded')))
     .orderBy(desc(cases.createdAt));
 }
+
+// Les affaires que l'assistant peut citer : les plus récentes, conclues ou non.
+export function listCasesForAssistant(limit = 12) {
+  return db
+    .select({ ...judgedColumns, status: cases.status })
+    .from(cases)
+    .orderBy(desc(cases.createdAt))
+    .limit(limit);
+}
