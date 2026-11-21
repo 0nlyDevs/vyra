@@ -3,6 +3,7 @@ import { PageHeader } from '@/components/common/PageHeader';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AudioScanner } from '@/features/scan/AudioScanner';
 import { ImageScanner } from '@/features/scan/ImageScanner';
+import { LinkScanner } from '@/features/scan/LinkScanner';
 import { listCases } from '@/server/dal/cases';
 import { listKnownImages } from '@/server/dal/scans';
 
@@ -13,13 +14,14 @@ export default async function ScanPage() {
     <div className="grid gap-8">
       <PageHeader
         eyebrow="Module 1 · fonction complémentaire"
-        title="Scan d’image et de vocal"
-        description="Importer une image ou un vocal et relever des indices. Jamais de verdict « IA ou pas » : les détecteurs se trompent trop."
+        title="Scan d’image, de vocal et de lien"
+        description="Importer une image, un vocal ou un lien et relever des indices. Jamais de verdict « IA ou pas » : les détecteurs se trompent trop."
       />
       <Tabs defaultValue="image" className="gap-6">
         <TabsList>
           <TabsTrigger value="image">Image</TabsTrigger>
           <TabsTrigger value="audio">Vocal</TabsTrigger>
+          <TabsTrigger value="link">Lien</TabsTrigger>
         </TabsList>
         <TabsContent value="image">
           <ImageScanner
@@ -29,6 +31,9 @@ export default async function ScanPage() {
         </TabsContent>
         <TabsContent value="audio">
           <AudioScanner />
+        </TabsContent>
+        <TabsContent value="link">
+          <LinkScanner />
         </TabsContent>
       </Tabs>
       <AiNotice>
