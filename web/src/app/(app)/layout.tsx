@@ -6,6 +6,7 @@ import { ReadingControls } from '@/components/shell/ReadingControls';
 import { ThemeToggle } from '@/components/shell/ThemeToggle';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
+import { Assistant } from '@/features/assistant/Assistant';
 import { VerifyEmailBanner } from '@/features/auth/VerifyEmailBanner';
 import { signOut } from '@/features/demo/actions';
 import { ResetDemoButton } from '@/features/demo/ResetDemoButton';
@@ -60,6 +61,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
           />
           <main className="mx-auto w-full max-w-6xl flex-1 px-6 py-10 lg:px-10">{children}</main>
         </div>
+        <Assistant />
       </div>
     </div>
   );
