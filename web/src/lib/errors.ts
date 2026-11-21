@@ -24,6 +24,18 @@ export const ERRORS = defineErrors({
     code: 'AI_UNAVAILABLE',
     message: "L'IA est momentanément indisponible. Réessayez dans un instant.",
   },
+  FILE_TOO_LARGE: {
+    code: 'FILE_TOO_LARGE',
+    message: 'Le fichier est trop lourd : 8 Mo au maximum.',
+  },
+  FILE_NOT_SUPPORTED: {
+    code: 'FILE_NOT_SUPPORTED',
+    message: 'Ce type de fichier n’est pas pris en charge.',
+  },
+  NOTHING_TO_ADD: {
+    code: 'NOTHING_TO_ADD',
+    message: 'Ce scan n’a relevé aucun indice à verser au dossier.',
+  },
   INTERNAL: {
     code: 'INTERNAL',
     message: 'Une erreur inattendue est survenue. Réessayez.',
