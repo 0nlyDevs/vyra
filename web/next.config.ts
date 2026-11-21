@@ -11,6 +11,8 @@ const pollIntervalMs = Number(process.env.WATCH_POLL_INTERVAL_MS) || undefined;
 const nextConfig: NextConfig = {
   turbopack: { root: projectRoot },
   poweredByHeader: false,
+  // Le scan envoie une image ou un vocal par une server action : 8 Mo au plus (1 Mo par défaut).
+  experimental: { serverActions: { bodySizeLimit: '10mb' } },
   ...(pollIntervalMs ? { watchOptions: { pollIntervalMs } } : {}),
 };
 
