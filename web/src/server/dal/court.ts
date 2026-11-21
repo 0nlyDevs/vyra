@@ -134,3 +134,23 @@ export async function findJudgedCase(text: string, embedding: number[] | null) {
   }
   return best ? { ...best, mode: 'words' as const } : null;
 }
+
+// Les affaires conclues, les plus récentes d'abord : la partie publique, sans compte.
+export function listConcludedCases() {
+  return db
+    .select({ ...judgedColumns, createdAt: cases.createdAt })
+    .from(cases)
+    .where(eq(cases.status, 'concluded'))
+    .orderBy(desc(cases.createdAt));
+}
+
+// Une affaire conclue et sa dernière audience, ou null si elle n'est pas conclue.
+export async function getConcludedCase(id: string) {
+  const [found] = await db
+    .select(judgedColumns)
+    .from(cases)
+    .where(and(eq(cases.id, id), eq(cases.status, 'concluded')))
+    .limit(1);
+  if (!found) return null;
+  return { ...found, hearing: await getLatestHearing(id) };
+}

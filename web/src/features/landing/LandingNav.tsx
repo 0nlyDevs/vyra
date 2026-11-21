@@ -23,6 +23,9 @@ export function LandingNav({ signedIn }: { signedIn: boolean }) {
           <a href="#difference" className="transition-colors hover:text-foreground">
             La différence
           </a>
+          <Link href="/verifier" className="transition-colors hover:text-foreground">
+            Déjà vérifié ?
+          </Link>
         </nav>
         <Link
           href="/"
