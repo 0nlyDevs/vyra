@@ -21,3 +21,8 @@ __pycache__/
 
 # Journaux
 *.log
+
+# Lien local avec le projet Vercel (vercel link)
+.vercel
+.env*
+!.env.example
