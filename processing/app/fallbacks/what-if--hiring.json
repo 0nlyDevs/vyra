@@ -1,0 +1,35 @@
+{
+  "versions": [
+    {
+      "id": "faithful",
+      "label": "La version fidèle",
+      "text": "L'Office de l'emploi d'Ambohitsoa ouvre 12 postes. Le dossier est gratuit et se dépose au guichet, sans aucun paiement (pièce n° 1).",
+      "changes": [
+        "Le nombre de postes est 12, pas 500.",
+        "Aucun frais de dossier : « Aucun paiement demandé ».",
+        "Le dépôt se fait au guichet, pas par mobile money."
+      ]
+    },
+    {
+      "id": "alarmist",
+      "label": "La version alarmiste",
+      "text": "URGENT !!! Recrutement officiel : 500 POSTES. Dernière chance, il ne reste que quelques heures. Envoyez vite vos frais de dossier et partagez à tous vos contacts !",
+      "changes": [
+        "Ajout de « URGENT !!! » et d'une fausse échéance serrée.",
+        "Le chiffre grossit : « 500 POSTES » au lieu de 12.",
+        "Ajout d'un appel à partager, absent de l'avis officiel."
+      ]
+    },
+    {
+      "id": "misleading",
+      "label": "La version trompeuse",
+      "text": "Recrutement officiel de l'Office de l'emploi : 500 postes à pourvoir. Pour valider votre dossier, envoyez 20 000 Ar au numéro indiqué avant demain midi.",
+      "changes": [
+        "La vraie source est citée pour donner confiance, mais « dossier gratuit » est coupé.",
+        "Un paiement par mobile money apparaît : le numéro appartient à un particulier (pièce n° 2).",
+        "Le chiffre « 500 » remplace silencieusement « 12 »."
+      ]
+    }
+  ],
+  "takeaway": "Une offre officielle ne demande jamais d'argent par mobile money à un numéro de particulier."
+}
