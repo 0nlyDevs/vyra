@@ -1,3 +1,5 @@
+import { Gavel } from 'lucide-react';
+import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { z } from 'zod';
 import {
@@ -7,15 +9,25 @@ import {
 } from '@/components/common/DomainBadges';
 import { PageHeader } from '@/components/common/PageHeader';
 import { ToneBadge } from '@/components/common/ToneBadge';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { CHANGE_TYPE_LABELS, EVIDENCE_STRENGTH_LABELS, LINK_CONFIDENCE_LABELS } from '@/lib/domain';
+import { Button } from '@/components/ui/button';
+import { PropagationGraph } from '@/features/investigation/PropagationGraph';
+import { EVIDENCE_STRENGTH_LABELS } from '@/lib/domain';
 import { formatDateTime } from '@/lib/format';
 import { getCaseFile } from '@/server/dal/cases';
 
 // Le dossier d'une affaire, en lecture seule : versions retrouvées et pièces.
 // Le module Enquête remplace la liste des versions par le graphe ; le tribunal part des pièces.
-export default async function CaseFilePage({ params }: { params: Promise<{ id: string }> }) {
+export default async function CaseFilePage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ retrouvee?: string; nouvelle?: string }>;
+}) {
   const { id } = await params;
+  const { retrouvee, nouvelle } = await searchParams;
   if (!z.uuid().safeParse(id).success) notFound();
 
   const file = await getCaseFile(id);
@@ -28,49 +40,53 @@ export default async function CaseFilePage({ params }: { params: Promise<{ id: s
         title={file.title}
         description={`« ${file.claim} »`}
         actions={
-          file.certainty ? (
-            <CertaintyBadge level={file.certainty} />
-          ) : (
-            <CaseStatusBadge status={file.status} />
-          )
+          <>
+            {file.certainty ? (
+              <CertaintyBadge level={file.certainty} />
+            ) : (
+              <CaseStatusBadge status={file.status} />
+            )}
+            <Button asChild>
+              <Link href={`/court/${file.id}`}>
+                <Gavel aria-hidden />
+                Ouvrir le tribunal
+              </Link>
+            </Button>
+          </>
         }
       />
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-xl">Versions retrouvées</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ol className="grid gap-4">
-              {file.versions.map((version) => {
-                const link = file.links.find((item) => item.toVersionId === version.id);
-                return (
-                  <li key={version.id} className="grid gap-1.5 border-l-2 pl-4">
-                    <p className="text-muted-foreground text-sm">
-                      {version.position}. {version.sourceName} ·{' '}
-                      {formatDateTime(version.publishedAt)}
-                    </p>
-                    <p>{version.content}</p>
-                    {link && (
-                      <p className="flex flex-wrap items-center gap-2 text-sm">
-                        <ToneBadge tone="warning">{CHANGE_TYPE_LABELS[link.changeType]}</ToneBadge>
-                        <span className="text-muted-foreground">
-                          {link.note} Confiance :{' '}
-                          {LINK_CONFIDENCE_LABELS[link.confidence].toLowerCase()}.
-                        </span>
-                      </p>
-                    )}
-                  </li>
-                );
-              })}
-            </ol>
-            <p className="mt-4 text-muted-foreground text-sm">
-              Seules les versions retrouvées sont affichées. D’autres peuvent exister.
-            </p>
-          </CardContent>
-        </Card>
+      {retrouvee && (
+        <Alert>
+          <AlertTitle>Cette information est déjà dans un dossier</AlertTitle>
+          <AlertDescription>
+            Le texte analysé ressemble à une affaire connue. Voici ses versions retrouvées.
+          </AlertDescription>
+        </Alert>
+      )}
+      {nouvelle && (
+        <Alert>
+          <AlertTitle>Nouvelle affaire ouverte</AlertTitle>
+          <AlertDescription>
+            Aucune version proche n’a été retrouvée. Le texte reçu est la première version du
+            dossier.
+          </AlertDescription>
+        </Alert>
+      )}
 
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-xl">
+            Propagation : {file.versions.length}{' '}
+            {file.versions.length > 1 ? 'versions retrouvées' : 'version retrouvée'}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <PropagationGraph versions={file.versions} links={file.links} />
+        </CardContent>
+      </Card>
+
+      <div className="grid gap-6">
         <Card>
           <CardHeader>
             <CardTitle className="text-xl">Pièces du dossier</CardTitle>
