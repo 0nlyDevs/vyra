@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Textarea } from '@/components/ui/textarea';
+import { appendText, DictateButton } from '@/features/dictation/DictateButton';
 import { REPORT_CASE_THRESHOLD, REPORT_REASON_LABELS, REPORT_REASONS } from '@/lib/domain';
 import { submitReport } from './actions';
 
@@ -74,6 +75,7 @@ export function ReportForm({ defaults }: { defaults: ReportDefaults }) {
               ? 'Repris de la publication du fil d’actualité.'
               : 'Collez le texte tel que vous l’avez reçu.'}
           </p>
+          <DictateButton onText={(text) => setContent((current) => appendText(current, text))} />
           {fieldErrors?.content && (
             <p id="content-error" className="text-destructive text-sm">
               {fieldErrors.content[0]}
