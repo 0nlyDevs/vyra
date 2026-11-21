@@ -16,6 +16,8 @@ import { significantWords, wordOverlap } from './word-match';
 const MEANING_MAX_DISTANCE = 0.2;
 // Part minimale des mots du texte reçu retrouvés dans une affaire, sans IA.
 const WORDS_MIN_OVERLAP = 0.6;
+// Et au moins quatre mots en commun : un texte court qui ne cite qu'un lieu ne suffit pas.
+const WORDS_MIN_SHARED = 4;
 const TITLE_MAX_LENGTH = 70;
 
 export type OpenCaseOutcome = {
@@ -65,12 +67,14 @@ export async function openCaseFromClaim(input: {
 
 async function findClosestCaseByWords(claim: string) {
   const words = significantWords(claim);
-  let best: { id: string; score: number } | null = null;
+  let best: { id: string; shared: number; ratio: number } | null = null;
   for (const item of await listCaseTexts()) {
-    const score = wordOverlap(words, significantWords(item.texts.join(' ')));
-    if (!best || score > best.score) best = { id: item.id, score };
+    const overlap = wordOverlap(words, significantWords(item.texts.join(' ')));
+    if (!best || overlap.ratio > best.ratio) best = { id: item.id, ...overlap };
   }
-  return best && best.score >= WORDS_MIN_OVERLAP ? best.id : null;
+  return best && best.ratio >= WORDS_MIN_OVERLAP && best.shared >= WORDS_MIN_SHARED
+    ? best.id
+    : null;
 }
 
 function titleFrom(claim: string) {
