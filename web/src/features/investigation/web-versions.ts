@@ -1,7 +1,12 @@
 import 'server-only';
 import { z } from 'zod';
 import { type ActionResult, fail, ok } from '@/lib/action-result';
-import { CHANGE_TYPES, LINK_CONFIDENCES, type WebSearchStatus } from '@/lib/domain';
+import {
+  CHANGE_TYPES,
+  type InfoRelation,
+  LINK_CONFIDENCES,
+  type WebSearchStatus,
+} from '@/lib/domain';
 import { ERRORS } from '@/lib/errors';
 import { getCaseFile } from '@/server/dal/cases';
 import {
@@ -24,7 +29,8 @@ const WEB_MAX_DISTANCE = 0.3;
 // Sans IA : part et nombre minimal de mots de l'information retrouvés dans l'article.
 const WEB_MIN_OVERLAP = 0.4;
 const WEB_MIN_SHARED = 3;
-const MAX_KEPT = 6;
+// Sources autour du centre de la toile : au-delà, elle devient illisible au projecteur.
+const MAX_KEPT = 8;
 const CONTENT_MAX_LENGTH = 600;
 
 export type WebSearchResult = {
@@ -76,22 +82,23 @@ export async function searchWebVersions(caseId: string): Promise<ActionResult<We
 
   // À adresse égale, l'article de l'index l'emporte : il porte le nom du journal.
   const unique = [...new Map([...fromWeb, ...fromIndex].map((item) => [item.url, item])).values()];
-  // L'IA confirme chaque source proche par le sens : seule une source qui rapporte le même fait
-  // devient une version. Celles qui le démentent sont comptées. Sans IA : les vecteurs suffisent.
-  const relations = await confirmSameInformation(file.claim, unique.map(articleText));
-  const same = relations
-    ? unique.filter((_, index) => relations[index]?.relation === 'same')
-    : unique;
-  const contradicting = relations
-    ? relations.filter((item) => item.relation === 'contradicts').length
-    : 0;
-  const kept = same
-    .sort((a, b) => dateValue(a.published_at) - dateValue(b.published_at))
+  // L'IA dit ce que chaque source proche par le sens rapporte par rapport à l'information : le même
+  // fait, un démenti, ou le même sujet (contexte). Toutes vont dans la toile, sauf les sources sans
+  // rapport. Sans IA : les vecteurs suffisent, toutes sont prises pour le même fait.
+  const confirmations = await confirmSameInformation(file.claim, unique.map(articleText));
+  const judged = unique.flatMap((article, index) => {
+    const confirmation = confirmations?.[index];
+    if (confirmation?.relation === 'unrelated') return [];
+    return [{ article, relation: confirmation?.relation ?? 'same', reason: confirmation?.reason }];
+  });
+  const contradicting = judged.filter((item) => item.relation === 'contradicts').length;
+  const kept = judged
+    .sort((a, b) => dateValue(a.article.published_at) - dateValue(b.article.published_at))
     .slice(0, MAX_KEPT);
 
-  // Les articles du plus ancien au plus récent, puis le texte reçu (la version la plus récente).
+  // Les sources du plus ancien au plus récent, puis le texte reçu, au centre de la toile.
   const ordered: OrderedVersion[] = [
-    ...kept.map((article) => ({
+    ...kept.map(({ article }) => ({
       content: articleText(article),
       sourceName: article.site,
       sourceUrl: article.url,
@@ -99,8 +106,7 @@ export async function searchWebVersions(caseId: string): Promise<ActionResult<We
     })),
     { id: received.id },
   ];
-  const texts = [...kept.map(articleText), received.content];
-  const links = await describeLinks(texts);
+  const links = await linkToReceived(kept, received.content);
 
   const status = kept.length > 0 ? 'found' : 'nothing_found';
   await saveWebSearch({
@@ -135,21 +141,54 @@ function keepSameInformation(
   });
 }
 
-// Un lien entre chaque version et la suivante : ce qui a changé, selon l'IA ou à défaut estimé.
-async function describeLinks(texts: string[]): Promise<LinkBetween[]> {
-  const pairs = texts.slice(1).map((after, index) => ({ before: texts[index] ?? '', after }));
-  if (pairs.length === 0) return [];
-  const described = await runPrompt('compare-versions', { pairs }, compareSchema);
+// Un lien entre chaque source et le texte reçu (le dernier de `ordered`) : un démenti ou un même
+// sujet garde la phrase de l'IA ; une version du même fait dit ce qui a changé, selon l'IA ou à
+// défaut estimé d'après les mots.
+async function linkToReceived(
+  kept: { article: WebArticle; relation: InfoRelation; reason: string | undefined }[],
+  received: string,
+): Promise<LinkBetween[]> {
+  const center = kept.length;
+  const versions = kept.flatMap((item, index) => (item.relation === 'same' ? [index] : []));
+  const pairs = versions.map((index) => ({
+    before: articleText(kept[index]?.article ?? emptyArticle),
+    after: received,
+  }));
+  const described =
+    pairs.length > 0 ? await runPrompt('compare-versions', { pairs }, compareSchema) : null;
   const fromAi =
-    described.ok && described.data.result.links.length === pairs.length
+    described?.ok && described.data.result.links.length === pairs.length
       ? described.data.result.links
       : null;
-  return pairs.map((pair, index) => ({
-    from: index,
-    to: index + 1,
-    ...(fromAi?.[index] ?? guessChange(pair.before, pair.after)),
-  }));
+
+  return kept.map((item, index) => {
+    if (item.relation !== 'same') {
+      return {
+        from: index,
+        to: center,
+        changeType: item.relation === 'contradicts' ? 'contradicts' : 'related',
+        note: item.reason ?? 'Selon l’IA.',
+        confidence: 'medium',
+      };
+    }
+    const pairIndex = versions.indexOf(index);
+    const pair = pairs[pairIndex];
+    return {
+      from: index,
+      to: center,
+      ...(fromAi?.[pairIndex] ?? guessChange(pair?.before ?? '', received)),
+    };
+  });
 }
+
+const emptyArticle: WebArticle = {
+  url: '',
+  title: '',
+  site: '',
+  published_at: null,
+  excerpt: '',
+  language: null,
+};
 
 function articleText(article: WebArticle) {
   const text = article.excerpt ? `${article.title}. ${article.excerpt}` : article.title;
