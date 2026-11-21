@@ -18,7 +18,8 @@ import { ExploreButton } from './ExploreButton';
 import { ExploreLevelButton } from './ExploreLevelButton';
 import styles from './graph.module.css';
 import { DISTORTING_TYPES, layoutTree, pathTo, TREE } from './graph-layout';
-import { SourceKindBadge, VersionComparison, VersionDetail } from './VersionPanels';
+import { SourceKindBadge } from './SourceKindBadge';
+import { VersionComparison, VersionDetail } from './VersionPanels';
 
 type Version = CaseFile['versions'][number];
 type Link = CaseFile['links'][number];
@@ -294,7 +295,7 @@ export function PropagationGraph({
                     {version.sourceName}
                   </span>
                   <span className="flex flex-wrap justify-center gap-1">
-                    <SourceKindBadge version={version} />
+                    <SourceKindBadge source={version} />
                   </span>
                   {isRoot && !layout.compact && (
                     <span className="font-medium text-primary text-xs">
