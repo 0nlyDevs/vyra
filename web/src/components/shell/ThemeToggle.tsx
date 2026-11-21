@@ -12,7 +12,7 @@ export function ThemeToggle() {
       type="button"
       variant="ghost"
       size="icon"
-      aria-label="Passer du thème clair au thème sombre"
+      aria-label="Passer du thème nuit au thème clair"
       onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
     >
       <Sun aria-hidden className="dark:hidden" />

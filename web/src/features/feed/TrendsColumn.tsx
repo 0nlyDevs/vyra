@@ -6,7 +6,7 @@ const numbers = new Intl.NumberFormat('fr-FR');
 // « Ce que le monde cherche » : les recherches Google qui montent le plus, par pays.
 export function TrendsColumn({ trends }: { trends: FeedItem[] }) {
   return (
-    <section aria-labelledby="trends-title" className="grid gap-3 rounded-2xl border bg-card p-5">
+    <section aria-labelledby="trends-title" className="grid gap-3 surface p-5">
       <div className="grid gap-1">
         <h2 id="trends-title" className="flex items-center gap-2 font-semibold">
           <TrendingUp aria-hidden className="size-4 text-primary" />

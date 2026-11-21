@@ -77,7 +77,7 @@ export default async function FeedPage({
           <div className="flex flex-wrap items-center justify-between gap-3">
             <nav
               aria-label="Filtrer le fil"
-              className="flex max-w-full gap-1 overflow-x-auto rounded-xl bg-muted p-1"
+              className="flex max-w-full gap-1 overflow-x-auto rounded-full bg-foreground/[0.05] p-1 shadow-[inset_0_0_0_1px_color-mix(in_oklch,var(--foreground)_6%,transparent)]"
             >
               {views.map((option) => (
                 <Link
@@ -85,9 +85,9 @@ export default async function FeedPage({
                   href={option === 'all' ? '/feed' : `/feed?vue=${option}`}
                   aria-current={view === option ? 'page' : undefined}
                   className={cn(
-                    'whitespace-nowrap rounded-lg px-3 py-1.5 font-medium text-sm transition-colors',
+                    'whitespace-nowrap rounded-full px-3.5 py-1.5 font-medium text-sm transition-colors',
                     view === option
-                      ? 'bg-card text-foreground shadow-xs'
+                      ? 'bg-foreground/[0.1] text-foreground shadow-[inset_0_1px_0_var(--sheen)]'
                       : 'text-muted-foreground hover:text-foreground',
                   )}
                 >
@@ -101,7 +101,7 @@ export default async function FeedPage({
             </p>
           </div>
           {focus && (
-            <div className="grid gap-2 rounded-2xl border border-primary/30 bg-primary/5 p-4">
+            <div className="grid gap-2 rounded-[1.35rem] bg-primary/[0.07] p-5 shadow-[inset_0_0_0_1px_color-mix(in_oklch,var(--primary)_30%,transparent)]">
               <p className="font-medium">
                 Sujet repris par {focus.sources} sources : {focus.label}
               </p>

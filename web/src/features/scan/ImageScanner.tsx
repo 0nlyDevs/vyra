@@ -64,7 +64,7 @@ function Step({
 }) {
   return (
     <section
-      className={cn('grid content-start gap-2 rounded-xl border bg-card p-4', ENTER)}
+      className={cn('grid content-start gap-2 surface p-4', ENTER)}
       style={{ animationDelay: `${index * 80}ms` }}
     >
       <h3 className="flex items-center gap-2 font-semibold">
