@@ -17,7 +17,7 @@ import { WebSearchPanel } from '@/features/investigation/WebSearchPanel';
 import { EVIDENCE_STRENGTH_LABELS, MATCH_KIND_LABELS, MATCH_KINDS } from '@/lib/domain';
 import { formatDateTime } from '@/lib/format';
 import { getCaseFile } from '@/server/dal/cases';
-import { getWebSearch } from '@/server/dal/investigation';
+import { getWebSearch, listExploredVersions } from '@/server/dal/investigation';
 
 // Le dossier d'une affaire, en lecture seule : versions retrouvées et pièces.
 // Le module Enquête remplace la liste des versions par le graphe ; le tribunal part des pièces.
@@ -35,7 +35,7 @@ export default async function CaseFilePage({
 
   const file = await getCaseFile(id);
   if (!file) notFound();
-  const webSearch = await getWebSearch(id);
+  const [webSearch, explored] = await Promise.all([getWebSearch(id), listExploredVersions(id)]);
 
   return (
     <div className="grid gap-8">
@@ -103,12 +103,18 @@ export default async function CaseFilePage({
       <Card>
         <CardHeader>
           <CardTitle className="text-xl">
-            Toile des sources : {file.versions.length - 1}{' '}
+            Propagation : {file.versions.length - 1}{' '}
             {file.versions.length - 1 > 1 ? 'sources retrouvées' : 'source retrouvée'}
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <PropagationGraph versions={file.versions} links={file.links} claim={file.claim} />
+          <PropagationGraph
+            caseId={file.id}
+            versions={file.versions}
+            links={file.links}
+            claim={file.claim}
+            explored={explored}
+          />
         </CardContent>
       </Card>
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { ArrowLeftRight, MousePointerClick } from 'lucide-react';
+import { ArrowLeftRight, MousePointerClick, TriangleAlert } from 'lucide-react';
 import { type CSSProperties, useEffect, useRef, useState } from 'react';
 import { ToneBadge } from '@/components/common/ToneBadge';
 import { Button } from '@/components/ui/button';
@@ -14,15 +14,18 @@ import {
 import { formatDate } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import type { CaseFile } from '@/server/dal/cases';
+import { ExploreButton } from './ExploreButton';
 import styles from './graph.module.css';
-import { layoutWeb, WEB } from './graph-layout';
-import { guessChange } from './guess-change';
-import { type ShownLink, SourceKindBadge, VersionComparison, VersionDetail } from './VersionPanels';
+import { DISTORTING_TYPES, layoutTree, pathTo, TREE } from './graph-layout';
+import { SourceKindBadge, VersionComparison, VersionDetail } from './VersionPanels';
 
 type Version = CaseFile['versions'][number];
 type Link = CaseFile['links'][number];
 
-type Selection = { kind: 'version'; id: string } | { kind: 'compare'; id: string } | null;
+type Selection =
+  | { kind: 'version'; id: string }
+  | { kind: 'compare'; leftId: string; rightId: string; linkId: string | null }
+  | null;
 
 // Traits du lien selon la confiance : plein (forte), tirets (moyenne), pointillés (faible).
 const CONFIDENCE_DASH = {
@@ -48,34 +51,27 @@ function findCenter(versions: Version[], claim: string) {
   );
 }
 
-// Le lien d'une source avec l'information analysée : celui enregistré (par l'IA ou l'équipe),
-// sinon une estimation sans IA, d'après les mots ajoutés et retirés.
-function linkToCenter(version: Version, center: Version, links: Link[]): ShownLink {
-  const saved = links.find(
-    (link) =>
-      (link.fromVersionId === version.id && link.toVersionId === center.id) ||
-      (link.fromVersionId === center.id && link.toVersionId === version.id),
-  );
-  if (saved) return { ...saved, estimated: false };
-  return { ...guessChange(version.content, center.content), estimated: true };
-}
-
-// La toile d'une affaire : l'information analysée au centre, chaque source retrouvée autour,
-// reliée au centre par ce qu'elle dit par rapport à elle.
+// L'arbre de propagation d'une affaire : qui a publié en premier, qui a repris qui, où
+// l'information a été déformée, et où elle a été démentie.
 export function PropagationGraph({
+  caseId,
   versions,
   links,
   claim,
+  explored,
 }: {
+  caseId: string;
   versions: Version[];
   links: Link[];
   claim: string;
+  // Sources déjà explorées, avec le nombre de reprises ajoutées : pas de seconde exploration.
+  explored: { versionId: string; addedCount: number }[];
 }) {
   const [selection, setSelection] = useState<Selection>(null);
   const [available, setAvailable] = useState<number | null>(null);
   const frameRef = useRef<HTMLDivElement>(null);
 
-  // La largeur disponible décide de la taille de la toile : tout doit tenir dans l'écran.
+  // La largeur disponible décide de l'écart entre les générations : tout l'arbre doit tenir.
   useEffect(() => {
     const frame = frameRef.current;
     if (!frame) return;
@@ -88,32 +84,80 @@ export function PropagationGraph({
 
   const center = findCenter(versions, claim);
   if (!center) return null;
-  const layout = layoutWeb(versions, center.id, available);
+  const layout = layoutTree(versions, links, center.id, available);
   const versionById = new Map(versions.map((version) => [version.id, version]));
-  const shown = new Map(
-    layout.nodes.flatMap((node) => {
-      const version = versionById.get(node.id);
-      return version ? [[node.id, linkToCenter(version, center, links)] as const] : [];
-    }),
-  );
-  const oldest = layout.nodes[0];
+  const nodeById = new Map(layout.nodes.map((node) => [node.id, node]));
 
-  const compared = selection?.kind === 'compare' ? versionById.get(selection.id) : undefined;
+  // Le chemin de la plus ancienne source à l'information analysée, et sur ce chemin le premier
+  // lien qui déforme l'information : le point de déformation.
+  const path = pathTo(center.id, layout.parentOf);
+  const root = versionById.get(path[0] ?? '');
+  const onPath = new Set(path.slice(1).map((id, index) => `${path[index]}>${id}`));
+  const deformation = path
+    .slice(1)
+    .map((id, index) =>
+      links.find((link) => link.fromVersionId === path[index] && link.toVersionId === id),
+    )
+    .find((link) => link && DISTORTING_TYPES.includes(link.changeType));
+  const deformedVersion = deformation ? versionById.get(deformation.toVersionId) : undefined;
+
+  const selectedIds = new Set(
+    selection?.kind === 'version'
+      ? [selection.id]
+      : selection?.kind === 'compare'
+        ? [selection.leftId, selection.rightId]
+        : [],
+  );
+  const compared =
+    selection?.kind === 'compare'
+      ? {
+          before: versionById.get(selection.leftId),
+          after: versionById.get(selection.rightId),
+          link: links.find((link) => link.id === selection.linkId) ?? null,
+        }
+      : null;
   const detailed = selection?.kind === 'version' ? versionById.get(selection.id) : undefined;
-  const isSelected = (id: string) =>
-    selection?.id === id || (selection?.kind === 'compare' && id === center.id);
 
   return (
     <div className="grid gap-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <GraphLegend />
-        {oldest && (
+      {deformation && deformedVersion && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-danger/40 bg-danger-soft px-4 py-3 text-danger">
+          <p className="flex items-start gap-2">
+            <TriangleAlert className="mt-0.5 size-5 shrink-0" aria-hidden />
+            <span>
+              <strong className="font-semibold">La déformation apparaît ici :</strong>{' '}
+              {deformedVersion.sourceName}, le {formatDate(deformedVersion.publishedAt)}.{' '}
+              <span className="text-foreground">{deformation.note}</span>
+            </span>
+          </p>
           <Button
             variant="outline"
-            onClick={() => setSelection({ kind: 'compare', id: oldest.id })}
+            size="sm"
+            onClick={() =>
+              setSelection({
+                kind: 'compare',
+                leftId: deformation.fromVersionId,
+                rightId: deformation.toVersionId,
+                linkId: deformation.id,
+              })
+            }
+          >
+            Voir ce qui change
+          </Button>
+        </div>
+      )}
+
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <GraphLegend />
+        {root && root.id !== center.id && (
+          <Button
+            variant="outline"
+            onClick={() =>
+              setSelection({ kind: 'compare', leftId: root.id, rightId: center.id, linkId: null })
+            }
           >
             <ArrowLeftRight aria-hidden />
-            Comparer avec la plus ancienne retrouvée
+            Comparer la plus ancienne et l’information analysée
           </Button>
         )}
       </div>
@@ -125,7 +169,8 @@ export function PropagationGraph({
           style={{ width: layout.width, height: layout.height }}
         >
           <figcaption className="sr-only">
-            Toile des sources retrouvées, chacune reliée à l’information analysée au centre
+            Arbre de propagation : la source la plus ancienne à gauche, puis les reprises, jusqu’à
+            l’information analysée
           </figcaption>
           <svg
             className="absolute inset-0 overflow-visible"
@@ -133,58 +178,41 @@ export function PropagationGraph({
             height={layout.height}
             aria-hidden
           >
-            {layout.edges.map((edge, index) => {
-              const link = shown.get(edge.nodeId);
-              if (!link) return null;
-              const stroke = TONE_STROKE[CHANGE_TYPE_TONES[link.changeType]];
-              const active = selection?.kind === 'compare' && selection.id === edge.nodeId;
+            {layout.edges.map((edge) => {
+              const isDeformation = edge.link === deformation;
+              const stroke = isDeformation
+                ? 'var(--color-danger)'
+                : TONE_STROKE[CHANGE_TYPE_TONES[edge.link.changeType]];
+              const active =
+                selection?.kind === 'compare' &&
+                selection.leftId === edge.leftId &&
+                selection.rightId === edge.rightId;
+              const linkConfidence = links.find((link) => link === edge.link)?.confidence ?? 'low';
+              const main = onPath.has(`${edge.leftId}>${edge.rightId}`);
               return (
-                <line
-                  key={edge.nodeId}
+                <path
+                  key={edge.key}
                   className={styles.edge}
-                  style={{ '--step': index + 1 } as CSSProperties}
-                  x1={edge.x1}
-                  y1={edge.y1}
-                  x2={edge.x2}
-                  y2={edge.y2}
+                  style={{ '--step': nodeById.get(edge.rightId)?.depth ?? 1 } as CSSProperties}
+                  d={edge.path}
+                  fill="none"
                   stroke={stroke}
-                  strokeWidth={active ? 4 : 2.5}
-                  strokeDasharray={CONFIDENCE_DASH[link.confidence]}
+                  strokeOpacity={main || isDeformation ? 1 : 0.75}
+                  strokeWidth={isDeformation ? 5 : active ? 4 : main ? 3 : 2}
+                  strokeDasharray={CONFIDENCE_DASH[linkConfidence]}
                   strokeLinecap="round"
                 />
               );
             })}
           </svg>
 
-          {/* Le centre : l'information analysée. */}
-          <button
-            type="button"
-            onClick={() => setSelection({ kind: 'version', id: center.id })}
-            aria-pressed={isSelected(center.id)}
-            aria-label={`Information analysée, ${formatDate(center.publishedAt)}`}
-            className={cn(
-              styles.reveal,
-              'absolute z-10 grid place-items-center rounded-full border-4 px-2 text-center font-semibold text-xs leading-tight shadow-md outline-none transition-transform duration-200',
-              'hover:scale-105 active:scale-95 focus-visible:ring-[3px] focus-visible:ring-ring/50',
-              isSelected(center.id)
-                ? 'border-primary bg-primary text-primary-foreground'
-                : 'border-primary bg-card text-primary',
-            )}
-            style={{
-              left: layout.center.x - WEB.centerRadius,
-              top: layout.center.y - WEB.centerRadius,
-              width: WEB.centerRadius * 2,
-              height: WEB.centerRadius * 2,
-            }}
-          >
-            Information analysée
-          </button>
-
           {layout.nodes.map((node) => {
             const version = versionById.get(node.id);
             if (!version) return null;
-            const selected = isSelected(version.id);
-            const isOldest = node.id === oldest?.id;
+            const isCenter = version.id === center.id;
+            const isRoot = version.id === root?.id && !isCenter;
+            const selected = selectedIds.has(version.id);
+            const radius = isCenter ? TREE.centerRadius : TREE.nodeRadius;
             return (
               <button
                 key={node.id}
@@ -195,34 +223,35 @@ export function PropagationGraph({
                   styles.reveal,
                   'group absolute flex flex-col items-center gap-1.5 rounded-xl p-1 text-center outline-none',
                   'focus-visible:ring-[3px] focus-visible:ring-ring/50',
-                  node.labelAbove && 'flex-col-reverse',
                 )}
                 style={
                   {
-                    '--step': node.order + 1,
-                    left: node.cx - WEB.labelWidth / 2,
-                    top: node.labelAbove
-                      ? node.cy + WEB.nodeRadius - WEB.labelHeight - WEB.nodeRadius * 2
-                      : node.cy - WEB.nodeRadius,
-                    width: WEB.labelWidth,
-                    height: WEB.labelHeight + WEB.nodeRadius * 2,
-                    justifyContent: node.labelAbove ? 'flex-start' : undefined,
+                    '--step': node.depth,
+                    left: node.cx - TREE.labelWidth / 2,
+                    top: node.cy - radius,
+                    width: TREE.labelWidth,
                   } as CSSProperties
                 }
               >
                 <span
                   className={cn(
-                    'grid shrink-0 place-items-center rounded-full border-2 font-semibold tabular-nums shadow-sm transition-[background-color,border-color,color,transform] duration-200',
+                    'grid shrink-0 place-items-center rounded-full font-semibold tabular-nums shadow-sm transition-[background-color,border-color,color,transform] duration-200',
                     'group-hover:scale-105 group-active:scale-95',
+                    isCenter ? 'border-4' : 'border-2',
                     selected
                       ? 'border-primary bg-primary text-primary-foreground'
-                      : 'border-border bg-card text-foreground group-hover:border-primary/60',
+                      : isCenter || isRoot
+                        ? 'border-primary bg-card text-primary'
+                        : 'border-border bg-card text-foreground group-hover:border-primary/60',
                   )}
-                  style={{ width: WEB.nodeRadius * 2, height: WEB.nodeRadius * 2 }}
+                  style={{ width: radius * 2, height: radius * 2 }}
                 >
                   {version.position}
                 </span>
                 <span className="grid gap-0.5">
+                  {isCenter && (
+                    <span className="font-semibold text-primary text-xs">Information analysée</span>
+                  )}
                   <span className="font-semibold text-sm tabular-nums">
                     {formatDate(version.publishedAt)}
                   </span>
@@ -232,7 +261,7 @@ export function PropagationGraph({
                   <span className="flex flex-wrap justify-center gap-1">
                     <SourceKindBadge version={version} />
                   </span>
-                  {isOldest && (
+                  {isRoot && (
                     <span className="font-medium text-primary text-xs">
                       Plus ancienne retrouvée
                     </span>
@@ -242,37 +271,53 @@ export function PropagationGraph({
             );
           })}
 
-          {layout.edges.map((edge, index) => {
-            const link = shown.get(edge.nodeId);
-            const version = versionById.get(edge.nodeId);
-            if (!link || !version) return null;
-            const active = selection?.kind === 'compare' && selection.id === edge.nodeId;
+          {layout.edges.map((edge) => {
+            const isDeformation = edge.link === deformation;
+            const link = links.find((item) => item === edge.link);
+            if (!link) return null;
+            const active =
+              selection?.kind === 'compare' &&
+              selection.leftId === edge.leftId &&
+              selection.rightId === edge.rightId;
+            const left = versionById.get(edge.leftId);
+            const right = versionById.get(edge.rightId);
             return (
               <button
-                key={edge.nodeId}
+                key={edge.key}
                 type="button"
-                onClick={() => setSelection({ kind: 'compare', id: edge.nodeId })}
+                onClick={() =>
+                  setSelection({
+                    kind: 'compare',
+                    leftId: edge.leftId,
+                    rightId: edge.rightId,
+                    linkId: link.id,
+                  })
+                }
                 aria-pressed={active}
-                aria-label={`Comparer la version ${version.position} à l’information analysée : ${CHANGE_TYPE_LABELS[link.changeType]}, confiance ${LINK_CONFIDENCE_LABELS[link.confidence].toLowerCase()}`}
+                aria-label={`Comparer les versions ${left?.position} et ${right?.position} : ${CHANGE_TYPE_LABELS[link.changeType]}, confiance ${LINK_CONFIDENCE_LABELS[link.confidence].toLowerCase()}`}
                 className={cn(
                   styles.edge,
-                  'absolute z-20 -translate-x-1/2 -translate-y-1/2 rounded-full outline-none transition-transform duration-150',
+                  'absolute z-10 -translate-x-1/2 -translate-y-1/2 rounded-full outline-none transition-transform duration-150',
                   'hover:scale-105 active:scale-95 focus-visible:ring-[3px] focus-visible:ring-ring/50',
                   active && 'ring-2 ring-primary ring-offset-2 ring-offset-background',
                 )}
                 style={
                   {
-                    '--step': index + 1,
+                    '--step': nodeById.get(edge.rightId)?.depth ?? 1,
                     left: edge.chip.x,
                     top: edge.chip.y,
-                    maxWidth: 132,
+                    maxWidth: Math.max(96, layout.columnWidth - TREE.nodeRadius * 2 - 24),
                   } as CSSProperties
                 }
               >
                 <ToneBadge
-                  tone={CHANGE_TYPE_TONES[link.changeType]}
-                  className="whitespace-normal text-balance py-1 text-center leading-tight shadow-sm"
+                  tone={isDeformation ? 'danger' : CHANGE_TYPE_TONES[link.changeType]}
+                  className={cn(
+                    'whitespace-normal text-balance py-1 text-center leading-tight shadow-sm',
+                    isDeformation && 'ring-2 ring-danger',
+                  )}
                 >
+                  {isDeformation && <TriangleAlert aria-hidden />}
                   {CHANGE_TYPE_LABELS[link.changeType]}
                 </ToneBadge>
               </button>
@@ -282,18 +327,35 @@ export function PropagationGraph({
       </div>
 
       <p className="text-muted-foreground text-sm">
-        Seules les sources retrouvées sont affichées. D’autres peuvent exister.
+        Liens déduits des dates, des phrases reprises, des citations et des liens entre pages : «
+        reprise probable », pas une certitude. Seules les sources publiques retrouvées sont
+        affichées ; entre deux d’entre elles, d’autres étapes peuvent exister.
       </p>
 
-      {compared ? (
-        <VersionComparison before={compared} after={center} link={shown.get(compared.id) ?? null} />
+      {compared?.before && compared.after ? (
+        <VersionComparison
+          before={compared.before}
+          after={compared.after}
+          afterIsCenter={compared.after.id === center.id}
+          link={compared.link ? { ...compared.link, estimated: false } : null}
+        />
       ) : detailed ? (
-        <VersionDetail version={detailed} />
+        <VersionDetail
+          version={detailed}
+          action={
+            detailed.sourceUrl ? (
+              <ExploreButton
+                caseId={caseId}
+                versionId={detailed.id}
+                added={explored.find((item) => item.versionId === detailed.id)?.addedCount ?? null}
+              />
+            ) : undefined
+          }
+        />
       ) : (
         <p className="flex items-center gap-2 rounded-lg border border-dashed px-4 py-5 text-muted-foreground">
           <MousePointerClick className="size-5 shrink-0" aria-hidden />
-          Cliquez sur une source pour la lire, ou sur un lien pour la comparer à l’information
-          analysée.
+          Cliquez sur une source pour la lire ou l’explorer, ou sur un lien pour voir ce qui change.
         </p>
       )}
     </div>
@@ -317,7 +379,11 @@ function GraphLegend() {
               strokeDasharray={CONFIDENCE_DASH[confidence]}
             />
           </svg>
-          Confiance {LINK_CONFIDENCE_LABELS[confidence].toLowerCase()}
+          {confidence === 'high'
+            ? 'Lien ou citation'
+            : confidence === 'medium'
+              ? 'Phrases reprises'
+              : 'Reprise possible'}
         </li>
       ))}
     </ul>
