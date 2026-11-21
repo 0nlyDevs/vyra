@@ -1,7 +1,9 @@
 import 'server-only';
-import { eq } from 'drizzle-orm';
+import { eq, inArray } from 'drizzle-orm';
+import { hashPassword } from '@/server/auth/password';
 import type { Database } from '@/server/db';
 import {
+  accounts,
   cases,
   caseVersions,
   evidence,
@@ -11,6 +13,7 @@ import {
   reportGroups,
   reports,
   scenarios,
+  sessions,
   versionLinks,
 } from '@/server/db/schema';
 
@@ -655,6 +658,22 @@ const DEMO_VERSION_IMAGES: [string, string][] = [
   [id(103), '/demo/inondation-virale.jpg'],
 ];
 
+// ─── Comptes de démo (lot de Mahery) ─────────────────────────────────────────────────────────
+
+// Mot de passe des comptes de démo : une valeur de test, pour ce poste seulement. Sur scène, on
+// entre avec les boutons « Comptes de démo » de la page de connexion.
+export const DEMO_PASSWORD = 'mindstack-demo';
+
+async function demoAccounts(): Promise<(typeof accounts.$inferInsert)[]> {
+  const passwordHash = await hashPassword(DEMO_PASSWORD);
+  return DEMO_PROFILES.map((profile) => ({
+    profileId: profile.id,
+    email: `${profile.id}@mindstack.demo`,
+    passwordHash,
+    emailVerifiedAt: new Date(),
+  }));
+}
+
 export async function hasDemoData(database: Database) {
   const [found] = await database.select({ id: cases.id }).from(cases).limit(1);
   return found !== undefined;
@@ -663,10 +682,19 @@ export async function hasDemoData(database: Database) {
 export async function resetDemoData(database: Database) {
   await database.transaction(async (tx) => {
     // Socle commun. Supprimer une affaire supprime ses versions, ses liens et ses pièces.
+    // Supprimer les profils supprime aussi les comptes et les sessions : on garde celles des
+    // comptes de démo, pour que la personne sur scène reste connectée après la remise à zéro.
+    const demoIds = DEMO_PROFILES.map((profile) => profile.id);
+    const keptSessions = await tx
+      .select()
+      .from(sessions)
+      .where(inArray(sessions.profileId, demoIds));
     await tx.delete(cases);
     await tx.delete(notes);
     await tx.delete(profiles);
     await tx.insert(profiles).values([...DEMO_PROFILES]);
+    await tx.insert(accounts).values(await demoAccounts());
+    if (keptSessions.length > 0) await tx.insert(sessions).values(keptSessions);
     await tx.insert(notes).values(DEMO_NOTES);
     await tx.insert(cases).values(DEMO_CASES);
     await tx.insert(caseVersions).values(DEMO_VERSIONS);

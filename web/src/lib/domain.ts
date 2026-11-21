@@ -239,6 +239,12 @@ export const SCAN_OUTCOME_TONES = {
   no_clue: 'neutral',
 } satisfies Record<ScanOutcome, Tone>;
 
+// ─── Comptes ────────────────────────────────────────────────────────────────────────────────
+
+// Lien à usage unique envoyé par e-mail.
+export const AUTH_TOKEN_PURPOSES = ['verify_email', 'reset_password'] as const;
+export type AuthTokenPurpose = (typeof AUTH_TOKEN_PURPOSES)[number];
+
 // ─── Jeu vrai ou fake ───────────────────────────────────────────────────────────────────────
 
 // La réponse du joueur, et la bonne réponse d'une information du jeu.
