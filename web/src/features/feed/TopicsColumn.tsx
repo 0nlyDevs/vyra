@@ -21,11 +21,14 @@ export function TopicsColumn({ topics }: { topics: FeedTopic[] }) {
           Aucun sujet repris pour l’instant (il faut l’IA pour comparer le sens des publications).
         </p>
       ) : (
-        <ol className="grid gap-3">
-          {topics.map((topic) => {
+        <ol className="grid gap-4">
+          {topics.map((topic, index) => {
             const kinds = [...new Set(topic.items.map((item) => FEED_KIND_LABELS[item.kind]))];
             return (
-              <li key={topic.id} className="grid gap-0.5">
+              <li key={topic.id} className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-0.5">
+                <span className="display row-span-2 pt-0.5 text-[1.15rem] text-primary tabular-nums">
+                  {String(index + 1).padStart(2, '0')}
+                </span>
                 <Link
                   href={`/feed?sujet=${topic.id}`}
                   className="line-clamp-2 font-medium underline-offset-4 hover:underline"
