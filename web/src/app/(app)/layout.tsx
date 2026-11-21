@@ -2,6 +2,7 @@ import { LogOut } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { Logo } from '@/components/brand/Logo';
 import { AppSidebar, AppTopNav } from '@/components/shell/AppNav';
+import { ReadingControls } from '@/components/shell/ReadingControls';
 import { ThemeToggle } from '@/components/shell/ThemeToggle';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -40,6 +41,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
                 </span>
               </div>
             </div>
+            <ReadingControls />
             <ThemeToggle />
             <form action={signOut}>
               <Button type="submit" variant="ghost" size="icon" aria-label="Se déconnecter">
