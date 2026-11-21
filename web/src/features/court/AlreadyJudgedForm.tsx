@@ -2,13 +2,14 @@
 
 import { ArrowRight, Search } from 'lucide-react';
 import Link from 'next/link';
-import { useActionState } from 'react';
+import { useActionState, useRef } from 'react';
 import { CertaintyBadge } from '@/components/common/DomainBadges';
 import { ToneBadge } from '@/components/common/ToneBadge';
 import { FormMessage } from '@/components/form/FormField';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { appendText, DictateButton } from '@/features/dictation/DictateButton';
 import { checkAlreadyJudged } from './actions';
 
 // « Déjà jugé » : on colle une information, on retrouve l'affaire conclue qui lui ressemble.
@@ -17,6 +18,7 @@ export function AlreadyJudgedForm() {
   const fieldError = state && !state.ok ? state.error.fieldErrors?.query?.[0] : undefined;
   const generalError = state && !state.ok && !fieldError ? state.error.message : null;
   const result = state?.ok ? state.data : null;
+  const queryRef = useRef<HTMLTextAreaElement>(null);
 
   return (
     <div className="grid gap-4">
@@ -25,6 +27,7 @@ export function AlreadyJudgedForm() {
           Cette information a-t-elle déjà été jugée ?
         </Label>
         <Textarea
+          ref={queryRef}
           id="judged-query"
           name="query"
           rows={3}
@@ -37,10 +40,18 @@ export function AlreadyJudgedForm() {
             {fieldError}
           </p>
         )}
-        <Button type="submit" disabled={pending} className="justify-self-start">
-          <Search aria-hidden />
-          {pending ? 'Recherche…' : 'Chercher'}
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button type="submit" disabled={pending}>
+            <Search aria-hidden />
+            {pending ? 'Recherche…' : 'Chercher'}
+          </Button>
+          <DictateButton
+            onText={(text) => {
+              if (queryRef.current)
+                queryRef.current.value = appendText(queryRef.current.value, text);
+            }}
+          />
+        </div>
       </form>
       <FormMessage message={generalError} />
 
