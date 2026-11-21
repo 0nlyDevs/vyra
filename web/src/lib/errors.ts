@@ -24,6 +24,14 @@ export const ERRORS = defineErrors({
     code: 'AI_UNAVAILABLE',
     message: "L'IA est momentanément indisponible. Réessayez dans un instant.",
   },
+  ALREADY_REPORTED: {
+    code: 'ALREADY_REPORTED',
+    message: 'Vous avez déjà signalé ce contenu. Merci : il est suivi dans « Mes signalements ».',
+  },
+  REPORT_LIMIT_REACHED: {
+    code: 'REPORT_LIMIT_REACHED',
+    message: 'Vous avez atteint la limite de signalements pour aujourd’hui. Réessayez demain.',
+  },
   INTERNAL: {
     code: 'INTERNAL',
     message: 'Une erreur inattendue est survenue. Réessayez.',
