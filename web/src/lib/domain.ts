@@ -118,8 +118,9 @@ export const CHANGE_TYPE_TONES = {
   related: 'neutral',
 } satisfies Record<ChangeType, Tone>;
 
-// Type de source d'une version du graphe, déduit de son adresse ou de son nom.
+// Type de source d'une version du graphe ou d'une pièce, déduit de son adresse ou de son nom.
 export const SOURCE_KINDS = [
+  'fact_checker',
   'press',
   'official',
   'media',
@@ -133,6 +134,7 @@ export const SOURCE_KINDS = [
 export type SourceKind = (typeof SOURCE_KINDS)[number];
 
 export const SOURCE_KIND_LABELS = {
+  fact_checker: 'Vérificateur de faits',
   press: 'Presse reconnue',
   official: 'Source officielle',
   media: 'Média',
@@ -145,6 +147,7 @@ export const SOURCE_KIND_LABELS = {
 } satisfies Record<SourceKind, string>;
 
 export const SOURCE_KIND_TONES = {
+  fact_checker: 'success',
   press: 'success',
   official: 'success',
   media: 'info',

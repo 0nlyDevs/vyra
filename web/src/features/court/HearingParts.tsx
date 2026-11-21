@@ -9,6 +9,7 @@ import {
 import { SpeakButton } from '@/components/common/SpeakButton';
 import { SpeechBubble } from '@/components/common/SpeechBubble';
 import { ToneBadge } from '@/components/common/ToneBadge';
+import { SourceKindBadge } from '@/features/investigation/SourceKindBadge';
 import {
   CERTAINTY_CRITERIA,
   EVIDENCE_STRENGTH_LABELS,
@@ -29,6 +30,7 @@ export type HearingPiece = {
   title: string;
   content: string;
   sourceName: string;
+  sourceUrl: string | null;
   publishedAt: Date | null;
   stance: EvidenceStance;
   strength: EvidenceStrength;
@@ -129,6 +131,7 @@ export function Witnesses({
             <span className="font-semibold text-primary">Pièce n° {piece.number}</span>
             <ToneBadge>{EVIDENCE_STRENGTH_LABELS[piece.strength]}</ToneBadge>
             {revealStance && <EvidenceStanceBadge stance={piece.stance} />}
+            <SourceKindBadge source={piece} />
           </div>
           <p className="font-medium">{piece.title}</p>
           <p className="text-pretty">{piece.content}</p>

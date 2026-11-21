@@ -8,6 +8,7 @@ import { CertaintyBadge, EvidenceStanceBadge } from '@/components/common/DomainB
 import { PageHeader } from '@/components/common/PageHeader';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ShareCard } from '@/features/court/ShareCard';
+import { SourceKindBadge } from '@/features/investigation/SourceKindBadge';
 import { CERTAINTY_CRITERIA } from '@/lib/domain';
 import { formatDate } from '@/lib/format';
 import { getCaseFile } from '@/server/dal/cases';
@@ -94,6 +95,7 @@ export default async function PublicVerdictPage({ params }: { params: Promise<{ 
                       Pièce n° {piece.number} · {piece.title}
                     </span>
                     <EvidenceStanceBadge stance={piece.stance} />
+                    <SourceKindBadge source={piece} />
                   </span>
                   <span className="text-sm">{piece.content}</span>
                   <span className="text-muted-foreground text-xs">

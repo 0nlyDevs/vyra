@@ -15,6 +15,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { frontierOf } from '@/features/investigation/explore';
 import { FactCheckPanel } from '@/features/investigation/FactCheckPanel';
 import { PropagationGraph } from '@/features/investigation/PropagationGraph';
+import { SourceKindBadge } from '@/features/investigation/SourceKindBadge';
 import { WebSearchPanel } from '@/features/investigation/WebSearchPanel';
 import { WarningSigns } from '@/features/signals/WarningSigns';
 import { EVIDENCE_STRENGTH_LABELS, MATCH_KIND_LABELS, MATCH_KINDS } from '@/lib/domain';
@@ -145,6 +146,7 @@ export default async function CaseFilePage({
                     </span>
                     <EvidenceStanceBadge stance={piece.stance} />
                     <ToneBadge>{EVIDENCE_STRENGTH_LABELS[piece.strength]}</ToneBadge>
+                    <SourceKindBadge source={piece} />
                   </div>
                   <p>{piece.content}</p>
                   <p className="text-muted-foreground text-sm">
