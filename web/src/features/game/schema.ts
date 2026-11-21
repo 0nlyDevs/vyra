@@ -29,3 +29,26 @@ export type DebriefInput = z.infer<typeof debriefSchema>;
 
 // Forme du JSON du prompt `game-debrief` (processing/app/prompts/game-debrief.md et ses secours).
 export const debriefResultSchema = z.object({ advice: z.string().min(1).max(600) });
+
+// Le message du joueur au groupe famille (bonus du jeu).
+export const familyMessageSchema = z.object({
+  message: z
+    .string()
+    .trim()
+    .min(10, 'Écrivez au moins 10 caractères.')
+    .max(600, '600 caractères au maximum.'),
+});
+
+// Forme du JSON du prompt `game-family` (processing/app/prompts/game-family.md et son secours).
+export const familyResultSchema = z.object({
+  replies: z
+    .array(z.object({ name: z.string().min(1), message: z.string().min(1).max(400) }))
+    .min(1)
+    .max(4),
+  feedback: z.object({
+    kind: z.boolean(),
+    sourced: z.boolean(),
+    useful: z.boolean(),
+    tip: z.string().min(1).max(400),
+  }),
+});
