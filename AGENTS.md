@@ -21,6 +21,7 @@ cas limites qu'on ne montrera pas. Des données simulées sont acceptées.
 2. `docs/CONVENTIONS.md` : les règles de code.
 3. `web/AGENTS.md` pour du code Next.js (version récente : lire la doc de `web/node_modules/next/dist/docs/`).
 4. L'exemple complet `web/src/features/notes/` : une fonctionnalité se calque dessus.
+5. `docs/FRONT.md` et la page `/kit` : la base de l'interface, à réutiliser avant de créer un composant.
 
 ## Commandes
 

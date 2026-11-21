@@ -4,12 +4,18 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/* Thème NEUTRE de départ. Le vrai thème (couleurs, police, ambiance) se crée une fois le sujet
-   connu, ici même : on change les jetons de :root, les composants shadcn suivent sans changement. */
+/* Thème MindStack : rouge moderne, en clair et en sombre. Trois couches de jetons :
+   1. primitives : les valeurs brutes (nuancier rouge, gris teintés, couleurs d'état) ;
+   2. sémantiques : le rôle de chaque couleur (fond, texte, primaire, succès…) ;
+   3. composants : ce qui est propre à un composant (barre latérale).
+   Dans une page ou un composant, on n'utilise QUE les classes des couches 2 et 3
+   (bg-primary, text-muted-foreground, bg-success-soft…), jamais une couleur écrite en dur.
+   Pour changer le rouge de toute l'application : modifier le nuancier --red-* ci-dessous. */
 
 @theme inline {
   --font-sans:
-    ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    var(--font-geist-sans), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
   --font-heading: var(--font-sans);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -29,6 +35,19 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-info: var(--info);
+  --color-info-soft: var(--info-soft);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-active: var(--sidebar-active);
+  --color-sidebar-active-foreground: var(--sidebar-active-foreground);
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -37,25 +56,118 @@
 }
 
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.45 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --radius: 0.625rem;
+  /* 1. Primitives */
+  --red-50: oklch(0.975 0.012 20);
+  --red-100: oklch(0.94 0.03 20);
+  --red-200: oklch(0.885 0.06 20);
+  --red-300: oklch(0.81 0.11 21);
+  --red-400: oklch(0.71 0.17 22);
+  --red-500: oklch(0.63 0.21 23);
+  --red-600: oklch(0.56 0.215 24);
+  --red-700: oklch(0.48 0.19 24);
+  --red-800: oklch(0.4 0.15 24);
+  --red-900: oklch(0.33 0.11 24);
+  --red-950: oklch(0.22 0.07 24);
+
+  /* Gris légèrement teintés de rouge : ils s'accordent avec la couleur de marque. */
+  --ink-0: oklch(1 0 0);
+  --ink-50: oklch(0.985 0.002 20);
+  --ink-100: oklch(0.965 0.003 20);
+  --ink-200: oklch(0.925 0.004 20);
+  --ink-300: oklch(0.87 0.005 20);
+  --ink-400: oklch(0.71 0.008 20);
+  --ink-500: oklch(0.55 0.01 20);
+  --ink-600: oklch(0.44 0.01 20);
+  --ink-700: oklch(0.36 0.01 20);
+  --ink-800: oklch(0.27 0.008 20);
+  --ink-900: oklch(0.205 0.008 20);
+  --ink-950: oklch(0.155 0.006 20);
+
+  --green-100: oklch(0.95 0.045 155);
+  --green-400: oklch(0.76 0.15 155);
+  --green-600: oklch(0.5 0.13 155);
+  --green-900: oklch(0.3 0.06 155);
+  --amber-100: oklch(0.955 0.055 85);
+  --amber-400: oklch(0.82 0.15 80);
+  --amber-600: oklch(0.52 0.12 65);
+  --amber-900: oklch(0.32 0.06 65);
+  --blue-100: oklch(0.95 0.03 250);
+  --blue-400: oklch(0.76 0.12 250);
+  --blue-600: oklch(0.5 0.15 255);
+  --blue-900: oklch(0.3 0.07 255);
+
+  /* 2. Sémantiques (clair) */
+  --background: var(--ink-50);
+  --foreground: var(--ink-950);
+  --card: var(--ink-0);
+  --card-foreground: var(--ink-950);
+  --popover: var(--ink-0);
+  --popover-foreground: var(--ink-950);
+  --primary: var(--red-600);
+  --primary-foreground: var(--ink-0);
+  --secondary: var(--ink-100);
+  --secondary-foreground: var(--ink-900);
+  --muted: var(--ink-100);
+  --muted-foreground: var(--ink-600);
+  --accent: var(--red-50);
+  --accent-foreground: var(--red-800);
+  --destructive: var(--red-700);
+  --border: var(--ink-200);
+  --input: var(--ink-300);
+  --ring: var(--red-400);
+  --success: var(--green-600);
+  --success-soft: var(--green-100);
+  --warning: var(--amber-600);
+  --warning-soft: var(--amber-100);
+  --info: var(--blue-600);
+  --info-soft: var(--blue-100);
+  --danger: var(--red-700);
+  --danger-soft: var(--red-100);
+  --radius: 0.75rem;
+
+  /* 3. Composants */
+  --sidebar: var(--ink-0);
+  --sidebar-foreground: var(--ink-700);
+  --sidebar-border: var(--ink-200);
+  --sidebar-active: var(--red-50);
+  --sidebar-active-foreground: var(--red-700);
+}
+
+.dark {
+  /* 2. Sémantiques (sombre) */
+  --background: var(--ink-950);
+  --foreground: var(--ink-50);
+  --card: var(--ink-900);
+  --card-foreground: var(--ink-50);
+  --popover: var(--ink-900);
+  --popover-foreground: var(--ink-50);
+  --primary: var(--red-500);
+  --primary-foreground: var(--ink-0);
+  --secondary: var(--ink-800);
+  --secondary-foreground: var(--ink-50);
+  --muted: var(--ink-800);
+  --muted-foreground: var(--ink-400);
+  --accent: var(--red-950);
+  --accent-foreground: var(--red-200);
+  --destructive: var(--red-400);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 16%);
+  --ring: var(--red-500);
+  --success: var(--green-400);
+  --success-soft: var(--green-900);
+  --warning: var(--amber-400);
+  --warning-soft: var(--amber-900);
+  --info: var(--blue-400);
+  --info-soft: var(--blue-900);
+  --danger: var(--red-300);
+  --danger-soft: var(--red-900);
+
+  /* 3. Composants */
+  --sidebar: var(--ink-900);
+  --sidebar-foreground: var(--ink-300);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-active: var(--red-950);
+  --sidebar-active-foreground: var(--red-200);
 }
 
 @layer base {
@@ -71,5 +183,16 @@
 
   body {
     @apply bg-background font-sans text-foreground antialiased;
+  }
+
+  h1,
+  h2,
+  h3 {
+    @apply text-balance tracking-tight;
+  }
+
+  ::selection {
+    background: var(--red-200);
+    color: var(--red-950);
   }
 }
