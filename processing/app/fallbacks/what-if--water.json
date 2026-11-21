@@ -1,0 +1,15 @@
+{
+  "versions": [
+    {
+      "id": "calm",
+      "label": "La version calme",
+      "text": "La Régie des eaux annonce une coupure lundi de 10 h à 14 h, dans les quartiers Est et du Vieux-Pont uniquement (pièce n° 1). La radio a relayé l'annonce sans donner la durée (pièce n° 2). Il n'y a aucune coupure de dix jours annoncée pour toute la ville.",
+      "changes": [
+        "« 10 jours » devient « de 10 h à 14 h » : la durée vient de l'avis officiel.",
+        "« Toute la ville » devient deux quartiers.",
+        "Retrait de « Faites vos réserves ! », qui pousse à la panique."
+      ]
+    }
+  ],
+  "takeaway": "Quand une durée ou une étendue change d'un message à l'autre, remontez à l'avis d'origine."
+}

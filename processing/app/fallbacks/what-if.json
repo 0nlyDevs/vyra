@@ -1,0 +1,14 @@
+{
+  "versions": [
+    {
+      "id": "calm",
+      "label": "La version calme",
+      "text": "Une information circule, mais les pièces du dossier ne permettent pas de la confirmer en l'état. Voici ce qui est établi, et ce qu'il reste à vérifier auprès de la source d'origine.",
+      "changes": [
+        "Retrait de l'appel à « partager vite ».",
+        "Les affirmations sans pièce sont signalées comme non vérifiées."
+      ]
+    }
+  ],
+  "takeaway": "Une information qu'on peut dire calmement tient mieux qu'une information qui presse."
+}
