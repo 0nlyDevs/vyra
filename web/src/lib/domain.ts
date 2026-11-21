@@ -239,63 +239,8 @@ export const SCAN_OUTCOME_TONES = {
   no_clue: 'neutral',
 } satisfies Record<ScanOutcome, Tone>;
 
-// ─── Jeu vrai ou fake ───────────────────────────────────────────────────────────────────────
+// ─── Comptes ────────────────────────────────────────────────────────────────────────────────
 
-// La réponse du joueur, et la bonne réponse d'une information du jeu.
-export const GAME_ANSWERS = ['true', 'fake', 'cannot_tell'] as const;
-export type GameAnswer = (typeof GAME_ANSWERS)[number];
-
-export const GAME_ANSWER_LABELS = {
-  true: 'Vrai',
-  fake: 'Fake',
-  cannot_tell: 'Impossible à dire',
-} satisfies Record<GameAnswer, string>;
-
-export const GAME_ANSWER_TONES = {
-  true: 'success',
-  fake: 'danger',
-  cannot_tell: 'neutral',
-} satisfies Record<GameAnswer, Tone>;
-
-// Les indices qu'on retourne pour juger une information.
-export const CLUE_KINDS = ['source', 'date', 'image', 'author', 'other_media'] as const;
-export type ClueKind = (typeof CLUE_KINDS)[number];
-
-export const CLUE_KIND_LABELS = {
-  source: 'La source',
-  date: 'La date',
-  image: 'L’image',
-  author: 'L’auteur',
-  other_media: 'Les autres médias',
-} satisfies Record<ClueKind, string>;
-
-// La note que le joueur donne à un indice.
-export const CLUE_RATINGS = ['reliable', 'suspicious'] as const;
-export type ClueRating = (typeof CLUE_RATINGS)[number];
-
-export const CLUE_RATING_LABELS = {
-  reliable: 'Fiable',
-  suspicious: 'Suspect',
-} satisfies Record<ClueRating, string>;
-
-// Le grade d'une série, d'après la part de bonnes réponses.
-export const GAME_GRADES = ['beginner', 'vigilant', 'expert'] as const;
-export type GameGrade = (typeof GAME_GRADES)[number];
-
-export const GAME_GRADE_LABELS = {
-  beginner: 'Débutant',
-  vigilant: 'Vigilant',
-  expert: 'Expert',
-} satisfies Record<GameGrade, string>;
-
-export const GAME_GRADE_TONES = {
-  beginner: 'neutral',
-  vigilant: 'info',
-  expert: 'success',
-} satisfies Record<GameGrade, Tone>;
-
-// Sur une série de 5 : 0 à 2 bonnes réponses = débutant, 3 ou 4 = vigilant, 5 = expert.
-export function gameGradeOf(score: number, total: number): GameGrade {
-  if (total > 0 && score >= total) return 'expert';
-  return total > 0 && score / total >= 0.6 ? 'vigilant' : 'beginner';
-}
+// Lien à usage unique envoyé par e-mail.
+export const AUTH_TOKEN_PURPOSES = ['verify_email', 'reset_password'] as const;
+export type AuthTokenPurpose = (typeof AUTH_TOKEN_PURPOSES)[number];

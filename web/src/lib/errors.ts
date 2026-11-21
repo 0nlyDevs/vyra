@@ -48,6 +48,22 @@ export const ERRORS = defineErrors({
     code: 'NOTHING_TO_ADD',
     message: 'Ce scan n’a relevé aucun indice à verser au dossier.',
   },
+  EMAIL_TAKEN: {
+    code: 'EMAIL_TAKEN',
+    message: 'Un compte existe déjà avec cette adresse. Connectez-vous.',
+  },
+  INVALID_CREDENTIALS: {
+    code: 'INVALID_CREDENTIALS',
+    message: 'E-mail ou mot de passe incorrect.',
+  },
+  GOOGLE_ONLY_ACCOUNT: {
+    code: 'GOOGLE_ONLY_ACCOUNT',
+    message: 'Ce compte se connecte avec Google. Utilisez « Continuer avec Google ».',
+  },
+  LINK_INVALID: {
+    code: 'LINK_INVALID',
+    message: 'Ce lien n’est plus valable. Demandez-en un nouveau.',
+  },
   INTERNAL: {
     code: 'INTERNAL',
     message: 'Une erreur inattendue est survenue. Réessayez.',
