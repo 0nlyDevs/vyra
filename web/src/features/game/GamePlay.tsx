@@ -71,8 +71,10 @@ export function GamePlay({ scenarios }: { scenarios: PlayableScenario[] }) {
   const isLast = index === scenarios.length - 1;
   const stepLabels = [...scenarios.map((_, position) => `Information ${position + 1}`), 'Score'];
 
+  // Ramène l'écran et le focus clavier en haut : le bouton cliqué vient de disparaître.
   function scrollToTop() {
     const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    topRef.current?.focus({ preventScroll: true });
     topRef.current?.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' });
   }
 
@@ -122,8 +124,8 @@ export function GamePlay({ scenarios }: { scenarios: PlayableScenario[] }) {
 
   if (result) {
     return (
-      <div ref={topRef} className="grid scroll-mt-24 gap-8">
-        <Steps steps={stepLabels} current={scenarios.length} />
+      <div ref={topRef} tabIndex={-1} className="grid scroll-mt-24 gap-8 outline-none">
+        <SeriesProgress labels={stepLabels} current={scenarios.length} />
         <RunSummary result={result} scenarios={scenarios} answers={answers} onRestart={restart} />
       </div>
     );
@@ -133,10 +135,12 @@ export function GamePlay({ scenarios }: { scenarios: PlayableScenario[] }) {
   const correct = answer !== null && answer === scenario.answer;
 
   return (
-    <div ref={topRef} className="grid scroll-mt-24 gap-8">
-      <Steps steps={stepLabels} current={index} />
+    <div ref={topRef} tabIndex={-1} className="grid scroll-mt-24 gap-8 outline-none">
+      <SeriesProgress labels={stepLabels} current={index} />
 
-      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)]">
+      {/* Côte à côte seulement à partir de 1280 px : en dessous (projecteur 1024 px, zoom), les
+          indices passent sous la publication, avec des cartes assez larges pour rester lisibles. */}
+      <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,5fr)_minmax(0,6fr)]">
         <PostCard
           sourceName={scenario.sourceName}
           content={scenario.content}
@@ -231,6 +235,22 @@ export function GamePlay({ scenarios }: { scenarios: PlayableScenario[] }) {
         </section>
       )}
     </div>
+  );
+}
+
+// L'avancement dans la série : la frise d'étapes, ou une ligne sur petit écran (la frise y prend
+// six lignes avant même la publication).
+function SeriesProgress({ labels, current }: { labels: string[]; current: number }) {
+  const total = labels.length - 1;
+  return (
+    <>
+      <p className="font-medium text-muted-foreground tabular-nums sm:hidden">
+        {current < total ? `Information ${current + 1} sur ${total}` : 'Score de la série'}
+      </p>
+      <div className="hidden sm:block">
+        <Steps steps={labels} current={current} />
+      </div>
+    </>
   );
 }
 
