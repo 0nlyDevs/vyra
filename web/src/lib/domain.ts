@@ -238,3 +238,9 @@ export const SCAN_OUTCOME_TONES = {
   clues: 'warning',
   no_clue: 'neutral',
 } satisfies Record<ScanOutcome, Tone>;
+
+// ─── Comptes ────────────────────────────────────────────────────────────────────────────────
+
+// Lien à usage unique envoyé par e-mail.
+export const AUTH_TOKEN_PURPOSES = ['verify_email', 'reset_password'] as const;
+export type AuthTokenPurpose = (typeof AUTH_TOKEN_PURPOSES)[number];

@@ -9,6 +9,19 @@ const serverSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   DATABASE_URL: z.string().startsWith('postgres', 'doit commencer par postgres://'),
   PROCESSING_URL: z.url().default('http://127.0.0.1:8000'),
+  // Adresse de l'application, pour les liens des e-mails et le retour de Google.
+  APP_URL: z.url().default('http://localhost:3000'),
+  // Serveur d'envoi des e-mails. Par défaut : Mailpit (docker-compose.yml), qui les affiche sur
+  // http://localhost:8025 sans les envoyer vraiment.
+  SMTP_URL: z
+    .string()
+    .startsWith('smtp', 'doit commencer par smtp:// ou smtps://')
+    .default('smtp://127.0.0.1:1025'),
+  MAIL_FROM: z.string().default('MindStack <no-reply@mindstack.local>'),
+  // Connexion avec Google (facultative) : identifiants OAuth créés dans la console Google Cloud.
+  // Absents : le bouton « Continuer avec Google » n'apparaît pas.
+  GOOGLE_CLIENT_ID: z.string().optional(),
+  GOOGLE_CLIENT_SECRET: z.string().optional(),
 });
 
 // Variables `NEXT_PUBLIC_*` : copiées dans le code envoyé au navigateur, donc jamais de secret.

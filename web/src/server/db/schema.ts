@@ -6,6 +6,7 @@ import {
   text,
   timestamp,
   unique,
+  uniqueIndex,
   uuid,
   varchar,
   vector,
@@ -13,6 +14,7 @@ import {
 // Chemin relatif (et non `@/lib/…`) : drizzle-kit lit ce fichier sans les alias de tsconfig.
 import {
   AI_SOURCES,
+  AUTH_TOKEN_PURPOSES,
   CASE_KINDS,
   CASE_STATUSES,
   CERTAINTY_LEVELS,
@@ -58,6 +60,56 @@ export const notes = pgTable(
     index('notes_embedding_idx').using('hnsw', table.embedding.op('vector_cosine_ops')),
   ],
 );
+
+// ─── Comptes et sessions ─────────────────────────────────────────────────────────────────────
+// Un compte donne un moyen de se connecter à un profil : e-mail et mot de passe, ou Google.
+// Les autres modules ne lisent que `profiles`, avec getCurrentProfile() (src/server/session.ts).
+
+export const accounts = pgTable(
+  'accounts',
+  {
+    profileId: varchar('profile_id', { length: 40 })
+      .primaryKey()
+      .references(() => profiles.id, { onDelete: 'cascade' }),
+    // Toujours en minuscules.
+    email: text('email').notNull(),
+    // Vide pour un compte créé avec Google.
+    passwordHash: text('password_hash'),
+    googleSub: text('google_sub'),
+    emailVerifiedAt: timestamp('email_verified_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex('accounts_email_idx').on(table.email),
+    uniqueIndex('accounts_google_idx').on(table.googleSub),
+  ],
+);
+
+// Une session ouverte. Le cookie garde un jeton tiré au hasard ; la base n'en garde que l'empreinte.
+export const sessions = pgTable(
+  'sessions',
+  {
+    id: varchar('id', { length: 64 }).primaryKey(),
+    profileId: varchar('profile_id', { length: 40 })
+      .notNull()
+      .references(() => profiles.id, { onDelete: 'cascade' }),
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [index('sessions_profile_idx').on(table.profileId)],
+);
+
+// Un lien envoyé par e-mail (confirmation d'adresse, nouveau mot de passe), à usage unique.
+export const authTokens = pgTable('auth_tokens', {
+  id: varchar('id', { length: 64 }).primaryKey(),
+  profileId: varchar('profile_id', { length: 40 })
+    .notNull()
+    .references(() => profiles.id, { onDelete: 'cascade' }),
+  purpose: text('purpose', { enum: AUTH_TOKEN_PURPOSES }).notNull(),
+  expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+  usedAt: timestamp('used_at', { withTimezone: true }),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+});
 
 // ─── L'affaire : le dossier commun à tous les modules ───────────────────────────────────────
 // Ces quatre tables sont partagées. Chaque module ajoute SES tables plus bas, dans sa section
@@ -282,6 +334,7 @@ export const scans = pgTable('scans', {
 });
 
 export type Profile = typeof profiles.$inferSelect;
+export type Account = typeof accounts.$inferSelect;
 export type Note = typeof notes.$inferSelect;
 export type Case = typeof cases.$inferSelect;
 export type CaseVersion = typeof caseVersions.$inferSelect;

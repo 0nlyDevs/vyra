@@ -46,6 +46,25 @@ Sans IA (pas de clé, wifi coupé, Ollama arrêté), l'application marche avec l
 secours. Vérifier : http://127.0.0.1:8000/health affiche `"ai": "gemini"` ou `"ai": "local"`.
 Après un changement d'IA, lancer `make seed` : les vecteurs des deux IA ne se comparent pas.
 
+### Comptes, e-mails et connexion Google
+
+- **Comptes de démo** : boutons « Comptes de démo » sur la page de connexion, sans mot de passe à
+  taper sur scène. Leurs adresses (`rasoa@mindstack.demo`, `hery@mindstack.demo`) et leur mot de
+  passe sont dans `web/src/server/demo/seed-data.ts`.
+- **E-mails** : tous les e-mails envoyés (confirmation d'adresse, mot de passe oublié) s'affichent
+  sur http://localhost:8025 (Mailpit, lancé par Docker). Aucun ne part vraiment. Pour un vrai envoi,
+  changer `SMTP_URL`.
+- **Connexion avec Google** (facultative, demande le wifi) :
+  1. Sur https://console.cloud.google.com : « API et services », « Identifiants », « Créer des
+     identifiants », « ID client OAuth », type « Application Web ».
+  2. Origine JavaScript autorisée : `http://localhost:3000`. URI de redirection autorisé :
+     `http://localhost:3000/api/auth/google/callback`.
+  3. Mettre `GOOGLE_CLIENT_ID` et `GOOGLE_CLIENT_SECRET` dans `web/.env.local`, puis
+     `docker compose restart web`.
+
+  Sans ces deux valeurs, le bouton « Continuer avec Google » n'apparaît pas.
+- « Réinitialiser la démo » supprime les comptes créés pendant la démo ; les comptes de démo restent.
+
 ## Les commandes
 
 Avec `make` (Mac, Linux) ou la commande complète (partout, y compris Windows) :

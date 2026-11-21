@@ -4,16 +4,19 @@ import { AppSidebar, AppTopNav } from '@/components/shell/AppNav';
 import { ThemeToggle } from '@/components/shell/ThemeToggle';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
+import { VerifyEmailBanner } from '@/features/auth/VerifyEmailBanner';
 import { signOut } from '@/features/demo/actions';
 import { ResetDemoButton } from '@/features/demo/ResetDemoButton';
 import { PROFILE_ROLE_LABELS } from '@/lib/domain';
 import { publicEnv } from '@/lib/env';
+import { getAccount } from '@/server/dal/accounts';
 import { requireProfile } from '@/server/session';
 
-// Espace connecté : barre latérale, en-tête (profil de démo, réinitialisation, thème) et contenu.
+// Espace connecté : barre latérale, en-tête (profil, réinitialisation, thème) et contenu.
 // Toute page placée dans src/app/(app)/ reçoit cette coquille sans rien faire.
 export default async function AppLayout({ children }: { children: ReactNode }) {
   const profile = await requireProfile();
+  const account = await getAccount(profile.id);
 
   return (
     <div className="flex min-h-screen">
@@ -36,12 +39,13 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
             </div>
             <ThemeToggle />
             <form action={signOut}>
-              <Button type="submit" variant="ghost" size="icon" aria-label="Changer de profil">
+              <Button type="submit" variant="ghost" size="icon" aria-label="Se déconnecter">
                 <LogOut aria-hidden />
               </Button>
             </form>
           </div>
         </header>
+        {account && !account.emailVerifiedAt && <VerifyEmailBanner email={account.email} />}
         <AppTopNav />
         <main className="mx-auto w-full max-w-6xl flex-1 px-6 py-8">{children}</main>
       </div>
