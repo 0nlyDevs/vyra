@@ -7,13 +7,15 @@ from app.schemas.web import (
     NewsFeedsRequest,
     NewsFeedsResponse,
     NewsItemOut,
+    PagesRequest,
+    PagesResponse,
     WebArticleOut,
     WebSourcesRequest,
     WebSourcesResponse,
 )
 from app.services.ai_service import load_fallback
 from app.services.news_feeds import read_feeds
-from app.services.web_search import WebSearchUnavailableError, find_articles
+from app.services.web_search import WebSearchUnavailableError, find_articles, read_pages
 
 router = APIRouter(prefix="/v1", tags=["web"])
 
@@ -22,7 +24,7 @@ router = APIRouter(prefix="/v1", tags=["web"])
 async def find_web_sources(body: WebSourcesRequest, settings: SettingsDep) -> WebSourcesResponse:
     """Articles proches de `claim` (Tavily, sinon GDELT), datés. Hors ligne : réponse de secours."""
     try:
-        articles, engine = await find_articles(settings, body.claim)
+        articles, engine = await find_articles(settings, body.claim, body.queries)
     except WebSearchUnavailableError:
         fallback = load_fallback("web-sources") or {}
         items = fallback.get("articles", [])
@@ -32,6 +34,18 @@ async def find_web_sources(body: WebSourcesRequest, settings: SettingsDep) -> We
     return WebSourcesResponse(
         articles=[WebArticleOut.model_validate(article.as_dict()) for article in articles],
         source="tavily" if engine == "tavily" else "gdelt",
+    )
+
+
+@router.post("/pages", operation_id="readPages")
+async def read_web_pages(body: PagesRequest, settings: SettingsDep) -> PagesResponse:
+    """Titre, date, texte et liens des pages données. Hors ligne : aucune page."""
+    try:
+        articles = await read_pages(settings, body.urls)
+    except WebSearchUnavailableError:
+        return PagesResponse(articles=[])
+    return PagesResponse(
+        articles=[WebArticleOut.model_validate(article.as_dict()) for article in articles]
     )
 
 
