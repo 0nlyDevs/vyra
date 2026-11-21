@@ -19,11 +19,15 @@ export function diffWords(before: string, after: string) {
   const kb = b.map(comparable);
 
   // Table de la plus longue sous-suite commune, remplie depuis la fin.
-  const lengths = Array.from({ length: a.length + 1 }, () => new Array<number>(b.length + 1).fill(0));
+  const lengths = Array.from({ length: a.length + 1 }, () =>
+    new Array<number>(b.length + 1).fill(0),
+  );
   for (let i = a.length - 1; i >= 0; i -= 1) {
     for (let j = b.length - 1; j >= 0; j -= 1) {
       lengths[i][j] =
-        ka[i] === kb[j] ? lengths[i + 1][j + 1] + 1 : Math.max(lengths[i + 1][j], lengths[i][j + 1]);
+        ka[i] === kb[j]
+          ? lengths[i + 1][j + 1] + 1
+          : Math.max(lengths[i + 1][j], lengths[i][j + 1]);
     }
   }
 
