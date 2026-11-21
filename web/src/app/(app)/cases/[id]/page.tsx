@@ -14,7 +14,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { PropagationGraph } from '@/features/investigation/PropagationGraph';
 import { WebSearchPanel } from '@/features/investigation/WebSearchPanel';
-import { EVIDENCE_STRENGTH_LABELS } from '@/lib/domain';
+import { EVIDENCE_STRENGTH_LABELS, MATCH_KIND_LABELS, MATCH_KINDS } from '@/lib/domain';
 import { formatDateTime } from '@/lib/format';
 import { getCaseFile } from '@/server/dal/cases';
 import { getWebSearch } from '@/server/dal/investigation';
@@ -26,10 +26,11 @@ export default async function CaseFilePage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ retrouvee?: string; nouvelle?: string }>;
+  searchParams: Promise<{ retrouvee?: string; nouvelle?: string; pourquoi?: string }>;
 }) {
   const { id } = await params;
-  const { retrouvee, nouvelle } = await searchParams;
+  const { retrouvee, nouvelle, pourquoi } = await searchParams;
+  const matchKind = z.enum(MATCH_KINDS).safeParse(retrouvee).data;
   if (!z.uuid().safeParse(id).success) notFound();
 
   const file = await getCaseFile(id);
@@ -62,8 +63,16 @@ export default async function CaseFilePage({
       {retrouvee && (
         <Alert>
           <AlertTitle>Cette information est déjà dans un dossier</AlertTitle>
-          <AlertDescription>
-            Le texte analysé ressemble à une affaire connue. Voici ses versions retrouvées.
+          <AlertDescription className="grid gap-2">
+            <p>Le texte analysé rejoint une affaire connue. Voici ses versions retrouvées.</p>
+            {matchKind && (
+              <p className="flex flex-wrap items-center gap-2">
+                <ToneBadge tone={matchKind === 'ai' ? 'success' : 'neutral'}>
+                  {MATCH_KIND_LABELS[matchKind]}
+                </ToneBadge>
+                {pourquoi && <span className="text-foreground">« {pourquoi} »</span>}
+              </p>
+            )}
           </AlertDescription>
         </Alert>
       )}
@@ -79,7 +88,15 @@ export default async function CaseFilePage({
 
       <WebSearchPanel
         caseId={file.id}
-        previous={webSearch ? { status: webSearch.status, kept: webSearch.keptCount } : null}
+        previous={
+          webSearch
+            ? {
+                status: webSearch.status,
+                kept: webSearch.keptCount,
+                contradicting: webSearch.contradictingCount,
+              }
+            : null
+        }
         autoStart={!webSearch && file.versions.length === 1}
       />
 

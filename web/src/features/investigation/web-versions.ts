@@ -13,6 +13,7 @@ import {
 import { embedTexts, findWebSources, runPrompt, type WebArticle } from '@/server/processing';
 import { guessChange } from './guess-change';
 import { refreshNewsIndex, searchNewsIndex } from './news-index';
+import { confirmSameInformation } from './same-information';
 import { significantWords, wordOverlap } from './word-match';
 
 // Recherche web d'une affaire : les articles de presse qui rapportent la même information
@@ -26,7 +27,12 @@ const WEB_MIN_SHARED = 3;
 const MAX_KEPT = 6;
 const CONTENT_MAX_LENGTH = 600;
 
-export type WebSearchResult = { status: WebSearchStatus | 'prepared'; kept: number };
+export type WebSearchResult = {
+  status: WebSearchStatus | 'prepared';
+  kept: number;
+  // Sources qui démentent l'information, selon l'IA : de futures pièces pour le tribunal.
+  contradicting: number;
+};
 
 const compareSchema = z.object({
   links: z.array(
@@ -43,10 +49,18 @@ export async function searchWebVersions(caseId: string): Promise<ActionResult<We
   if (!file) return fail(ERRORS.NOT_FOUND);
 
   const previous = await getWebSearch(caseId);
-  if (previous) return ok({ status: previous.status, kept: previous.keptCount });
+  if (previous) {
+    return ok({
+      status: previous.status,
+      kept: previous.keptCount,
+      contradicting: previous.contradictingCount,
+    });
+  }
   // Une affaire qui a déjà plusieurs versions a été préparée à la main (données de démo).
   const received = file.versions[0];
-  if (file.versions.length !== 1 || !received) return ok({ status: 'prepared', kept: 0 });
+  if (file.versions.length !== 1 || !received) {
+    return ok({ status: 'prepared', kept: 0, contradicting: 0 });
+  }
 
   // Le web (Tavily) et la mise à jour de l'index de presse en même temps.
   const [search] = await Promise.all([findWebSources(file.claim), refreshNewsIndex()]);
@@ -62,7 +76,16 @@ export async function searchWebVersions(caseId: string): Promise<ActionResult<We
 
   // À adresse égale, l'article de l'index l'emporte : il porte le nom du journal.
   const unique = [...new Map([...fromWeb, ...fromIndex].map((item) => [item.url, item])).values()];
-  const kept = unique
+  // L'IA confirme chaque source proche par le sens : seule une source qui rapporte le même fait
+  // devient une version. Celles qui le démentent sont comptées. Sans IA : les vecteurs suffisent.
+  const relations = await confirmSameInformation(file.claim, unique.map(articleText));
+  const same = relations
+    ? unique.filter((_, index) => relations[index]?.relation === 'same')
+    : unique;
+  const contradicting = relations
+    ? relations.filter((item) => item.relation === 'contradicts').length
+    : 0;
+  const kept = same
     .sort((a, b) => dateValue(a.published_at) - dateValue(b.published_at))
     .slice(0, MAX_KEPT);
 
@@ -79,14 +102,16 @@ export async function searchWebVersions(caseId: string): Promise<ActionResult<We
   const texts = [...kept.map(articleText), received.content];
   const links = await describeLinks(texts);
 
+  const status = kept.length > 0 ? 'found' : 'nothing_found';
   await saveWebSearch({
     caseId,
-    status: kept.length > 0 ? 'found' : 'nothing_found',
+    status,
     foundCount: found.length + fromIndex.length,
+    contradictingCount: contradicting,
     ordered,
     links,
   });
-  return ok({ status: kept.length > 0 ? 'found' : 'nothing_found', kept: kept.length });
+  return ok({ status, kept: kept.length, contradicting });
 }
 
 // Garde les articles qui disent la même chose : par le sens si l'IA a donné les vecteurs
