@@ -13,11 +13,12 @@ import { ERRORS } from '@/lib/errors';
 import { formatDate } from '@/lib/format';
 import { getCaseFile } from '@/server/dal/cases';
 import { concludeHearing, createHearing, findJudgedCase, getHearing } from '@/server/dal/court';
-import type { Hearing, Pleading } from '@/server/db/schema';
+import type { Hearing } from '@/server/db/schema';
 import { demoVariantForCase } from '@/server/demo/variants';
 import { embedTexts, runPrompt } from '@/server/processing';
 import { getCurrentProfile } from '@/server/session';
 import { computeCertainty } from './certainty';
+import { guardPleading } from './pleading-guard';
 import {
   judgedSearchSchema,
   openHearingSchema,
@@ -75,15 +76,6 @@ function piecesForAi(file: CaseFile, withStance: boolean) {
   }));
 }
 
-// Une plaidoirie ne peut citer que des pièces du dossier : les autres numéros sont retirés.
-function keepExistingPieces(pleading: Pleading, file: CaseFile): Pleading {
-  const numbers = new Set(file.evidence.map((piece) => piece.number));
-  return {
-    argument: pleading.argument,
-    cited: [...new Set(pleading.cited)].filter((n) => numbers.has(n)),
-  };
-}
-
 export async function openHearing(caseId: string): Promise<ActionResult<HearingView>> {
   const profile = await getCurrentProfile();
   if (!profile) return fail(ERRORS.UNAUTHORIZED);
@@ -107,8 +99,8 @@ export async function openHearing(caseId: string): Promise<ActionResult<HearingV
   const hearing = await createHearing({
     caseId: file.id,
     profileId: profile.id,
-    prosecution: keepExistingPieces(prosecution.data.result, file),
-    defense: keepExistingPieces(defense.data.result, file),
+    prosecution: guardPleading(prosecution.data.result, file.evidence, file.claim),
+    defense: guardPleading(defense.data.result, file.evidence, file.claim),
     pleadingsSource: fromModel ? 'gemini' : 'fallback',
   });
   if (!hearing) return fail(ERRORS.INTERNAL);
