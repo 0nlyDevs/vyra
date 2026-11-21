@@ -1,0 +1,14 @@
+{
+  "confirmed": [
+    "Un concours est ouvert à l'Office de l'emploi (pièce n° 1)."
+  ],
+  "contested": [
+    "500 postes : l'avis en annonce 12 (pièce n° 1).",
+    "Des frais de dossier : le dossier est gratuit (pièce n° 1)."
+  ],
+  "missing": [
+    "« Avant demain midi » : aucune pièce ne fixe ce délai."
+  ],
+  "conclusion": "L'information détourne un vrai concours pour réclamer de l'argent. Le nombre de postes est gonflé et les frais sont inventés : c'est le schéma classique d'une arnaque.",
+  "whatToCheck": "Un paiement demandé dans l'urgence : un vrai recrutement ne fait jamais payer le dossier."
+}
