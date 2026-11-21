@@ -149,6 +149,11 @@ export const SOURCE_KIND_TONES = {
   unknown: 'neutral',
 } satisfies Record<SourceKind, Tone>;
 
+// Ce qu'un texte dit par rapport à une information, selon l'IA (module Enquête) : seul « same »
+// en fait une version du graphe.
+export const INFO_RELATIONS = ['same', 'contradicts', 'related', 'unrelated'] as const;
+export type InfoRelation = (typeof INFO_RELATIONS)[number];
+
 // Recherche web d'une affaire (module Enquête) : faite une fois, son résultat est gardé.
 export const WEB_SEARCH_STATUSES = ['found', 'nothing_found'] as const;
 export type WebSearchStatus = (typeof WEB_SEARCH_STATUSES)[number];
