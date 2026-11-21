@@ -118,6 +118,28 @@ export async function readNewsFeeds(
   return data ? ok(data) : fail(ERRORS.WEB_SEARCH_UNAVAILABLE);
 }
 
+const liveItemSchema = z.object({
+  url: z.string(),
+  text: z.string(),
+  source_name: z.string(),
+  title: z.string().nullable(),
+  image_url: z.string().nullable(),
+  published_at: z.string().nullable(),
+  author: z.string().nullable(),
+  reach: z.number().nullable(),
+});
+export type LiveItem = z.infer<typeof liveItemSchema>;
+
+// Le fil d'actualité réel : dernières publications des sources données (processing en lit au
+// plus pendant 35 s). Réseau coupé : `sources_read` à 0.
+export async function readLiveFeed(
+  sources: { type: string; target: string; name: string }[],
+): Promise<ActionResult<{ items: LiveItem[]; sources_read: number }>> {
+  const schema = z.object({ items: z.array(liveItemSchema), sources_read: z.number() });
+  const data = await post('/v1/live-feed', { sources }, schema, WEB_SEARCH_TIMEOUT_MS);
+  return data ? ok(data) : fail(ERRORS.WEB_SEARCH_UNAVAILABLE);
+}
+
 const mediaReportSchema = z.object({
   format: z.string(),
   aiSignature: z.boolean(),

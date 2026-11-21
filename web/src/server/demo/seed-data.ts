@@ -7,7 +7,6 @@ import {
   cases,
   caseVersions,
   evidence,
-  feedPosts,
   hearings,
   notes,
   profiles,
@@ -659,84 +658,6 @@ const DEMO_VERSION_IMAGES: [string, string][] = [
   [id(103), '/demo/inondation-virale.jpg'],
 ];
 
-// ─── Fil d'actualité (lot de Mahery) ─────────────────────────────────────────────────────────
-
-function hoursAgo(hours: number) {
-  return new Date(Date.now() - hours * 60 * 60 * 1000);
-}
-
-export const DEMO_FEED_POST_IDS = {
-  flood: id(910),
-  rice: DEMO_REPORTED_POST_ID,
-  water: id(911),
-  network: id(912),
-  weather: id(913),
-  grant: id(914),
-  health: id(915),
-  market: id(916),
-} as const;
-
-// Publications inventées (sources et lieux compris) : des rumeurs et des informations exactes.
-const DEMO_FEED_POSTS: (typeof feedPosts.$inferInsert)[] = [
-  {
-    id: DEMO_FEED_POST_IDS.flood,
-    sourceName: 'Infos Quartier 24',
-    body: 'URGENT : inondation ce matin à Ambohitsoa-Nord, 3 morts, l’école est fermée. La mairie cache la vérité. Partagez vite !',
-    imagePath: '/demo/inondation-virale.jpg',
-    publishedAt: hoursAgo(1),
-    caseId: DEMO_CASE_IDS.flood,
-  },
-  {
-    id: DEMO_FEED_POST_IDS.weather,
-    sourceName: 'Service météo d’Ambohitsoa',
-    body: 'Fortes pluies attendues samedi après-midi. Évitez les zones basses et les bords de rivière.',
-    publishedAt: hoursAgo(3),
-  },
-  {
-    id: DEMO_FEED_POST_IDS.rice,
-    sourceName: 'Bons plans Tana',
-    body: 'Le sac de riz passe à 300 000 Ar dès lundi ! Achetez tout maintenant avant que les magasins soient vides.',
-    publishedAt: hoursAgo(5),
-  },
-  {
-    id: DEMO_FEED_POST_IDS.health,
-    sourceName: 'Radio des Collines',
-    body: 'Un centre de santé ouvre lundi à Ambohitsoa-Sud. Les consultations sont gratuites la première semaine.',
-    publishedAt: hoursAgo(8),
-  },
-  {
-    id: DEMO_FEED_POST_IDS.network,
-    sourceName: 'Message transféré',
-    body: 'Le réseau mobile sera coupé pendant trois jours dans toute la région pour des travaux. Prévenez vos proches.',
-    publishedAt: hoursAgo(20),
-  },
-  {
-    id: DEMO_FEED_POST_IDS.water,
-    sourceName: 'Message transféré',
-    body: 'La Régie des eaux annonce 10 jours de coupure dans toute la ville à partir de lundi. Faites vos réserves !',
-    publishedAt: hoursAgo(26),
-    caseId: DEMO_CASE_IDS.water,
-  },
-  {
-    id: DEMO_FEED_POST_IDS.grant,
-    sourceName: 'Étudiants d’Ambohitsoa',
-    body: 'Bourse d’études de 2 000 000 Ar offerte à tous les lycéens : envoyez vos nom, adresse et numéro en message privé.',
-    publishedAt: hoursAgo(50),
-  },
-  {
-    id: DEMO_FEED_POST_IDS.market,
-    sourceName: 'Mairie d’Ambohitsoa',
-    body: 'Les inscriptions pour le marché de Noël sont ouvertes jusqu’au 5 décembre, au guichet de la mairie.',
-    publishedAt: hoursAgo(70),
-  },
-];
-
-// Groupes de signalements de la boîte d'alertes et leur publication du fil.
-const DEMO_FEED_REPORT_GROUPS: [string, string][] = [
-  [DEMO_REPORT_GROUP_IDS.network, DEMO_FEED_POST_IDS.network],
-  [DEMO_REPORT_GROUP_IDS.grant, DEMO_FEED_POST_IDS.grant],
-];
-
 // ─── Comptes de démo (lot de Mahery) ─────────────────────────────────────────────────────────
 
 // Mot de passe des comptes de démo : une valeur de test, pour ce poste seulement. Sur scène, on
@@ -805,12 +726,6 @@ export async function resetDemoData(database: Database) {
     await tx.delete(scenarios);
     await tx.insert(scenarios).values(DEMO_SCENARIOS);
 
-    // Fil d'actualité (lot de Mahery). Les rumeurs du riz, du réseau mobile et de la bourse
-    // retrouvent leurs signalements par l'identifiant de leur publication.
-    await tx.delete(feedPosts);
-    await tx.insert(feedPosts).values(DEMO_FEED_POSTS);
-    for (const [groupId, postId] of DEMO_FEED_REPORT_GROUPS) {
-      await tx.update(reportGroups).set({ feedPostId: postId }).where(eq(reportGroups.id, groupId));
-    }
+    // Le fil d'actualité n'a pas de données de démo : il ne montre que des publications réelles.
   });
 }
