@@ -251,6 +251,8 @@ export const webSearches = pgTable('web_searches', {
   // Articles proposés par la recherche, puis gardés car proches par le sens.
   foundCount: integer('found_count').notNull(),
   keptCount: integer('kept_count').notNull(),
+  // Sources qui démentent l'information selon l'IA (comptées, pas ajoutées au graphe).
+  contradictingCount: integer('contradicting_count').notNull().default(0),
   searchedAt: timestamp('searched_at', { withTimezone: true }).defaultNow().notNull(),
 });
 

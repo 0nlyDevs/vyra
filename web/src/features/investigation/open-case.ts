@@ -1,19 +1,23 @@
 import 'server-only';
+import type { MatchKind } from '@/lib/domain';
 import {
   createCaseWithFirstVersion,
-  findClosestCaseByMeaning,
+  findClosestCasesByMeaning,
   listCasesWithoutEmbedding,
   listCaseTexts,
   setCaseEmbeddings,
 } from '@/server/dal/investigation';
 import { embedTexts } from '@/server/processing';
+import { confirmSameInformation } from './same-information';
 import { significantWords, wordOverlap } from './word-match';
 
 // Ouvrir une enquête : retrouver l'affaire qui porte déjà cette information, sinon en créer une.
-// Point d'entrée commun au formulaire de /cases et à la bulle dans Chrome.
+// Point d'entrée commun au formulaire de /cases et au fil d'actualité.
 
 // Distance cosinus maximale pour dire « même information » (0 = identique).
 const MEANING_MAX_DISTANCE = 0.2;
+// Affaires proches soumises à l'IA, de la plus proche à la moins proche.
+const MEANING_CANDIDATES = 3;
 // Part minimale des mots du texte reçu retrouvés dans une affaire, sans IA.
 const WORDS_MIN_OVERLAP = 0.6;
 // Et au moins quatre mots en commun : un texte court qui ne cite qu'un lieu ne suffit pas.
@@ -22,8 +26,12 @@ const TITLE_MAX_LENGTH = 70;
 
 export type OpenCaseOutcome = {
   caseId: string;
-  // `null` : aucune affaire proche, une nouvelle a été créée.
-  matchedBy: 'meaning' | 'words' | null;
+  // Comment l'affaire a été retrouvée : confirmée par l'IA, proche par le sens seulement (IA sans
+  // réponse), ou par les mots (sans vecteurs). `null` : aucune affaire proche, une nouvelle a été
+  // créée.
+  matchedBy: MatchKind | null;
+  // La justification de l'IA en une phrase, quand elle a confirmé.
+  reason: string | null;
 };
 
 export async function openCaseFromClaim(input: {
@@ -46,13 +54,27 @@ export async function openCaseFromClaim(input: {
         return embedding ? [{ id: item.id, embedding }] : [];
       }),
     );
-    const closest = await findClosestCaseByMeaning(claimEmbedding);
-    if (closest && closest.distance <= MEANING_MAX_DISTANCE) {
-      return { caseId: closest.id, matchedBy: 'meaning' };
+    const close = (await findClosestCasesByMeaning(claimEmbedding, MEANING_CANDIDATES)).filter(
+      (item) => item.distance <= MEANING_MAX_DISTANCE,
+    );
+    // Proche par le sens ne suffit pas : l'IA confirme qu'il s'agit du même fait (« 3 morts » et
+    // « aucune victime » parlent du même sujet sans dire la même chose). Sans IA : les vecteurs.
+    const relations = await confirmSameInformation(
+      input.claim,
+      close.map((item) => item.claim),
+    );
+    if (relations) {
+      const index = relations.findIndex((item) => item.relation === 'same');
+      const match = close[index];
+      if (match) {
+        return { caseId: match.id, matchedBy: 'ai', reason: relations[index]?.reason ?? null };
+      }
+    } else if (close[0]) {
+      return { caseId: close[0].id, matchedBy: 'meaning', reason: null };
     }
   } else {
     const byWords = await findClosestCaseByWords(input.claim);
-    if (byWords) return { caseId: byWords, matchedBy: 'words' };
+    if (byWords) return { caseId: byWords, matchedBy: 'words', reason: null };
   }
 
   const created = await createCaseWithFirstVersion({
@@ -62,7 +84,7 @@ export async function openCaseFromClaim(input: {
     sourceName: input.sourceName ?? sourceNameFrom(input.sourceUrl),
     sourceUrl: input.sourceUrl,
   });
-  return { caseId: created.id, matchedBy: null };
+  return { caseId: created.id, matchedBy: null, reason: null };
 }
 
 async function findClosestCaseByWords(claim: string) {
