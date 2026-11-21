@@ -8,8 +8,15 @@ import { Textarea } from '@/components/ui/textarea';
 import { appendText, DictateButton } from '@/features/dictation/DictateButton';
 import { openCase } from './actions';
 
-// Coller une information suspecte : la plateforme retrouve son affaire ou en ouvre une.
-export function NewCaseForm() {
+// Coller une information suspecte : la plateforme retrouve son affaire ou en ouvre une. Les champs
+// peuvent arriver pré-remplis (lien depuis l'extension du navigateur).
+export function NewCaseForm({
+  defaultClaim = '',
+  defaultUrl = '',
+}: {
+  defaultClaim?: string;
+  defaultUrl?: string;
+}) {
   const [state, formAction, pending] = useActionState(openCase, null);
   const claimRef = useRef<HTMLTextAreaElement>(null);
 
@@ -27,6 +34,7 @@ export function NewCaseForm() {
           name="claim"
           rows={4}
           required
+          defaultValue={defaultClaim}
           placeholder="Collez ici le message, la publication ou l’article reçu."
           aria-invalid={claimError ? true : undefined}
           aria-describedby={claimError ? 'claim-error' : undefined}
@@ -48,6 +56,7 @@ export function NewCaseForm() {
         type="url"
         inputMode="url"
         placeholder="https://…"
+        defaultValue={defaultUrl}
         errors={fieldErrors?.sourceUrl}
       />
       <FormMessage message={formError} />
