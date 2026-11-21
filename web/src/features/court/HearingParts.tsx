@@ -1,4 +1,4 @@
-import { CircleCheck, CircleDashed, CircleX, Lightbulb } from 'lucide-react';
+import { CircleCheck, CircleDashed, CircleX, Lightbulb, TriangleAlert } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { AiNotice } from '@/components/common/AiNotice';
 import {
@@ -51,6 +51,25 @@ function PieceChips({ numbers }: { numbers: number[] }) {
   );
 }
 
+// Garde-fou : une citation que l'avocat attribue aux pièces sans qu'elle y soit écrite.
+function UnverifiedQuotes({ quotes }: { quotes?: string[] }) {
+  if (!quotes?.length) return null;
+  return (
+    <div className="grid max-w-prose gap-1 rounded-lg bg-warning-soft p-3 text-sm">
+      <p className="flex items-center gap-2 font-semibold text-warning">
+        <TriangleAlert aria-hidden className="size-4" />
+        Citation introuvable dans les pièces
+      </p>
+      <ul className="grid gap-0.5">
+        {quotes.map((quote) => (
+          <li key={quote}>« {quote} »</li>
+        ))}
+      </ul>
+      <p className="text-muted-foreground">Ne la tenez pas pour une preuve.</p>
+    </div>
+  );
+}
+
 export function Pleadings({ hearing }: { hearing: HearingView }) {
   return (
     <div className="grid gap-6">
@@ -66,6 +85,7 @@ export function Pleadings({ hearing }: { hearing: HearingView }) {
           <PieceChips numbers={hearing.prosecution.cited} />
           <SpeakButton text={hearing.prosecution.argument} />
         </div>
+        <UnverifiedQuotes quotes={hearing.prosecution.unverified} />
       </div>
       <div className={cn('grid justify-items-end gap-2 [animation-delay:120ms]', ENTER)}>
         <SpeechBubble
@@ -80,6 +100,7 @@ export function Pleadings({ hearing }: { hearing: HearingView }) {
           <SpeakButton text={hearing.defense.argument} />
           <PieceChips numbers={hearing.defense.cited} />
         </div>
+        <UnverifiedQuotes quotes={hearing.defense.unverified} />
       </div>
       <AiSourceBadge source={hearing.pleadingsSource} />
     </div>
