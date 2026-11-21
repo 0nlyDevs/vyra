@@ -19,6 +19,9 @@ export default function PublicLayout({ children }: { children: ReactNode }) {
           <Button asChild variant="ghost">
             <Link href="/verifier">Vérifier</Link>
           </Button>
+          <Button asChild variant="ghost">
+            <Link href="/verifier/signaler">Signaler</Link>
+          </Button>
           <Button asChild variant="outline">
             <Link href="/login">Se connecter</Link>
           </Button>

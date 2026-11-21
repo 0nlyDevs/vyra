@@ -162,7 +162,8 @@ export async function createGroup(input: {
 
 export async function addReport(input: {
   groupId: string;
-  reporterId: string;
+  reporterId: string | null;
+  followToken?: string | null;
   content: string;
   url: string | null;
   feedPostId: string | null;
@@ -302,7 +303,7 @@ export async function listReportsOfGroups(groupIds: string[]) {
       reporterName: profiles.name,
     })
     .from(reports)
-    .innerJoin(profiles, eq(profiles.id, reports.reporterId))
+    .leftJoin(profiles, eq(profiles.id, reports.reporterId))
     .where(inArray(reports.groupId, groupIds))
     .orderBy(asc(reports.createdAt));
 }
@@ -326,6 +327,31 @@ export async function getReportStatsByFeedPost(feedPostIds: string[]) {
     const reporterCount = Number(row.reporterCount);
     return { ...row, reporterCount, state: reportStateOf(reporterCount, row.caseStatus) };
   });
+}
+
+// Un signalement fait sans compte, retrouvé par son jeton de suivi : où il en est.
+export async function getReportByFollowToken(followToken: string) {
+  const counts = reporterCounts();
+  const [row] = await db
+    .select({
+      content: reports.content,
+      url: reports.url,
+      reason: reports.reason,
+      createdAt: reports.createdAt,
+      groupTitle: reportGroups.title,
+      caseId: reportGroups.caseId,
+      caseStatus: cases.status,
+      reporterCount: counts.reporterCount,
+    })
+    .from(reports)
+    .innerJoin(reportGroups, eq(reportGroups.id, reports.groupId))
+    .innerJoin(counts, eq(counts.groupId, reports.groupId))
+    .leftJoin(cases, eq(cases.id, reportGroups.caseId))
+    .where(eq(reports.followToken, followToken))
+    .limit(1);
+  if (!row) return null;
+  const reporterCount = Number(row.reporterCount);
+  return { ...row, reporterCount, state: reportStateOf(reporterCount, row.caseStatus) };
 }
 
 export type ReportListItem = Awaited<ReturnType<typeof listReportsByReporter>>[number];

@@ -322,9 +322,12 @@ export const reports = pgTable(
     groupId: uuid('group_id')
       .notNull()
       .references(() => reportGroups.id, { onDelete: 'cascade' }),
-    reporterId: varchar('reporter_id', { length: 40 })
-      .notNull()
-      .references(() => profiles.id, { onDelete: 'cascade' }),
+    // Vide pour un signalement fait sans compte : il se suit alors par son lien de suivi.
+    reporterId: varchar('reporter_id', { length: 40 }).references(() => profiles.id, {
+      onDelete: 'cascade',
+    }),
+    // Jeton du lien de suivi privé (/verifier/suivi/<jeton>), pour un signalement sans compte.
+    followToken: varchar('follow_token', { length: 32 }),
     // Le texte signalé tel que la personne l'a vu (vide si elle n'a donné qu'un lien).
     content: text('content').notNull().default(''),
     url: text('url'),
@@ -337,6 +340,8 @@ export const reports = pgTable(
     // Une personne compte une seule fois par groupe.
     unique('reports_group_reporter_unique').on(table.groupId, table.reporterId),
     index('reports_reporter_idx').on(table.reporterId, table.createdAt),
+    // Jeton tiré au hasard (128 bits) : un simple index suffit, sans contrainte d'unicité.
+    index('reports_follow_token_idx').on(table.followToken),
   ],
 );
 

@@ -68,7 +68,13 @@ export default async function VerifyPage({
           ) : (
             <p className="rounded-xl border border-dashed p-5 text-muted-foreground text-pretty">
               Aucune affaire jugée ne ressemble à ce message. Cela ne veut pas dire qu’il est vrai :
-              attendez avant de le partager, et signalez-le si vous avez un compte.
+              attendez avant de le partager, et signalez-le : une enquête s’ouvre quand plusieurs
+              personnes le signalent.
+              <Button asChild variant="outline" className="mt-3 flex w-fit">
+                <Link href={`/verifier/signaler?texte=${encodeURIComponent(query)}`}>
+                  Signaler sans compte
+                </Link>
+              </Button>
             </p>
           )}
         </section>
