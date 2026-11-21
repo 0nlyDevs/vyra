@@ -46,7 +46,7 @@ export const MODULE_ITEMS: NavItem[] = [
   {
     href: '/scan',
     label: 'Scan',
-    description: 'Examiner une image ou un vocal et relever les indices.',
+    description: 'Examiner une image, un vocal ou un lien et relever les indices.',
     icon: ScanSearch,
   },
   {
