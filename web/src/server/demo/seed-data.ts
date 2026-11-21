@@ -10,6 +10,7 @@ import {
   profiles,
   reportGroups,
   reports,
+  scenarios,
   versionLinks,
 } from '@/server/db/schema';
 
@@ -418,6 +419,189 @@ const DEMO_REPORTS: (typeof reports.$inferInsert)[] = [
   },
 ];
 
+// ─── Jeu vrai ou fake ───────────────────────────────────────────────────────────────────────
+// Une série de cinq informations inventées. Les trois premières sont jouées avec la salle :
+// une fausse, une vraie, une impossible à trancher.
+
+const DEMO_SCENARIOS: (typeof scenarios.$inferInsert)[] = [
+  {
+    id: id(1001),
+    position: 1,
+    title: 'Le recrutement à 500 postes',
+    content:
+      'Recrutement officiel : 500 postes à pourvoir à la commune. Frais de dossier de 20 000 Ar à envoyer par mobile money avant demain midi.',
+    sourceName: 'Page « Emploi Ambohitsoa Info »',
+    caseId: DEMO_CASE_IDS.hiring,
+    clues: [
+      {
+        kind: 'source',
+        content: 'La page a été créée il y a trois jours et ne cite aucun organisme.',
+        reliable: false,
+      },
+      {
+        kind: 'date',
+        content: 'Publié ce matin, avec une échéance « avant demain midi ».',
+        reliable: false,
+      },
+      {
+        kind: 'author',
+        content: 'Le numéro de mobile money appartient à un particulier.',
+        reliable: false,
+      },
+      {
+        kind: 'other_media',
+        content:
+          'L’Office de l’emploi annonce 12 postes, avec un dossier gratuit déposé au guichet.',
+        reliable: false,
+      },
+    ],
+    answer: 'fake',
+    explanation:
+      'Aucun organisme, une échéance très courte et un paiement à un particulier : ce sont les signes d’une arnaque. L’Office de l’emploi annonce en réalité 12 postes, sans frais.',
+    reflex: 'Chercher la source avant de croire.',
+  },
+  {
+    id: id(1002),
+    position: 2,
+    title: 'Le pont du Vieux-Port fermé samedi',
+    content:
+      'Le pont du Vieux-Port sera fermé aux voitures samedi, de 6 h à 18 h, pour des travaux de peinture. Une déviation passe par la route de la gare.',
+    sourceName: 'Mairie d’Ambohitsoa (page officielle)',
+    clues: [
+      {
+        kind: 'source',
+        content: 'La page officielle de la mairie, active depuis des années.',
+        reliable: true,
+      },
+      {
+        kind: 'date',
+        content: 'Publié quatre jours avant les travaux, avec des horaires précis.',
+        reliable: true,
+      },
+      {
+        kind: 'author',
+        content: 'Signé du service de la voirie, avec le numéro de téléphone de la mairie.',
+        reliable: true,
+      },
+      {
+        kind: 'other_media',
+        content: 'La Radio des Collines et Le Courrier de la Côte annoncent la même fermeture.',
+        reliable: true,
+      },
+    ],
+    answer: 'true',
+    explanation:
+      'Une source officielle connue, des détails précis (horaires, déviation) et deux médias qui disent la même chose : l’information tient.',
+    reflex: 'Reconnaître une information qui tient.',
+  },
+  {
+    id: id(1003),
+    position: 3,
+    title: 'Un jeune sur deux sans emploi',
+    content:
+      '« Dans notre région, un jeune sur deux est sans emploi. » Partagé 3 000 fois depuis hier.',
+    sourceName: 'Compte « Jeunesse en colère »',
+    clues: [
+      {
+        kind: 'source',
+        content: 'Aucune étude, aucun organisme et aucune année ne sont cités pour ce chiffre.',
+        reliable: false,
+      },
+      {
+        kind: 'date',
+        content: 'Publié hier, mais on ne sait pas de quand date le chiffre.',
+        reliable: false,
+      },
+      {
+        kind: 'author',
+        content: 'Un compte connu, qui publie depuis des années sur l’emploi des jeunes.',
+        reliable: true,
+      },
+      {
+        kind: 'other_media',
+        content:
+          'Aucun média ne reprend ce chiffre. Le dernier chiffre officiel connu date de 2019 et portait sur tout le pays.',
+        reliable: false,
+      },
+    ],
+    answer: 'cannot_tell',
+    explanation:
+      'Le chiffre est peut-être juste, mais rien ne permet de le vérifier : ni étude, ni année, ni autre source. Dans ce cas, la bonne réponse est de ne pas trancher.',
+    reflex: 'Savoir suspendre son jugement.',
+  },
+  {
+    id: id(1004),
+    position: 4,
+    title: 'La photo qui revient',
+    content:
+      'URGENT : la ville est sous les eaux ce matin, regardez cette photo ! Partagez avant que ce soit supprimé.',
+    sourceName: 'Compte « Infos Choc 24 »',
+    imagePath: '/demo/inondation-virale.jpg',
+    caseId: DEMO_CASE_IDS.flood,
+    clues: [
+      {
+        kind: 'image',
+        content: 'La même photo a été publiée en mars 2019 par Le Courrier de la Côte, ailleurs.',
+        reliable: false,
+      },
+      {
+        kind: 'date',
+        content: 'Publié ce matin, alors que la station météo n’a relevé que 2 mm de pluie.',
+        reliable: false,
+      },
+      {
+        kind: 'source',
+        content: 'Un compte anonyme qui publie surtout des « alertes » sans lien.',
+        reliable: false,
+      },
+      {
+        kind: 'other_media',
+        content:
+          'Aucun média local ne parle d’inondation, et la mairie dit que l’école est ouverte.',
+        reliable: false,
+      },
+    ],
+    answer: 'fake',
+    explanation:
+      'La photo est vraie, mais elle date de 2019 et montre un autre lieu. Sortie de son contexte, une vraie image peut porter une fausse information.',
+    reflex: 'Vérifier la date et le lieu d’une image.',
+  },
+  {
+    id: id(1005),
+    position: 5,
+    title: 'Le message qui fait peur',
+    content:
+      'ATTENTION : NE BUVEZ PLUS L’EAU DU ROBINET ! Un ami infirmier m’a dit que 40 personnes sont à l’hôpital. Transférez à tous vos contacts MAINTENANT !',
+    sourceName: 'Message transféré plusieurs fois',
+    clues: [
+      {
+        kind: 'author',
+        content: '« Un ami infirmier » : personne n’est nommé, rien ne peut être vérifié.',
+        reliable: false,
+      },
+      {
+        kind: 'source',
+        content: 'Un message transféré, sans lien ni signature.',
+        reliable: false,
+      },
+      {
+        kind: 'date',
+        content: 'Aucune date : le même texte circule ailleurs depuis des années.',
+        reliable: false,
+      },
+      {
+        kind: 'other_media',
+        content: 'La Régie des eaux et l’hôpital ne signalent rien ; aucun média n’en parle.',
+        reliable: false,
+      },
+    ],
+    answer: 'fake',
+    explanation:
+      'Majuscules, urgence, « un ami m’a dit » et l’ordre de transférer à tous : le message joue sur la peur pour être partagé vite. Aucune source ne le confirme.',
+    reflex: 'Repérer l’émotion et l’urgence.',
+  },
+];
+
 // Vrai dès qu'une affaire existe. Une base créée avant les affaires (profils seuls) est donc
 // complétée toute seule au prochain démarrage.
 // ─── Tribunal (lot de Mahery) ────────────────────────────────────────────────────────────────
@@ -500,5 +684,9 @@ export async function resetDemoData(database: Database) {
     await tx.insert(profiles).values(DEMO_REPORTERS);
     await tx.insert(reportGroups).values(DEMO_REPORT_GROUPS);
     await tx.insert(reports).values(DEMO_REPORTS);
+
+    // Jeu vrai ou fake. Les parties jouées partent avec leurs profils (supprimés plus haut).
+    await tx.delete(scenarios);
+    await tx.insert(scenarios).values(DEMO_SCENARIOS);
   });
 }

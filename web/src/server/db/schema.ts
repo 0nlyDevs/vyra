@@ -17,8 +17,12 @@ import {
   CASE_STATUSES,
   CERTAINTY_LEVELS,
   CHANGE_TYPES,
+  type ClueKind,
+  type ClueRating,
   EVIDENCE_STANCES,
   EVIDENCE_STRENGTHS,
+  GAME_ANSWERS,
+  type GameAnswer,
   HEARING_STATUSES,
   LINK_CONFIDENCES,
   MEDIA_KINDS,
@@ -281,6 +285,53 @@ export const scans = pgTable('scans', {
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 });
 
+// ─── Jeu vrai ou fake ───
+
+// Un indice à retourner : ce qu'il montre, et s'il fallait le juger fiable.
+export type ScenarioClue = { kind: ClueKind; content: string; reliable: boolean };
+// Une réponse du joueur dans une partie.
+export type RunAnswer = {
+  scenarioId: string;
+  answer: GameAnswer;
+  correct: boolean;
+  ratings: Partial<Record<ClueKind, ClueRating>>;
+};
+
+// Une information du jeu, présentée comme une publication du fil. Toutes sont inventées.
+export const scenarios = pgTable('scenarios', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  // Ordre dans la série : les trois premières sont celles jouées avec la salle.
+  position: integer('position').notNull(),
+  title: text('title').notNull(),
+  content: text('content').notNull(),
+  sourceName: text('source_name').notNull(),
+  // Chemin d'une image dans web/public, s'il y en a une.
+  imagePath: text('image_path'),
+  // L'affaire de démo qui porte la même information, quand elle existe.
+  caseId: uuid('case_id').references(() => cases.id, { onDelete: 'set null' }),
+  clues: jsonb('clues').$type<ScenarioClue[]>().notNull(),
+  answer: text('answer', { enum: GAME_ANSWERS }).notNull(),
+  // Ce qu'il fallait voir, puis le réflexe à garder.
+  explanation: text('explanation').notNull(),
+  reflex: text('reflex').notNull(),
+});
+
+// Une série jouée : les réponses et le score (nombre de bonnes réponses sur `total`).
+export const gameRuns = pgTable(
+  'game_runs',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    profileId: varchar('profile_id', { length: 40 })
+      .notNull()
+      .references(() => profiles.id, { onDelete: 'cascade' }),
+    answers: jsonb('answers').$type<RunAnswer[]>().notNull(),
+    score: integer('score').notNull(),
+    total: integer('total').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [index('game_runs_profile_idx').on(table.profileId)],
+);
+
 export type Profile = typeof profiles.$inferSelect;
 export type Note = typeof notes.$inferSelect;
 export type Case = typeof cases.$inferSelect;
@@ -291,3 +342,5 @@ export type ReportGroup = typeof reportGroups.$inferSelect;
 export type Report = typeof reports.$inferSelect;
 export type Hearing = typeof hearings.$inferSelect;
 export type Scan = typeof scans.$inferSelect;
+export type Scenario = typeof scenarios.$inferSelect;
+export type GameRun = typeof gameRuns.$inferSelect;
