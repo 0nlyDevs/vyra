@@ -17,7 +17,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     configure_logging()
     settings = settings or get_settings()
     application = FastAPI(
-        title="MindStack Processing",
+        title="Vyra Processing",
         summary="IA et traitements Python, appelés uniquement par le serveur Next.js.",
         version="0.1.0",
     )

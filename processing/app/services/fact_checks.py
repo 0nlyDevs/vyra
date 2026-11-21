@@ -36,7 +36,7 @@ MAX_WIKIPEDIA_PER_LANGUAGE = 2
 WIKIPEDIA_LANGUAGES = ("fr", "mg", "en")
 WIKIPEDIA_RETRY_SECONDS = 1.0
 # Wikipédia demande un User-Agent qui dit qui appelle.
-USER_AGENT = "MindStack/0.1 (verification d'informations, DevFest 2026)"
+USER_AGENT = "Vyra/0.1 (verification d'informations, DevFest 2026)"
 
 # Rubriques de vérification : domaine, puis chemin de la rubrique quand le reste du site est un
 # journal ordinaire.

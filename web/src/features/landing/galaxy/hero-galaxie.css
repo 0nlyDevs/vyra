@@ -1,0 +1,469 @@
+/* ---------- Hero galaxie (page « / ») ----------
+   Ink and paper: one ground (#0a0a0b) shared
+   with every section, Bricolage Grotesque, Cormorant italic for the accent. */
+
+.hero-galaxie {
+  --color-ink: #0a0a0b;
+  --color-ink-4: #232328;
+  --color-paper: #f3f2ee;
+  --color-paper-2: rgb(243 242 238 / 0.68);
+  --gutter: clamp(20px, 6vw, 96px);
+  --hg-bg: var(--background);
+  --hg-ink: var(--color-paper);
+  --hg-ink-strong: #ffffff;
+  --hg-muted: var(--color-paper-2);
+  --hg-faint: rgb(243 242 238 / 0.5);
+  --hg-line: rgb(243 242 238 / 0.26);
+  --hg-display: var(--font-sans);
+  --hg-serif: var(--font-serif, Georgia, serif);
+  --hg-mono: var(--font-mono);
+  --hg-gutter: var(--gutter);
+  position: relative;
+  background: var(--hg-bg);
+  color: var(--hg-ink);
+  font-family: var(--hg-display);
+}
+
+/* Pin: the stage holds still while the scene turns the galaxy into a tunnel. */
+
+.hg-pin {
+  position: relative;
+  min-height: 100svh;
+}
+
+.hero-galaxie.is-motion {
+  height: 300svh;
+}
+
+.hero-galaxie.is-motion .hg-pin {
+  position: sticky;
+  top: 0;
+  height: 100svh;
+}
+
+/* The canvas is fixed so the picked card can carry on into « La rumeur ».
+   No frame, no clipping: the scene fades into the same black as the page. */
+
+.hg-canvas {
+  position: absolute;
+  inset: 0;
+}
+
+.hero-galaxie.is-motion .hg-canvas {
+  position: fixed;
+}
+
+/* Layout, after the reference room hero: the wordmark up top, the prompt bar
+   in the middle, the title low on the left. A flex column, so the three can
+   never overlap, even on short screens. */
+
+.hg-layout {
+  pointer-events: none;
+  position: relative;
+  z-index: 40;
+  display: flex;
+  min-height: 100svh;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 24px;
+  padding: clamp(96px, 15svh, 170px) var(--hg-gutter) clamp(28px, 6svh, 56px);
+}
+
+.hero-galaxie.is-motion .hg-layout {
+  height: 100svh;
+}
+
+.hg-top {
+  display: flex;
+  justify-content: center;
+}
+
+.hg-word-wrap {
+  position: relative;
+  width: min(30rem, 80vw, 52svh);
+}
+
+.hg-mid {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+
+.hg-bar-wrap {
+  width: min(40rem, 100%);
+}
+
+.hg-bottom {
+  position: relative;
+  max-width: 36rem;
+}
+
+.hg-bottom::before {
+  content: "";
+  position: absolute;
+  inset: -96px -160px -64px -120px;
+  z-index: -1;
+  background: radial-gradient(
+    closest-side,
+    color-mix(in srgb, var(--hg-bg) 92%, transparent) 55%,
+    transparent
+  );
+}
+
+/* Tag and prompt bar (ink and paper: tag radius 6, controls fully round). */
+
+.hg-tag {
+  padding: 4px 9px;
+  border: 1px solid var(--hg-line);
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--hg-bg) 70%, transparent);
+  font-family: var(--hg-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--hg-muted);
+}
+
+/* The prompt bar: an opaque ink pill ringed by the four verdict colours (Vrai, Trompeur, Faux,
+   Invérifiable), the one place colour appears outside a verdict, since this is where one is asked
+   for. The ring turns slowly; on focus the whole bar lights up, never the input alone. */
+@property --hg-ring {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+
+.hg-bar {
+  pointer-events: auto;
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 60px;
+  padding: 0 10px 0 14px;
+  border-radius: 999px;
+  background:
+    radial-gradient(90% 160% at 0% 0%, rgb(255 178 36 / 0.07), transparent 60%),
+    radial-gradient(90% 160% at 100% 100%, rgb(59 140 255 / 0.09), transparent 60%),
+    linear-gradient(180deg, #17171b, #0e0e10);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.06),
+    0 24px 60px -24px rgb(0 0 0 / 0.9);
+  cursor: text;
+  transition: box-shadow 0.3s ease;
+}
+
+.hg-bar::before,
+.hg-bar::after {
+  content: "";
+  pointer-events: none;
+  position: absolute;
+  border-radius: inherit;
+  background: conic-gradient(from var(--hg-ring), #3ddc84, #ffb224, #ff4a3d, #3b8cff, #3ddc84);
+  animation: hg-ring 9s linear infinite;
+  transition: opacity 0.3s ease;
+}
+
+/* The ring itself: a 1px band of the gradient, cut out of the middle. */
+.hg-bar::before {
+  inset: -1px;
+  padding: 1px;
+  opacity: 0.5;
+  mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  -webkit-mask-composite: xor;
+}
+
+/* A soft halo of the same colours under the bar (behind it: the hero layout is its stacking context). */
+.hg-bar::after {
+  inset: 4px 10%;
+  z-index: -1;
+  filter: blur(22px);
+  opacity: 0.16;
+}
+
+.hg-bar:hover::before {
+  opacity: 0.75;
+}
+
+.hg-bar:focus-within {
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.06),
+    0 0 0 5px rgb(243 242 238 / 0.06),
+    0 24px 60px -24px rgb(0 0 0 / 0.9);
+}
+
+.hg-bar:focus-within::before {
+  inset: -1.5px;
+  padding: 1.5px;
+  opacity: 1;
+}
+
+.hg-bar:focus-within::after {
+  opacity: 0.42;
+}
+
+@keyframes hg-ring {
+  to {
+    --hg-ring: 360deg;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hg-bar::before,
+  .hg-bar::after {
+    animation: none;
+  }
+}
+
+.hg-bar-plus {
+  display: flex;
+  flex: none;
+  width: 34px;
+  height: 34px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  color: var(--hg-muted);
+}
+
+.hg-bar-plus svg,
+.hg-bar-send svg {
+  width: 18px;
+  height: 18px;
+}
+
+.hg-bar-field {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  align-items: center;
+  height: 100%;
+}
+
+.hg-bar-input {
+  width: 100%;
+  min-width: 0;
+  height: 100%;
+  border: 0;
+  background: transparent;
+  outline: none;
+  font: inherit;
+  font-size: 0.9375rem;
+  color: var(--hg-ink);
+}
+
+.hg-bar-input:focus,
+.hg-bar-input:focus-visible {
+  outline: none;
+}
+
+.hg-bar-input::placeholder {
+  color: var(--hg-muted);
+}
+
+/* The demo rumour types over the empty field; a click in the bar focuses the real input under it. */
+.hg-bar-demo {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  white-space: nowrap;
+  font-size: 0.9375rem;
+  color: var(--hg-ink);
+}
+
+.hg-caret {
+  display: inline-block;
+  width: 2px;
+  height: 1.05em;
+  margin-left: 2px;
+  vertical-align: -0.15em;
+  background: var(--hg-ink);
+  animation: hg-blink 1s steps(1) infinite;
+}
+
+@keyframes hg-blink {
+  50% {
+    opacity: 0;
+  }
+}
+
+.hg-bar-send {
+  cursor: pointer;
+  display: flex;
+  flex: none;
+  width: 40px;
+  height: 40px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: var(--color-ink-4);
+  color: var(--hg-muted);
+  transition:
+    background-color 0.25s ease,
+    color 0.25s ease,
+    transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.hg-bar-send.is-sent {
+  background: var(--color-paper);
+  color: var(--color-ink);
+  transform: scale(1.06);
+}
+
+/* Wordmark */
+
+.hg-word-box {
+  pointer-events: none;
+  position: relative;
+  z-index: 40;
+  width: 100%;
+  container-type: inline-size;
+}
+
+.hg-word-blur {
+  position: absolute;
+  inset: -34% -6%;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  mask-image: radial-gradient(closest-side, black 45%, transparent 100%);
+  -webkit-mask-image: radial-gradient(closest-side, black 45%, transparent 100%);
+}
+
+.hg-word {
+  position: relative;
+  white-space: pre;
+  color: var(--hg-ink-strong);
+  font-family: var(--hg-display);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 1;
+}
+
+.hg-letter {
+  display: inline-block;
+  text-align: center;
+  will-change: transform, opacity;
+  text-shadow:
+    0 0 0.6vw color-mix(in srgb, var(--hg-bg) 92%, transparent),
+    0 0.25vw 2.4vw color-mix(in srgb, var(--hg-bg) 78%, transparent);
+}
+
+.hero-galaxie.is-motion .hg-letter {
+  opacity: 0;
+}
+
+/* Copy */
+
+.hg-h1 {
+  position: relative;
+  margin: 0;
+  font-family: var(--hg-display);
+  font-size: min(clamp(2.4rem, 4.4vw, 4.6rem), 8.4svh);
+  font-weight: 800;
+  line-height: 0.98;
+  letter-spacing: -0.04em;
+  color: var(--hg-ink-strong);
+}
+
+.hg-h1 em {
+  font-family: var(--hg-serif);
+  font-style: italic;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  color: var(--hg-ink);
+}
+
+.hg-lead {
+  position: relative;
+  margin: 18px 0 0;
+  max-width: 30rem;
+  font-size: 1.0625rem;
+  line-height: 1.55;
+  color: var(--hg-muted);
+}
+
+.hg-actions {
+  pointer-events: auto;
+  position: relative;
+  margin-top: 28px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+@media (max-width: 639.98px) {
+  .hg-actions .btn {
+    flex: 1 1 100%;
+    justify-content: center;
+  }
+}
+
+/* Partners beside the main button: a hairline, a small label, then each logo on its own. */
+
+.hg-partners {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding-left: 22px;
+  border-left: 1px solid var(--hg-line);
+}
+
+.hg-partners-label {
+  font-family: var(--hg-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--hg-muted);
+}
+
+.hg-partners ul {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.hg-partners a {
+  display: block;
+  border-radius: 4px;
+}
+
+.hg-partners img {
+  display: block;
+  width: auto;
+  height: 40px;
+  opacity: 0.92;
+  transition: opacity 150ms;
+}
+
+.hg-partners a:hover img {
+  opacity: 1;
+}
+
+.hg-actions {
+  align-items: center;
+  gap: 22px;
+}
+
+@media (max-width: 639.98px) {
+  .hg-partners {
+    width: 100%;
+    justify-content: center;
+    padding-left: 0;
+    border-left: 0;
+  }
+
+  .hg-partners img {
+    height: 34px;
+  }
+}
