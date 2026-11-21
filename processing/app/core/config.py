@@ -24,9 +24,11 @@ class Settings(BaseSettings):
         hide_input_in_errors=True,
     )
 
-    # Fournisseur de l'IA. « gemini » : API gratuite de Google, rien à installer (par défaut).
-    # « local » : modèle libre sur le PC avec Ollama (Gemma 4), sans wifi : pour la démo.
-    ai_provider: Literal["gemini", "local"] = "gemini"
+    # Mode de l'IA. Dans tous les modes, si aucune IA ne répond, la réponse préparée s'affiche.
+    # - « gemini » (par défaut) : Gemini seul. Rien à installer.
+    # - « gemini-then-local » : Gemini, puis Gemma 4 en local (Ollama) si Gemini ne répond pas.
+    # - « local » : Gemma 4 en local seul, sans wifi.
+    ai_mode: Literal["gemini", "gemini-then-local", "local"] = "gemini"
 
     # Clé de l'API Gemini (https://aistudio.google.com/apikey). Absente : réponses de secours.
     gemini_api_key: SecretStr | None = None
@@ -53,6 +55,8 @@ class Settings(BaseSettings):
     local_embedding_model: str = "embeddinggemma"
     # Plus long qu'avec Gemini : le premier appel charge le modèle en mémoire.
     local_ai_timeout_seconds: float = 60.0
+    # Mode « gemini-then-local » : temps laissé à Gemma 4 après Gemini (le web attend 65 s en tout).
+    local_ai_backup_timeout_seconds: float = 40.0
     # true : jamais d'appel à Gemini, toujours les réponses de secours (répétition du plan B).
     demo_offline: bool = False
 
