@@ -3,18 +3,18 @@ import {
   Gavel,
   House,
   type LucideIcon,
+  Newspaper,
   Palette,
   ScanSearch,
   Siren,
-  Smartphone,
   Waypoints,
 } from 'lucide-react';
 
 // La navigation de l'application, à un seul endroit : la barre latérale et l'accueil la lisent.
 // Ajouter un écran principal = ajouter une ligne ici et créer son dossier dans src/app/(app)/.
 
-// Page ouverte après la connexion. À passer sur le fil d'actualité quand il existera.
-export const AFTER_SIGN_IN_PATH = '/dashboard';
+// Page ouverte après la connexion : le fil d'actualité.
+export const AFTER_SIGN_IN_PATH = '/feed';
 
 export type NavItem = {
   href: string;
@@ -31,6 +31,12 @@ export const HOME_ITEM: NavItem = {
 };
 
 export const MODULE_ITEMS: NavItem[] = [
+  {
+    href: '/feed',
+    label: 'Fil d’actualité',
+    description: 'Les informations qui circulent, avec leur état de vérification.',
+    icon: Newspaper,
+  },
   {
     href: '/cases',
     label: 'Enquêtes',
@@ -60,12 +66,6 @@ export const MODULE_ITEMS: NavItem[] = [
     label: 'Vrai ou fake',
     description: 'Apprendre à distinguer le vrai du faux, en jouant.',
     icon: Gamepad2,
-  },
-  {
-    href: '/phone',
-    label: 'Téléphone',
-    description: 'La bulle d’analyse sur un téléphone simulé.',
-    icon: Smartphone,
   },
 ];
 
