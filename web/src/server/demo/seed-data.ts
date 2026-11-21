@@ -8,6 +8,8 @@ import {
   hearings,
   notes,
   profiles,
+  reportGroups,
+  reports,
   versionLinks,
 } from '@/server/db/schema';
 
@@ -303,6 +305,119 @@ const DEMO_EVIDENCE: (typeof evidence.$inferInsert)[] = [
   },
 ];
 
+// ─── Boîte d'alertes ────────────────────────────────────────────────────────────────────────
+// Démo : quatre personnes ont déjà signalé la rumeur du riz ; le cinquième signalement, fait en
+// direct par Hery, ouvre une affaire.
+
+// Publication du fil qui porte la rumeur du riz : le module Fil d'actualité crée sa publication
+// avec cet identifiant, pour que le bouton « Signaler » rejoigne ce groupe.
+export const DEMO_REPORTED_POST_ID = id(900);
+
+export const DEMO_REPORT_GROUP_IDS = { rice: id(901), network: id(902), grant: id(903) } as const;
+
+// Les autres membres de la communauté : ils ne servent qu'à signaler.
+const DEMO_REPORTERS: (typeof profiles.$inferInsert)[] = [
+  { id: 'fara', name: 'Fara', role: 'member', headline: 'Signale les contenus suspects' },
+  { id: 'tojo', name: 'Tojo', role: 'member', headline: 'Signale les contenus suspects' },
+  { id: 'lova', name: 'Lova', role: 'member', headline: 'Signale les contenus suspects' },
+  { id: 'nirina', name: 'Nirina', role: 'member', headline: 'Signale les contenus suspects' },
+];
+
+const DEMO_REPORT_GROUPS: (typeof reportGroups.$inferInsert)[] = [
+  {
+    id: DEMO_REPORT_GROUP_IDS.rice,
+    title: 'Le riz à 300 000 Ar',
+    summary: 'Le sac de riz passera à 300 000 Ar dès lundi : il faut tout acheter maintenant.',
+    feedPostId: DEMO_REPORTED_POST_ID,
+    createdAt: daysAgo(1, 7, 30),
+  },
+  {
+    id: DEMO_REPORT_GROUP_IDS.network,
+    title: 'Le réseau mobile coupé trois jours',
+    summary:
+      'Le réseau mobile sera coupé pendant trois jours dans toute la région pour des travaux.',
+    createdAt: daysAgo(2, 15),
+  },
+  {
+    id: DEMO_REPORT_GROUP_IDS.grant,
+    title: 'La bourse d’études à 2 000 000 Ar',
+    summary:
+      'Une bourse d’études de 2 000 000 Ar est offerte à tous les lycéens qui envoient leurs coordonnées.',
+    createdAt: daysAgo(3, 11),
+  },
+];
+
+const DEMO_REPORTS: (typeof reports.$inferInsert)[] = [
+  {
+    groupId: DEMO_REPORT_GROUP_IDS.rice,
+    reporterId: 'fara',
+    content: 'Le sac de riz passe à 300 000 Ar lundi, stockez tout de suite !',
+    feedPostId: DEMO_REPORTED_POST_ID,
+    reason: 'misleading',
+    description: 'Aucune source, et le message pousse à acheter dans la panique.',
+    createdAt: daysAgo(1, 7, 30),
+  },
+  {
+    groupId: DEMO_REPORT_GROUP_IDS.rice,
+    reporterId: 'tojo',
+    content: 'Riz à 300 000 Ar le sac dès lundi, les magasins vont être vidés.',
+    feedPostId: DEMO_REPORTED_POST_ID,
+    reason: 'fake',
+    description: 'Le prix annoncé est trois fois le prix actuel.',
+    createdAt: daysAgo(1, 9, 10),
+  },
+  {
+    groupId: DEMO_REPORT_GROUP_IDS.rice,
+    reporterId: 'lova',
+    content:
+      'Achetez votre riz avant lundi : 300 000 Ar le sac après. Commandez au numéro ci-dessous.',
+    feedPostId: DEMO_REPORTED_POST_ID,
+    reason: 'scam',
+    description: 'Un numéro pour commander : cela ressemble à une arnaque.',
+    createdAt: daysAgo(1, 12, 45),
+  },
+  {
+    groupId: DEMO_REPORT_GROUP_IDS.rice,
+    reporterId: 'nirina',
+    content: 'Le riz va tripler lundi, prévenez toute la famille.',
+    reason: 'misleading',
+    description: 'Reçu dans un groupe familial, sans aucune source.',
+    createdAt: daysAgo(1, 18, 20),
+  },
+  {
+    groupId: DEMO_REPORT_GROUP_IDS.network,
+    reporterId: 'fara',
+    content: 'Plus de réseau mobile pendant 3 jours dans toute la région, travaux prévus.',
+    reason: 'fake',
+    description: 'L’opérateur n’a rien annoncé.',
+    createdAt: daysAgo(2, 15),
+  },
+  {
+    groupId: DEMO_REPORT_GROUP_IDS.network,
+    reporterId: 'tojo',
+    content: 'Coupure du réseau mobile trois jours dans la région : faites vos appels avant.',
+    reason: 'misleading',
+    description: 'Message transféré plusieurs fois, sans date.',
+    createdAt: daysAgo(2, 17, 30),
+  },
+  {
+    groupId: DEMO_REPORT_GROUP_IDS.grant,
+    reporterId: 'lova',
+    content: 'Bourse de 2 000 000 Ar pour tous les lycéens : envoyez nom, âge et numéro.',
+    reason: 'scam',
+    description: 'On demande des données personnelles en échange d’argent.',
+    createdAt: daysAgo(3, 11),
+  },
+  {
+    groupId: DEMO_REPORT_GROUP_IDS.grant,
+    reporterId: 'hery',
+    content: 'Bourse d’études 2 000 000 Ar, il suffit d’envoyer ses coordonnées.',
+    reason: 'scam',
+    description: 'Vu sur une page qui n’indique aucun organisme.',
+    createdAt: daysAgo(2, 9),
+  },
+];
+
 // Vrai dès qu'une affaire existe. Une base créée avant les affaires (profils seuls) est donc
 // complétée toute seule au prochain démarrage.
 // ─── Tribunal (lot de Mahery) ────────────────────────────────────────────────────────────────
@@ -378,5 +493,12 @@ export async function resetDemoData(database: Database) {
     for (const [versionId, imagePath] of DEMO_VERSION_IMAGES) {
       await tx.update(caseVersions).set({ imagePath }).where(eq(caseVersions.id, versionId));
     }
+
+    // Boîte d'alertes. Les signalements partent avec leurs profils (supprimés plus haut) ; les
+    // groupes sont supprimés ici, y compris ceux créés pendant une répétition.
+    await tx.delete(reportGroups);
+    await tx.insert(profiles).values(DEMO_REPORTERS);
+    await tx.insert(reportGroups).values(DEMO_REPORT_GROUPS);
+    await tx.insert(reports).values(DEMO_REPORTS);
   });
 }
