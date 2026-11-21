@@ -19,6 +19,7 @@ import { VOTE_LABELS, type Vote } from '@/lib/domain';
 import { cn } from '@/lib/utils';
 import { type HearingView, openHearing, voteAndJudge } from './actions';
 import { ENTER, type HearingPiece, Pleadings, Verdict, Witnesses } from './HearingParts';
+import { ShareCard } from './ShareCard';
 
 const STEPS = ['Lecture', 'Plaidoiries', 'Témoins', 'Vote', 'Conclusion'];
 const VOTE_ICONS = { accurate: Check, misleading: X, unsure: CircleHelp } satisfies Record<
@@ -183,6 +184,18 @@ export function Hearing({
           <CardContent className="grid gap-6 pt-2">
             <Verdict hearing={hearing} />
             <Accordion type="single" collapsible>
+              {hearing.certainty && hearing.conclusion && (
+                <AccordionItem value="share">
+                  <AccordionTrigger>Partager la conclusion</AccordionTrigger>
+                  <AccordionContent>
+                    <ShareCard
+                      claim={claim}
+                      certainty={hearing.certainty}
+                      conclusion={hearing.conclusion}
+                    />
+                  </AccordionContent>
+                </AccordionItem>
+              )}
               <AccordionItem value="pleadings">
                 <AccordionTrigger>Revoir les plaidoiries</AccordionTrigger>
                 <AccordionContent>
