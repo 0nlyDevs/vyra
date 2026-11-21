@@ -1,5 +1,5 @@
 import 'server-only';
-import { asc, desc, eq } from 'drizzle-orm';
+import { asc, desc, eq, max } from 'drizzle-orm';
 import { db } from '@/server/db';
 import { cases, caseVersions, evidence, versionLinks } from '@/server/db/schema';
 
@@ -40,3 +40,21 @@ export async function getCaseFile(id: string) {
 
 export type CaseSummary = Awaited<ReturnType<typeof listCases>>[number];
 export type CaseFile = NonNullable<Awaited<ReturnType<typeof getCaseFile>>>;
+
+// Verse des pièces au dossier, numérotées à la suite des pièces existantes.
+export async function addEvidence(
+  caseId: string,
+  pieces: Omit<typeof evidence.$inferInsert, 'caseId' | 'number'>[],
+) {
+  return db.transaction(async (tx) => {
+    const [last] = await tx
+      .select({ number: max(evidence.number) })
+      .from(evidence)
+      .where(eq(evidence.caseId, caseId));
+    const first = (last?.number ?? 0) + 1;
+    await tx
+      .insert(evidence)
+      .values(pieces.map((piece, index) => ({ ...piece, caseId, number: first + index })));
+    return pieces.length;
+  });
+}

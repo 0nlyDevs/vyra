@@ -13,6 +13,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { frontierOf } from '@/features/investigation/explore';
+import { FactCheckPanel } from '@/features/investigation/FactCheckPanel';
 import { PropagationGraph } from '@/features/investigation/PropagationGraph';
 import { WebSearchPanel } from '@/features/investigation/WebSearchPanel';
 import { EVIDENCE_STRENGTH_LABELS, MATCH_KIND_LABELS, MATCH_KINDS } from '@/lib/domain';
@@ -123,6 +124,8 @@ export default async function CaseFilePage({
           />
         </CardContent>
       </Card>
+
+      <FactCheckPanel caseId={file.id} />
 
       <div className="grid gap-6">
         <Card>
