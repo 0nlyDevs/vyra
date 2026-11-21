@@ -727,5 +727,7 @@ export async function resetDemoData(database: Database) {
     // Jeu vrai ou fake. Les parties jouées partent avec leurs profils (supprimés plus haut).
     await tx.delete(scenarios);
     await tx.insert(scenarios).values(DEMO_SCENARIOS);
+
+    // Le fil d'actualité n'a pas de données de démo : il ne montre que des publications réelles.
   });
 }

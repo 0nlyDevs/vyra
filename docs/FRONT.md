@@ -59,9 +59,8 @@ le nuancier `--red-*`.
 3. Ajouter l'entrée du menu dans `web/src/lib/navigation.ts` si c'est un écran principal.
 4. Mettre la logique dans `web/src/features/<nom>/`, comme l'exemple `notes`.
 
-Les pages des modules existent déjà, vides : `/cases`, `/scan`, `/court`, `/reports`,
-`/game`, `/phone`. Chacune affiche ce qu'il reste à construire ; on retire ce bloc quand le
-module a son contenu.
+Les pages des modules : `/feed` (fil d'actualité, ouvert après la connexion), `/cases`,
+`/court`, `/reports`, `/game`, et `/scan`.
 
 ## Le dossier commun : l'affaire
 
