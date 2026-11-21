@@ -6,6 +6,29 @@
 .landing {
   --gutter: clamp(20px, 6vw, 96px);
   --line: oklch(0.955 0.006 95 / 11%);
+  --rail-w: 0px;
+}
+
+/* À partir de 1024 px, la colonne de droite est réservée à la règle de navigation. */
+@media (min-width: 1024px) {
+  .landing {
+    --rail-w: 60px;
+  }
+}
+
+/* Le fond de la page derrière l'accueil est celui de l'accueil : pas d'éclair clair au défilement. */
+html.on-landing {
+  background: var(--background);
+  color-scheme: dark;
+}
+
+html.lenis,
+html.lenis body {
+  height: auto;
+}
+
+.lenis.lenis-stopped {
+  overflow: hidden;
 }
 
 /* ---------- Texte ---------- */
@@ -49,7 +72,7 @@
 }
 
 .landing .wrap {
-  padding-inline: var(--gutter);
+  padding-inline: var(--gutter) calc(var(--gutter) + var(--rail-w));
 }
 
 .landing .section {
@@ -184,7 +207,7 @@
   display: block;
   position: absolute;
   left: var(--gutter);
-  width: calc(100vw - 2 * var(--gutter));
+  width: calc(100vw - 2 * var(--gutter) - var(--rail-w));
   bottom: 28px;
   height: 1px;
   background: var(--line);
@@ -253,7 +276,7 @@
   }
 
   .landing .parcours.is-pinned .slide.is-head {
-    width: 100vw;
+    width: calc(100vw - var(--rail-w));
   }
 
   .landing .head-copy {
@@ -392,7 +415,7 @@
 }
 
 .landing .sources-label {
-  padding-inline: var(--gutter);
+  padding-inline: var(--gutter) calc(var(--gutter) + var(--rail-w));
   margin-bottom: 28px;
 }
 
@@ -622,7 +645,7 @@
 }
 
 .landing .fin-content {
-  padding-inline: var(--gutter);
+  padding-inline: var(--gutter) calc(var(--gutter) + var(--rail-w));
 }
 
 .landing .fin-title {

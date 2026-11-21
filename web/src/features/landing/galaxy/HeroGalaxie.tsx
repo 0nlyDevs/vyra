@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { AFTER_SIGN_IN_PATH } from '@/lib/navigation';
+import { rulerFlies } from '../rail/ruler';
 import { GALAXIE } from './content';
 import { GalaxyCanvas, type GalaxyPointer, type Ripple } from './Galaxy';
 import { HeroWordmark } from './HeroWordmark';
@@ -331,7 +332,9 @@ export function HeroGalaxie({ ready, signedIn }: { ready: boolean; signedIn: boo
   useGSAP(
     () => {
       if (reduce) return;
-      const leaving = '.hg-mid, .hg-bottom, .hg-word-blur, .hg-word';
+      const leaving = rulerFlies()
+        ? '.hg-mid, .hg-bottom, .hg-word-blur'
+        : '.hg-mid, .hg-bottom, .hg-word-blur, .hg-word';
       gsap
         .timeline({
           scrollTrigger: {

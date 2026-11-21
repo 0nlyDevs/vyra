@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { heroWordmark } from '../rail/ruler';
 import { INTRO, introClock } from './intro';
 import { gsap } from './motion';
 
@@ -21,6 +22,56 @@ export function HeroWordmark({ word, reduce }: { word: string; reduce: boolean }
   const letters = useRef<(HTMLSpanElement | null)[]>([]);
   const word_ = useRef<HTMLDivElement>(null);
   const [fontPx, setFontPx] = useState(0);
+
+  // Publish the letters to the ruler, which flies copies of them into its top
+  // heading slot on scroll and hides these while they travel.
+  useEffect(() => {
+    const wordEl = word_.current;
+    const els = letters.current.filter((e): e is HTMLSpanElement => !!e);
+    if (!fontPx || !wordEl || els.length !== word.length) return;
+    const offX: number[] = [];
+    const offY: number[] = [];
+    const layout = () => {
+      els.forEach((e, i) => {
+        offX[i] = e.offsetLeft + e.offsetWidth / 2;
+        offY[i] = e.offsetTop + e.offsetHeight / 2;
+      });
+    };
+    layout();
+    // A pinned hero keeps the word still on screen: its trigger point is
+    // where it sits in the unpinned flow (offset in the pin + section top).
+    const pin = wordEl.closest<HTMLElement>('[data-pin]');
+    heroWordmark.els = els;
+    heroWordmark.word = word;
+    heroWordmark.fontPx = fontPx;
+    heroWordmark.read = () => {
+      const r = wordEl.getBoundingClientRect();
+      let minY = Infinity;
+      for (let i = 0; i < els.length; i++) {
+        heroWordmark.restX[i] = r.left + offX[i];
+        heroWordmark.restY[i] = r.top + offY[i];
+        if (heroWordmark.restY[i] < minY) minY = heroWordmark.restY[i];
+      }
+      const host = pin?.parentElement;
+      heroWordmark.docCenterY =
+        pin && host
+          ? minY -
+            pin.getBoundingClientRect().top +
+            host.getBoundingClientRect().top +
+            window.scrollY
+          : minY + window.scrollY;
+    };
+    heroWordmark.read();
+    heroWordmark.ready = true;
+    const ro = new ResizeObserver(layout);
+    ro.observe(wordEl);
+    return () => {
+      ro.disconnect();
+      heroWordmark.ready = false;
+      heroWordmark.els = [];
+      for (const e of els) e.style.visibility = '';
+    };
+  }, [fontPx, word]);
 
   // The word spans the full width of the copy column, like the reference.
   useEffect(() => {
@@ -54,6 +105,7 @@ export function HeroWordmark({ word, reduce }: { word: string; reduce: boolean }
 
   useEffect(() => {
     if (!fontPx || reduce) {
+      heroWordmark.forming = false;
       return;
     }
     const els = letters.current.filter((e): e is HTMLSpanElement => !!e);
@@ -71,6 +123,7 @@ export function HeroWordmark({ word, reduce }: { word: string; reduce: boolean }
     };
 
     let done = false;
+    heroWordmark.forming = true;
     const tick = () => {
       const t = introClock.t;
       const n = els.length;
@@ -100,6 +153,7 @@ export function HeroWordmark({ word, reduce }: { word: string; reduce: boolean }
           e.style.clipPath = '';
         }
         done = true;
+        heroWordmark.forming = false;
         gsap.ticker.remove(tick);
       }
     };
@@ -107,6 +161,7 @@ export function HeroWordmark({ word, reduce }: { word: string; reduce: boolean }
     measure();
     if (introClock.t > INTRO.wordAt + INTRO.wordDur + 0.5) {
       for (const e of els) e.style.opacity = '1';
+      heroWordmark.forming = false;
       return;
     }
     for (const e of els) e.style.opacity = '0';
@@ -118,6 +173,7 @@ export function HeroWordmark({ word, reduce }: { word: string; reduce: boolean }
     return () => {
       window.removeEventListener('resize', onResize);
       gsap.ticker.remove(tick);
+      heroWordmark.forming = false;
       for (const e of els) {
         e.style.transform = '';
         e.style.opacity = '';
