@@ -1,0 +1,169 @@
+import 'server-only';
+import { asc, cosineDistance, eq, isNotNull, isNull } from 'drizzle-orm';
+import type { ChangeType, LinkConfidence, WebSearchStatus } from '@/lib/domain';
+import { db } from '@/server/db';
+import { cases, caseVersions, versionLinks, webSearches } from '@/server/db/schema';
+
+// Écritures et recherches du module Enquête sur le dossier commun (tables de l'affaire).
+
+// Affaires sans vecteur : celles des données de démo, ou créées quand l'IA était indisponible.
+export function listCasesWithoutEmbedding() {
+  return db
+    .select({ id: cases.id, title: cases.title, claim: cases.claim })
+    .from(cases)
+    .where(isNull(cases.embedding));
+}
+
+export async function setCaseEmbeddings(items: { id: string; embedding: number[] }[]) {
+  await db.transaction(async (tx) => {
+    for (const item of items) {
+      await tx.update(cases).set({ embedding: item.embedding }).where(eq(cases.id, item.id));
+    }
+  });
+}
+
+// L'affaire la plus proche par le sens, avec sa distance (0 = identique, 1 = sans rapport).
+export async function findClosestCaseByMeaning(embedding: number[]) {
+  const distance = cosineDistance(cases.embedding, embedding);
+  const [closest] = await db
+    .select({ id: cases.id, distance })
+    .from(cases)
+    .where(isNotNull(cases.embedding))
+    .orderBy(distance)
+    .limit(1);
+  return closest ? { id: closest.id, distance: Number(closest.distance) } : null;
+}
+
+// Tous les textes connus d'une affaire (l'information et ses versions), pour la recherche par mots.
+export async function listCaseTexts() {
+  const [caseRows, versionRows] = await Promise.all([
+    db.select({ id: cases.id, title: cases.title, claim: cases.claim }).from(cases),
+    db
+      .select({ caseId: caseVersions.caseId, content: caseVersions.content })
+      .from(caseVersions)
+      .orderBy(asc(caseVersions.position)),
+  ]);
+  return caseRows.map((item) => ({
+    id: item.id,
+    texts: [
+      item.claim,
+      ...versionRows.filter((version) => version.caseId === item.id).map((v) => v.content),
+    ],
+  }));
+}
+
+export async function getWebSearch(caseId: string) {
+  const [found] = await db
+    .select()
+    .from(webSearches)
+    .where(eq(webSearches.caseId, caseId))
+    .limit(1);
+  return found ?? null;
+}
+
+// Une version de la chaîne : déjà en base (`id`), ou un article à ajouter.
+export type OrderedVersion =
+  | { id: string }
+  | {
+      content: string;
+      sourceName: string;
+      sourceUrl: string;
+      publishedAt: Date | null;
+    };
+
+export type LinkBetween = {
+  // Indices dans `ordered` : `to` reprend `from`.
+  from: number;
+  to: number;
+  changeType: ChangeType;
+  note: string;
+  confidence: LinkConfidence;
+};
+
+// Enregistre le résultat de la recherche web : les articles deviennent des versions, toutes les
+// versions sont renumérotées dans l'ordre donné (1 = la plus ancienne) et reliées. Renvoie false
+// si une recherche a déjà été enregistrée pour cette affaire (deux onglets ouverts…).
+export async function saveWebSearch(input: {
+  caseId: string;
+  status: WebSearchStatus;
+  foundCount: number;
+  ordered: OrderedVersion[];
+  links: LinkBetween[];
+}) {
+  return db.transaction(async (tx) => {
+    const added = input.ordered.filter((item) => !('id' in item)).length;
+    const [claimed] = await tx
+      .insert(webSearches)
+      .values({
+        caseId: input.caseId,
+        status: input.status,
+        foundCount: input.foundCount,
+        keptCount: added,
+      })
+      .onConflictDoNothing()
+      .returning({ caseId: webSearches.caseId });
+    if (!claimed) return false;
+
+    const ids: string[] = [];
+    for (const [index, item] of input.ordered.entries()) {
+      if ('id' in item) {
+        await tx
+          .update(caseVersions)
+          .set({ position: index + 1 })
+          .where(eq(caseVersions.id, item.id));
+        ids.push(item.id);
+      } else {
+        const [inserted] = await tx
+          .insert(caseVersions)
+          .values({ caseId: input.caseId, position: index + 1, ...item })
+          .returning({ id: caseVersions.id });
+        if (!inserted) throw new Error('Insertion d’une version sans retour');
+        ids.push(inserted.id);
+      }
+    }
+
+    const links = input.links.flatMap((link) => {
+      const fromVersionId = ids[link.from];
+      const toVersionId = ids[link.to];
+      if (!fromVersionId || !toVersionId) return [];
+      return [
+        {
+          caseId: input.caseId,
+          fromVersionId,
+          toVersionId,
+          changeType: link.changeType,
+          note: link.note,
+          confidence: link.confidence,
+        },
+      ];
+    });
+    if (links.length > 0) await tx.insert(versionLinks).values(links);
+    return true;
+  });
+}
+
+// Une nouvelle affaire et sa première version : le texte tel qu'il a été reçu.
+export async function createCaseWithFirstVersion(input: {
+  title: string;
+  claim: string;
+  embedding: number[] | null;
+  sourceName: string;
+  sourceUrl: string | null;
+}) {
+  return db.transaction(async (tx) => {
+    const [created] = await tx
+      .insert(cases)
+      .values({ title: input.title, claim: input.claim, embedding: input.embedding })
+      .returning({ id: cases.id });
+    if (!created) throw new Error('Insertion de l’affaire sans retour');
+    await tx.insert(caseVersions).values({
+      caseId: created.id,
+      position: 1,
+      content: input.claim,
+      sourceName: input.sourceName,
+      sourceUrl: input.sourceUrl,
+      publishedAt: new Date(),
+    });
+    return created;
+  });
+}
