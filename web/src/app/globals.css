@@ -190,6 +190,17 @@
     font-size: 112.5%;
   }
 
+  /* Taille du texte choisie avec A− / A+ (composant ReadingControls). */
+  html[data-text="small"] {
+    font-size: 100%;
+  }
+  html[data-text="large"] {
+    font-size: 125%;
+  }
+  html[data-text="xlarge"] {
+    font-size: 137.5%;
+  }
+
   * {
     @apply border-border outline-ring/50;
   }
@@ -415,6 +426,22 @@
     #000 92%,
     transparent 100%
   );
+}
+
+/* Mode éco : pas d'animation, pas de flou ni de grain, pas d'illustration décorative. Moins de
+   calcul pour les petits téléphones, et rien d'inutile à charger. Hors couche (@layer) : ces règles passent devant Tailwind sans !important. */
+html[data-eco="on"] *,
+html[data-eco="on"] *::before,
+html[data-eco="on"] *::after {
+  animation: none;
+  transition: none;
+  backdrop-filter: none;
+  scroll-behavior: auto;
+}
+html[data-eco="on"] .grain,
+html[data-eco="on"] .hero-glow,
+html[data-eco="on"] .hero-figure {
+  display: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
