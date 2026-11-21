@@ -16,7 +16,7 @@ import { cn } from '@/lib/utils';
 import type { CaseFile } from '@/server/dal/cases';
 import styles from './graph.module.css';
 import { fitColumnWidth, GRAPH, layoutGraph } from './graph-layout';
-import { VersionComparison, VersionDetail } from './VersionPanels';
+import { SourceKindBadge, VersionComparison, VersionDetail } from './VersionPanels';
 
 type Version = CaseFile['versions'][number];
 type Link = CaseFile['links'][number];
@@ -180,6 +180,7 @@ export function PropagationGraph({ versions, links }: { versions: Version[]; lin
                   <span className="line-clamp-2 text-muted-foreground text-xs">
                     {version.sourceName}
                   </span>
+                  <SourceKindBadge version={version} className="justify-self-center" />
                   {isOldest && (
                     <span className="font-medium text-primary text-xs">
                       Plus ancienne retrouvée
