@@ -1,5 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="MindStack">
-  <title>MindStack</title>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Vyra">
+  <title>Vyra</title>
   <rect width="64" height="64" rx="16" fill="#120809"/>
   <path d="M32 31 53 41.5 32 52 11 41.5Z" fill="#e5383b" opacity="0.3"/>
   <path d="M32 22 53 32.5 32 43 11 32.5Z" fill="#e5383b" opacity="0.58"/>

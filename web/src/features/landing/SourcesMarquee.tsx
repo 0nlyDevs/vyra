@@ -6,8 +6,8 @@ export function SourcesMarquee() {
   const names = FEED_SOURCES.map((source) => source.name.split(' · ')[0].split(' #')[0]);
   const band = [...new Set(names.filter((name) => name !== 'Tendances')), 'Google Trends'];
   return (
-    <section aria-labelledby="sources-title" className="border-y py-10">
-      <p id="sources-title" className="eyebrow mb-6 px-5 text-center">
+    <section aria-labelledby="sources-title" className="sources">
+      <p id="sources-title" className="mono sources-label" data-reveal="fade">
         Lu en direct, chaque jour
       </p>
       <div className="marquee-mask overflow-hidden">

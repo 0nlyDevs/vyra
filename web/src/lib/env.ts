@@ -17,7 +17,7 @@ const serverSchema = z.object({
     .string()
     .startsWith('smtp', 'doit commencer par smtp:// ou smtps://')
     .default('smtp://127.0.0.1:1025'),
-  MAIL_FROM: z.string().default('MindStack <no-reply@mindstack.local>'),
+  MAIL_FROM: z.string().default('Vyra <no-reply@mindstack.local>'),
   // Connexion avec Google (facultative) : identifiants OAuth créés dans la console Google Cloud.
   // Absents : le bouton « Continuer avec Google » n'apparaît pas.
   GOOGLE_CLIENT_ID: z.string().optional(),
@@ -27,7 +27,7 @@ const serverSchema = z.object({
 // Variables `NEXT_PUBLIC_*` : copiées dans le code envoyé au navigateur, donc jamais de secret.
 // Next.js ne remplace que les références écrites en toutes lettres (`process.env.NEXT_PUBLIC_X`).
 const publicSchema = z.object({
-  NEXT_PUBLIC_APP_NAME: z.string().default('MindStack'),
+  NEXT_PUBLIC_APP_NAME: z.string().default('Vyra'),
 });
 const publicSource = {
   NEXT_PUBLIC_APP_NAME: process.env.NEXT_PUBLIC_APP_NAME,

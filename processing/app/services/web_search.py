@@ -72,7 +72,7 @@ EXCERPT_MAX_CHARS = 500
 # citée, sans alourdir la réponse.
 BODY_MAX_CHARS = 4_000
 LINKS_MAX = 150
-USER_AGENT = "MindStack/0.1 (verification d'informations, DevFest 2026)"
+USER_AGENT = "Vyra/0.1 (verification d'informations, DevFest 2026)"
 
 STOP_WORDS = frozenset(
     [

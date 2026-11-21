@@ -21,13 +21,13 @@ function layout(title: string, paragraphs: string[], button?: { label: string; u
   const cta = button
     ? `<p style="margin:24px 0"><a href="${escapeHtml(button.url)}" style="background:${RED};color:#fff;text-decoration:none;padding:12px 20px;border-radius:10px;font-weight:600;display:inline-block">${escapeHtml(button.label)}</a></p><p style="margin:0 0 16px;font-size:13px;color:#666">Si le bouton ne marche pas, copiez ce lien : ${escapeHtml(button.url)}</p>`
     : '';
-  return `<!doctype html><html lang="fr"><body style="margin:0;background:#f6f4f4;font-family:-apple-system,Segoe UI,Roboto,sans-serif;color:#1d1a1a"><div style="max-width:520px;margin:0 auto;padding:32px 20px"><p style="margin:0 0 24px;font-weight:700;color:${RED}">MindStack</p><div style="background:#fff;border-radius:14px;padding:28px"><h1 style="margin:0 0 16px;font-size:20px">${escapeHtml(title)}</h1>${body}${cta}</div><p style="margin:20px 0 0;font-size:12px;color:#888">Vous recevez cet e-mail parce qu'un compte MindStack utilise cette adresse.</p></div></body></html>`;
+  return `<!doctype html><html lang="fr"><body style="margin:0;background:#f6f4f4;font-family:-apple-system,Segoe UI,Roboto,sans-serif;color:#1d1a1a"><div style="max-width:520px;margin:0 auto;padding:32px 20px"><p style="margin:0 0 24px;font-weight:700;color:${RED}">Vyra</p><div style="background:#fff;border-radius:14px;padding:28px"><h1 style="margin:0 0 16px;font-size:20px">${escapeHtml(title)}</h1>${body}${cta}</div><p style="margin:20px 0 0;font-size:12px;color:#888">Vous recevez cet e-mail parce qu'un compte Vyra utilise cette adresse.</p></div></body></html>`;
 }
 
 export function verifyEmailMail(to: string, name: string, url: string): Mail {
   const lines = [
     `Bonjour ${name},`,
-    'Bienvenue sur MindStack. Confirmez votre adresse e-mail pour recevoir les résultats de vos signalements.',
+    'Bienvenue sur Vyra. Confirmez votre adresse e-mail pour recevoir les résultats de vos signalements.',
     'Ce lien est valable 24 heures.',
   ];
   return {
@@ -58,12 +58,12 @@ export function resetPasswordMail(to: string, name: string, url: string): Mail {
 export function welcomeMail(to: string, name: string, url: string): Mail {
   const lines = [
     `Bonjour ${name},`,
-    'Votre compte MindStack est créé avec Google. Vous pouvez suivre une information, l’envoyer au tribunal et signaler un contenu suspect.',
+    'Votre compte Vyra est créé avec Google. Vous pouvez suivre une information, l’envoyer au tribunal et signaler un contenu suspect.',
   ];
   return {
     to,
-    subject: 'Bienvenue sur MindStack',
-    text: `${lines.join('\n\n')}\n\nOuvrir MindStack : ${url}`,
-    html: layout('Bienvenue sur MindStack', lines, { label: 'Ouvrir MindStack', url }),
+    subject: 'Bienvenue sur Vyra',
+    text: `${lines.join('\n\n')}\n\nOuvrir Vyra : ${url}`,
+    html: layout('Bienvenue sur Vyra', lines, { label: 'Ouvrir Vyra', url }),
   };
 }

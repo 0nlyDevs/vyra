@@ -30,7 +30,7 @@ export default async function SignupPage() {
         <SignupForm />
       </div>
       <p className="text-muted-foreground text-xs">
-        Un e-mail de confirmation vous est envoyé. Vous pouvez utiliser MindStack tout de suite.
+        Un e-mail de confirmation vous est envoyé. Vous pouvez utiliser Vyra tout de suite.
       </p>
     </div>
   );
