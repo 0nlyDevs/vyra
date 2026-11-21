@@ -6,14 +6,16 @@ type VersionRef = { id: string; position: number };
 type LinkRef = { id: string; fromVersionId: string; toVersionId: string };
 
 export const GRAPH = {
-  // Largeur d'une colonne : laisse entre deux points la place de l'étiquette du lien.
+  // Largeur d'une colonne : laisse entre deux points la place de l'étiquette du lien. Elle se
+  // resserre jusqu'au minimum pour que tout le graphe tienne dans l'écran, sans défilement.
   columnWidth: 240,
+  minColumnWidth: 168,
   laneHeight: 184,
   radius: 28,
   // Largeur du texte sous chaque point (date, source).
-  labelWidth: 176,
+  labelWidth: 156,
   // Hauteur réservée au texte sous le point le plus bas.
-  labelHeight: 92,
+  labelHeight: 124,
 } as const;
 
 const MARGIN_X = GRAPH.labelWidth / 2;
@@ -21,7 +23,18 @@ const MARGIN_Y = GRAPH.radius + 4;
 
 export type NodePlacement = { id: string; column: number; lane: number; cx: number; cy: number };
 
-export function layoutGraph(versions: VersionRef[], links: LinkRef[]) {
+// La plus grande largeur de colonne qui fait tenir `count` versions dans `available` pixels.
+export function fitColumnWidth(count: number, available: number | null) {
+  if (!available || count < 2) return GRAPH.columnWidth;
+  const fitted = Math.floor((available - MARGIN_X * 2) / (count - 1));
+  return Math.max(GRAPH.minColumnWidth, Math.min(GRAPH.columnWidth, fitted));
+}
+
+export function layoutGraph(
+  versions: VersionRef[],
+  links: LinkRef[],
+  columnWidth: number = GRAPH.columnWidth,
+) {
   const ordered = [...versions].sort((a, b) => a.position - b.position);
   const parentOf = new Map(links.map((link) => [link.toVersionId, link.fromVersionId]));
   const laneOf = new Map<string, number>();
@@ -46,7 +59,7 @@ export function layoutGraph(versions: VersionRef[], links: LinkRef[]) {
       id: version.id,
       column,
       lane,
-      cx: MARGIN_X + column * GRAPH.columnWidth,
+      cx: MARGIN_X + column * columnWidth,
       cy: MARGIN_Y + lane * GRAPH.laneHeight,
     };
   });
@@ -75,7 +88,8 @@ export function layoutGraph(versions: VersionRef[], links: LinkRef[]) {
   return {
     nodes,
     edges,
-    width: MARGIN_X * 2 + Math.max(0, ordered.length - 1) * GRAPH.columnWidth,
+    columnWidth,
+    width: MARGIN_X * 2 + Math.max(0, ordered.length - 1) * columnWidth,
     height: MARGIN_Y + (lanes - 1) * GRAPH.laneHeight + GRAPH.radius + GRAPH.labelHeight,
   };
 }
