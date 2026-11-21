@@ -22,16 +22,17 @@ export async function setCaseEmbeddings(items: { id: string; embedding: number[]
   });
 }
 
-// L'affaire la plus proche par le sens, avec sa distance (0 = identique, 1 = sans rapport).
-export async function findClosestCaseByMeaning(embedding: number[]) {
+// Les affaires les plus proches par le sens, de la plus proche à la moins proche, avec leur
+// distance (0 = identique, 1 = sans rapport).
+export async function findClosestCasesByMeaning(embedding: number[], limit: number) {
   const distance = cosineDistance(cases.embedding, embedding);
-  const [closest] = await db
-    .select({ id: cases.id, distance })
+  const rows = await db
+    .select({ id: cases.id, claim: cases.claim, distance })
     .from(cases)
     .where(isNotNull(cases.embedding))
     .orderBy(distance)
-    .limit(1);
-  return closest ? { id: closest.id, distance: Number(closest.distance) } : null;
+    .limit(limit);
+  return rows.map((row) => ({ ...row, distance: Number(row.distance) }));
 }
 
 // Tous les textes connus d'une affaire (l'information et ses versions), pour la recherche par mots.
@@ -87,6 +88,7 @@ export async function saveWebSearch(input: {
   caseId: string;
   status: WebSearchStatus;
   foundCount: number;
+  contradictingCount: number;
   ordered: OrderedVersion[];
   links: LinkBetween[];
 }) {
@@ -99,6 +101,7 @@ export async function saveWebSearch(input: {
         status: input.status,
         foundCount: input.foundCount,
         keptCount: added,
+        contradictingCount: input.contradictingCount,
       })
       .onConflictDoNothing()
       .returning({ caseId: webSearches.caseId });
