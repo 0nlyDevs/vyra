@@ -1,15 +1,30 @@
 """Création de l'application FastAPI : routeurs et gestion d'erreurs. Rien d'autre.
 
-Le port n'est ouvert que sur 127.0.0.1 côté PC (docker-compose.yml) : seul le serveur
-Next.js du même PC l'appelle, d'où l'absence de clé interne.
+Sur le PC, le port n'est ouvert que sur 127.0.0.1 (docker-compose.yml). En ligne, le service
+est public : PROCESSING_TOKEN réserve alors les routes au serveur Next.js (/health reste ouvert).
 """
 
-from fastapi import FastAPI
+from secrets import compare_digest
+from typing import Annotated
 
-from app.core.config import Settings, get_settings
-from app.core.errors import register_error_handlers
+from fastapi import Depends, FastAPI, Header
+
+from app.core.config import Settings, SettingsDep, get_settings
+from app.core.errors import AppError, register_error_handlers
 from app.core.logging import configure_logging
 from app.routers import ai, feed, health, media, web
+
+
+def require_token(
+    settings: SettingsDep,
+    x_processing_token: Annotated[str | None, Header()] = None,
+) -> None:
+    expected = settings.processing_token
+    if expected is None:
+        return
+    received = (x_processing_token or "").encode()
+    if not compare_digest(received, expected.get_secret_value().encode()):
+        raise AppError("UNAUTHORIZED", 401, "Accès réservé au serveur web.")
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -26,11 +41,12 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     register_error_handlers(application)
 
     application.include_router(health.router)
-    # Tout nouveau routeur s'ajoute ici.
-    application.include_router(ai.router)
-    application.include_router(media.router)
-    application.include_router(web.router)
-    application.include_router(feed.router)
+    # Tout nouveau routeur s'ajoute ici, avec le contrôle du secret partagé.
+    protected = [Depends(require_token)]
+    application.include_router(ai.router, dependencies=protected)
+    application.include_router(media.router, dependencies=protected)
+    application.include_router(web.router, dependencies=protected)
+    application.include_router(feed.router, dependencies=protected)
     return application
 
 
