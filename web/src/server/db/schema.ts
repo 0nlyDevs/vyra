@@ -347,7 +347,12 @@ export const reports = pgTable(
 
 // ─── Tribunal (lot de Mahery) ────────────────────────────────────────────────────────────────
 
-export type Pleading = { argument: string; cited: number[] };
+export type Pleading = {
+  argument: string;
+  cited: number[];
+  // Passages entre guillemets introuvables mot pour mot dans les pièces (garde-fou, sans IA).
+  unverified?: string[];
+};
 export type HearingFindings = { confirmed: string[]; contested: string[]; missing: string[] };
 
 // Une audience : les deux plaidoiries, le vote du juré, puis la conclusion du juge.

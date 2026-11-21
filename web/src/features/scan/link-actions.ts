@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation';
 import { openCaseFromClaim } from '@/features/investigation/open-case';
 import { type ActionResult, fail, ok } from '@/lib/action-result';
 import { ERRORS } from '@/lib/errors';
+import { containsQuote } from '@/lib/quotes';
 import {
   type AiSource,
   type FactCheck,
@@ -39,19 +40,6 @@ export type LinkView = {
   factChecks: FactCheck[];
   searched: boolean;
 };
-
-// Minuscules sans accents ni ponctuation typographique, espaces regroupées : pour vérifier qu'une
-// citation est bien dans le texte, quelle que soit la façon dont l'IA a recopié les apostrophes.
-function normalise(text: string) {
-  return text
-    .toLowerCase()
-    .normalize('NFKD')
-    .replace(/\p{M}/gu, '')
-    .replace(/[’‘`´]/g, "'")
-    .replace(/[«»“”"]/g, '')
-    .replace(/\s+/g, ' ')
-    .trim();
-}
 
 function siteOf(url: string) {
   try {
@@ -116,9 +104,8 @@ export async function analyzeLink(input: {
   );
   const found = reading.ok ? reading.data.result : { claims: [], mainClaim: '' };
   // Une affirmation qui n'est pas écrite telle quelle dans la page est écartée.
-  const haystack = normalise(text);
   const claims = [...new Set(found.claims.map((claim) => claim.trim()))]
-    .filter((claim) => claim.length >= 10 && haystack.includes(normalise(claim)))
+    .filter((claim) => claim.length >= 10 && containsQuote(text, claim))
     .slice(0, 4);
   const mainClaim = found.mainClaim.trim() || claims[0] || base.title || firstSentence(text);
 
