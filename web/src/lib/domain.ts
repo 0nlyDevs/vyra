@@ -9,6 +9,11 @@ export const PROFILE_ROLE_LABELS = {
   member: 'Citoyen',
 } satisfies Record<ProfileRole, string>;
 
+// Le vérificateur voit les groupes d'alertes et peut ouvrir une affaire sans attendre le seuil.
+export function isVerifier(role: ProfileRole) {
+  return role === 'admin';
+}
+
 // Ton d'un badge ou d'un encadré : il choisit la couleur d'état (voir ToneBadge).
 export const TONES = ['success', 'info', 'warning', 'danger', 'neutral'] as const;
 export type Tone = (typeof TONES)[number];

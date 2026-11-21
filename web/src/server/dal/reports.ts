@@ -1,8 +1,20 @@
 import 'server-only';
-import { and, cosineDistance, count, desc, eq, gte, inArray, isNotNull, max } from 'drizzle-orm';
+import {
+  and,
+  asc,
+  cosineDistance,
+  count,
+  desc,
+  eq,
+  gte,
+  inArray,
+  isNotNull,
+  isNull,
+  max,
+} from 'drizzle-orm';
 import type { CaseStatus, ReportReason, ReportState } from '@/lib/domain';
 import { db } from '@/server/db';
-import { cases, reportGroups, reports } from '@/server/db/schema';
+import { cases, profiles, reportGroups, reports } from '@/server/db/schema';
 
 // Accès aux signalements et à leurs groupes (Boîte d'alertes). Les règles (seuil, limite par jour,
 // une fois par groupe) sont appliquées par les server actions de features/reports.
@@ -161,6 +173,15 @@ export async function addReport(input: {
   return report;
 }
 
+// Donne au groupe le vecteur d'un de ses signalements s'il n'en a pas encore (groupe créé sans IA,
+// ou données de démo) : les signalements suivants le trouveront aussi par le sens.
+export async function fillGroupEmbedding(groupId: string, embedding: number[]) {
+  await db
+    .update(reportGroups)
+    .set({ embedding })
+    .where(and(eq(reportGroups.id, groupId), isNull(reportGroups.embedding)));
+}
+
 // Ouvre l'affaire du groupe (titre et texte repris du groupe), une seule fois même si deux
 // signalements arrivent en même temps. Renvoie l'identifiant de l'affaire.
 export async function openCaseForGroup(groupId: string) {
@@ -266,6 +287,26 @@ export async function listGroupsByReporterCount() {
   });
 }
 
+// Vue du vérificateur : les signalements de ces groupes, avec le nom de chaque signaleur.
+export async function listReportsOfGroups(groupIds: string[]) {
+  if (groupIds.length === 0) return [];
+  return db
+    .select({
+      id: reports.id,
+      groupId: reports.groupId,
+      content: reports.content,
+      url: reports.url,
+      reason: reports.reason,
+      description: reports.description,
+      createdAt: reports.createdAt,
+      reporterName: profiles.name,
+    })
+    .from(reports)
+    .innerJoin(profiles, eq(profiles.id, reports.reporterId))
+    .where(inArray(reports.groupId, groupIds))
+    .orderBy(asc(reports.createdAt));
+}
+
 // Pour le fil d'actualité : les signalements de chaque publication (badge « signalé »).
 export async function getReportStatsByFeedPost(feedPostIds: string[]) {
   if (feedPostIds.length === 0) return [];
@@ -289,3 +330,4 @@ export async function getReportStatsByFeedPost(feedPostIds: string[]) {
 
 export type ReportListItem = Awaited<ReturnType<typeof listReportsByReporter>>[number];
 export type ReportGroupListItem = Awaited<ReturnType<typeof listGroupsByReporterCount>>[number];
+export type GroupReportItem = Awaited<ReturnType<typeof listReportsOfGroups>>[number];
