@@ -60,7 +60,7 @@ le nuancier `--red-*`.
 4. Mettre la logique dans `web/src/features/<nom>/`, comme l'exemple `notes`.
 
 Les pages des modules existent déjà, vides : `/cases`, `/scan`, `/court`, `/reports`,
-`/detective`, `/phone`. Chacune affiche ce qu'il reste à construire ; on retire ce bloc quand le
+`/game`, `/phone`. Chacune affiche ce qu'il reste à construire ; on retire ce bloc quand le
 module a son contenu.
 
 ## Le dossier commun : l'affaire
