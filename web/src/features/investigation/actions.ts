@@ -26,11 +26,13 @@ export async function openCase(
 
   const outcome = await openCaseFromClaim(parsed.data);
   revalidatePath('/cases');
-  redirect(
+  // Le bandeau de la page dit comment l'affaire a été retrouvée, et pourquoi selon l'IA.
+  const query = new URLSearchParams(
     outcome.matchedBy
-      ? `/cases/${outcome.caseId}?retrouvee=1`
-      : `/cases/${outcome.caseId}?nouvelle=1`,
+      ? { retrouvee: outcome.matchedBy, ...(outcome.reason ? { pourquoi: outcome.reason } : {}) }
+      : { nouvelle: '1' },
   );
+  redirect(`/cases/${outcome.caseId}?${query.toString()}`);
 }
 
 // Recherche web d'une affaire, lancée toute seule par sa page : les articles de presse qui

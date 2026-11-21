@@ -1,4 +1,5 @@
 import 'server-only';
+import type { MatchKind } from '@/lib/domain';
 import {
   createCaseWithFirstVersion,
   findClosestCasesByMeaning,
@@ -25,8 +26,12 @@ const TITLE_MAX_LENGTH = 70;
 
 export type OpenCaseOutcome = {
   caseId: string;
-  // `null` : aucune affaire proche, une nouvelle a été créée.
-  matchedBy: 'meaning' | 'words' | null;
+  // Comment l'affaire a été retrouvée : confirmée par l'IA, proche par le sens seulement (IA sans
+  // réponse), ou par les mots (sans vecteurs). `null` : aucune affaire proche, une nouvelle a été
+  // créée.
+  matchedBy: MatchKind | null;
+  // La justification de l'IA en une phrase, quand elle a confirmé.
+  reason: string | null;
 };
 
 export async function openCaseFromClaim(input: {
@@ -58,11 +63,18 @@ export async function openCaseFromClaim(input: {
       input.claim,
       close.map((item) => item.claim),
     );
-    const match = relations ? close.find((_, index) => relations[index] === 'same') : close[0];
-    if (match) return { caseId: match.id, matchedBy: 'meaning' };
+    if (relations) {
+      const index = relations.findIndex((item) => item.relation === 'same');
+      const match = close[index];
+      if (match) {
+        return { caseId: match.id, matchedBy: 'ai', reason: relations[index]?.reason ?? null };
+      }
+    } else if (close[0]) {
+      return { caseId: close[0].id, matchedBy: 'meaning', reason: null };
+    }
   } else {
     const byWords = await findClosestCaseByWords(input.claim);
-    if (byWords) return { caseId: byWords, matchedBy: 'words' };
+    if (byWords) return { caseId: byWords, matchedBy: 'words', reason: null };
   }
 
   const created = await createCaseWithFirstVersion({
@@ -72,7 +84,7 @@ export async function openCaseFromClaim(input: {
     sourceName: input.sourceName ?? sourceNameFrom(input.sourceUrl),
     sourceUrl: input.sourceUrl,
   });
-  return { caseId: created.id, matchedBy: null };
+  return { caseId: created.id, matchedBy: null, reason: null };
 }
 
 async function findClosestCaseByWords(claim: string) {
