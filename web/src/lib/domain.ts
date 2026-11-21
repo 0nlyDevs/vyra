@@ -373,3 +373,33 @@ export function gameGradeOf(score: number, total: number): GameGrade {
   if (total > 0 && score >= total) return 'expert';
   return total > 0 && score / total >= 0.6 ? 'vigilant' : 'beginner';
 }
+
+// ─── Fil d'actualité ────────────────────────────────────────────────────────────────────────
+
+// État d'une publication du fil, calculé depuis son affaire et ses signalements.
+export const FEED_STATUSES = ['unverified', 'reported', 'verifying', 'concluded'] as const;
+export type FeedStatus = (typeof FEED_STATUSES)[number];
+
+export const FEED_STATUS_LABELS = {
+  unverified: 'Non vérifié',
+  reported: 'Signalé',
+  verifying: 'En vérification',
+  concluded: 'Conclu',
+} satisfies Record<FeedStatus, string>;
+
+export const FEED_STATUS_TONES = {
+  unverified: 'neutral',
+  reported: 'warning',
+  verifying: 'info',
+  concluded: 'success',
+} satisfies Record<FeedStatus, Tone>;
+
+// Les vues du fil (paramètre `vue` de l'adresse).
+export const FEED_VIEWS = ['all', 'verifying', 'concluded'] as const;
+export type FeedView = (typeof FEED_VIEWS)[number];
+
+export const FEED_VIEW_LABELS = {
+  all: 'Toutes',
+  verifying: 'En vérification',
+  concluded: 'Conclues',
+} satisfies Record<FeedView, string>;
