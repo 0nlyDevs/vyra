@@ -426,9 +426,18 @@ const DEMO_REPORTS: (typeof reports.$inferInsert)[] = [
 // Une série de cinq informations inventées. Les trois premières sont jouées avec la salle :
 // une fausse, une vraie, une impossible à trancher.
 
+// Identifiants fixes : chaque information a sa réponse de secours (`game-debrief--<nom>.json`).
+export const DEMO_SCENARIO_IDS = {
+  hiring: id(1001),
+  bridge: id(1002),
+  figure: id(1003),
+  photo: id(1004),
+  panic: id(1005),
+} as const;
+
 const DEMO_SCENARIOS: (typeof scenarios.$inferInsert)[] = [
   {
-    id: id(1001),
+    id: DEMO_SCENARIO_IDS.hiring,
     position: 1,
     title: 'Le recrutement à 500 postes',
     content:
@@ -464,7 +473,7 @@ const DEMO_SCENARIOS: (typeof scenarios.$inferInsert)[] = [
     reflex: 'Chercher la source avant de croire.',
   },
   {
-    id: id(1002),
+    id: DEMO_SCENARIO_IDS.bridge,
     position: 2,
     title: 'Le pont du Vieux-Port fermé samedi',
     content:
@@ -498,7 +507,7 @@ const DEMO_SCENARIOS: (typeof scenarios.$inferInsert)[] = [
     reflex: 'Reconnaître une information qui tient.',
   },
   {
-    id: id(1003),
+    id: DEMO_SCENARIO_IDS.figure,
     position: 3,
     title: 'Un jeune sur deux sans emploi',
     content:
@@ -533,7 +542,7 @@ const DEMO_SCENARIOS: (typeof scenarios.$inferInsert)[] = [
     reflex: 'Savoir suspendre son jugement.',
   },
   {
-    id: id(1004),
+    id: DEMO_SCENARIO_IDS.photo,
     position: 4,
     title: 'La photo qui revient',
     content:
@@ -570,7 +579,7 @@ const DEMO_SCENARIOS: (typeof scenarios.$inferInsert)[] = [
     reflex: 'Vérifier la date et le lieu d’une image.',
   },
   {
-    id: id(1005),
+    id: DEMO_SCENARIO_IDS.panic,
     position: 5,
     title: 'Le message qui fait peur',
     content:

@@ -1,0 +1,91 @@
+'use server';
+
+import { revalidatePath } from 'next/cache';
+import { type ActionResult, fail, ok } from '@/lib/action-result';
+import {
+  CLUE_KIND_LABELS,
+  CLUE_RATING_LABELS,
+  GAME_ANSWER_LABELS,
+  type GameGrade,
+  gameGradeOf,
+} from '@/lib/domain';
+import { ERRORS } from '@/lib/errors';
+import { getScenario, listScenarios, saveRun } from '@/server/dal/game';
+import type { RunAnswer } from '@/server/db/schema';
+import { demoVariantForScenario } from '@/server/demo/game-variants';
+import { type AiSource, runPrompt } from '@/server/processing';
+import { getCurrentProfile } from '@/server/session';
+import {
+  type DebriefInput,
+  debriefResultSchema,
+  debriefSchema,
+  type RunInput,
+  runSchema,
+} from './schema';
+
+export type RunResult = { score: number; total: number; grade: GameGrade };
+
+// Enregistre une série terminée. Toujours dans cet ordre : connexion → validation Zod → droits →
+// DAL. Tout profil peut jouer ; la justesse de chaque réponse vient de la base, pas du navigateur.
+export async function finishRun(input: RunInput): Promise<ActionResult<RunResult>> {
+  const profile = await getCurrentProfile();
+  if (!profile) return fail(ERRORS.UNAUTHORIZED);
+  const parsed = runSchema.safeParse(input);
+  if (!parsed.success) return fail(ERRORS.VALIDATION_FAILED, parsed.error);
+
+  const scenarios = new Map((await listScenarios()).map((scenario) => [scenario.id, scenario]));
+  const answers: RunAnswer[] = [];
+  for (const given of parsed.data.answers) {
+    const scenario = scenarios.get(given.scenarioId);
+    if (!scenario) return fail(ERRORS.NOT_FOUND);
+    answers.push({ ...given, correct: given.answer === scenario.answer });
+  }
+
+  const score = answers.filter((answer) => answer.correct).length;
+  const total = answers.length;
+  await saveRun({ profileId: profile.id, answers, score, total });
+
+  revalidatePath('/game');
+  return ok({ score, total, grade: gameGradeOf(score, total) });
+}
+
+export type Debrief = { advice: string; source: AiSource };
+
+// Un conseil personnalisé après une réponse : l'IA s'appuie sur les indices mal notés. Sans IA,
+// la réponse de secours propre à l'information s'affiche (le jeu continue de toute façon).
+export async function getDebrief(input: DebriefInput): Promise<ActionResult<Debrief>> {
+  const profile = await getCurrentProfile();
+  if (!profile) return fail(ERRORS.UNAUTHORIZED);
+  const parsed = debriefSchema.safeParse(input);
+  if (!parsed.success) return fail(ERRORS.VALIDATION_FAILED, parsed.error);
+
+  const scenario = await getScenario(parsed.data.scenarioId);
+  if (!scenario) return fail(ERRORS.NOT_FOUND);
+  const { answer, ratings } = parsed.data;
+
+  const result = await runPrompt(
+    'game-debrief',
+    {
+      information: scenario.content,
+      source: scenario.sourceName,
+      correctAnswer: GAME_ANSWER_LABELS[scenario.answer],
+      playerAnswer: GAME_ANSWER_LABELS[answer],
+      playerWasRight: answer === scenario.answer,
+      explanation: scenario.explanation,
+      reflex: scenario.reflex,
+      clues: scenario.clues.map((clue) => {
+        const rating = ratings[clue.kind];
+        return {
+          clue: CLUE_KIND_LABELS[clue.kind],
+          content: clue.content,
+          expected: CLUE_RATING_LABELS[clue.reliable ? 'reliable' : 'suspicious'].toLowerCase(),
+          playerRating: rating ? CLUE_RATING_LABELS[rating].toLowerCase() : 'non noté',
+        };
+      }),
+    },
+    debriefResultSchema,
+    { fallbackVariant: demoVariantForScenario(scenario.id) },
+  );
+  if (!result.ok) return result;
+  return ok({ advice: result.data.result.advice, source: result.data.source });
+}

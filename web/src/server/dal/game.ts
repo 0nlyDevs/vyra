@@ -10,6 +10,11 @@ export function listScenarios() {
   return db.select().from(scenarios).orderBy(asc(scenarios.position));
 }
 
+export async function getScenario(id: string) {
+  const [scenario] = await db.select().from(scenarios).where(eq(scenarios.id, id)).limit(1);
+  return scenario ?? null;
+}
+
 export function countScenarios() {
   return db
     .select({ total: count() })
