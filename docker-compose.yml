@@ -34,6 +34,10 @@ services:
       - ./processing:/app
     ports:
       - "127.0.0.1:8000:8000"
+    # IA locale (AI_PROVIDER=local) : Ollama tourne sur le PC, hors Docker. Cette ligne donne le
+    # nom host.docker.internal aussi sous Linux (il existe déjà sur Mac et Windows).
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
   web:
     build: ./web

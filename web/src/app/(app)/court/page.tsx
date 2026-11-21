@@ -1,8 +1,13 @@
-import { Gavel } from 'lucide-react';
-import { ModulePlaceholder } from '@/components/common/ModulePlaceholder';
+import { CaseCard } from '@/components/common/CaseCard';
 import { PageHeader } from '@/components/common/PageHeader';
+import { EmptyState } from '@/components/states/States';
+import { Card, CardContent } from '@/components/ui/card';
+import { AlreadyJudgedForm } from '@/features/court/AlreadyJudgedForm';
+import { listCases } from '@/server/dal/cases';
 
-export default function CourtPage() {
+export default async function CourtPage() {
+  const caseList = await listCases();
+
   return (
     <div className="grid gap-8">
       <PageHeader
@@ -10,18 +15,27 @@ export default function CourtPage() {
         title="Tribunal"
         description="Deux IA plaident, les pièces témoignent, vous votez, puis le juge conclut avec un niveau de certitude."
       />
-      <ModulePlaceholder
-        icon={Gavel}
-        todo={[
-          'Choisir une affaire et ouvrir l’audience.',
-          'Plaidoirie de l’accusation, puis de la défense : chacune cite ses pièces par leur numéro.',
-          'Les pièces passent à la barre, avec leur source et leur date.',
-          'Vote de la personne avant la conclusion : exacte, trompeuse, ou « je ne sais pas ».',
-          'Conclusion du juge : niveau de certitude, éléments confirmés, contestés, manquants.',
-          '« Déjà jugé » : une information proche d’une affaire conclue affiche sa conclusion.',
-        ]}
-        doneWhen="une audience se joue de bout en bout, avec sa réponse de secours sans wifi."
-      />
+
+      <Card>
+        <CardContent>
+          <AlreadyJudgedForm />
+        </CardContent>
+      </Card>
+
+      <section aria-labelledby="court-cases" className="grid gap-4">
+        <h2 id="court-cases" className="font-semibold text-xl">
+          Affaires à juger
+        </h2>
+        {caseList.length === 0 ? (
+          <EmptyState title="Aucune affaire pour l’instant." />
+        ) : (
+          <div className="grid gap-3 lg:grid-cols-2">
+            {caseList.map((item) => (
+              <CaseCard key={item.id} item={item} href={`/court/${item.id}`} />
+            ))}
+          </div>
+        )}
+      </section>
     </div>
   );
 }

@@ -181,3 +181,55 @@ export const REPORT_STATE_TONES = {
 export const REPORT_CASE_THRESHOLD = 5;
 // Signalements permis par personne sur 24 heures.
 export const REPORT_DAILY_LIMIT = 10;
+
+// ─── Tribunal ───────────────────────────────────────────────────────────────────────────────
+
+// Le vote du juré, enregistré avant la conclusion du juge.
+export const VOTES = ['accurate', 'misleading', 'unsure'] as const;
+export type Vote = (typeof VOTES)[number];
+
+export const VOTE_LABELS = {
+  accurate: 'Exacte',
+  misleading: 'Trompeuse',
+  unsure: 'Je ne sais pas',
+} satisfies Record<Vote, string>;
+
+// Le vote qui rejoint chaque niveau de certitude : sert à comparer le vote et la conclusion.
+export const VOTE_MATCHING_CERTAINTY = {
+  established: 'accurate',
+  probable: 'accurate',
+  uncertain: 'unsure',
+  contradicted: 'misleading',
+  insufficient: 'unsure',
+} satisfies Record<CertaintyLevel, Vote>;
+
+export const HEARING_STATUSES = ['pleaded', 'concluded'] as const;
+export type HearingStatus = (typeof HEARING_STATUSES)[number];
+
+// ─── Scan d'image et de vocal ───────────────────────────────────────────────────────────────
+
+export const MEDIA_KINDS = ['image', 'audio'] as const;
+export type MediaKind = (typeof MEDIA_KINDS)[number];
+
+// Résultat global d'un scan d'image : jamais « c'est une IA », seulement ce qu'on a relevé.
+export const SCAN_OUTCOMES = ['ai_signature', 'clues', 'no_clue'] as const;
+export type ScanOutcome = (typeof SCAN_OUTCOMES)[number];
+
+export const SCAN_OUTCOME_LABELS = {
+  ai_signature: 'Signature IA trouvée',
+  clues: 'Des indices, sans certitude',
+  no_clue: 'Aucun indice, ce qui ne prouve rien',
+} satisfies Record<ScanOutcome, string>;
+
+export const SCAN_OUTCOME_DESCRIPTIONS = {
+  ai_signature: 'Le fichier déclare lui-même avoir été produit par un outil d’IA.',
+  clues: 'Des éléments méritent une vérification. Aucun ne suffit à conclure seul.',
+  no_clue:
+    'Rien de suspect n’a été relevé. Une image peut pourtant être authentique et sortie de son contexte.',
+} satisfies Record<ScanOutcome, string>;
+
+export const SCAN_OUTCOME_TONES = {
+  ai_signature: 'danger',
+  clues: 'warning',
+  no_clue: 'neutral',
+} satisfies Record<ScanOutcome, Tone>;
