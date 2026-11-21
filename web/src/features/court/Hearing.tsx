@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/accordion';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { WarningSigns } from '@/features/signals/WarningSigns';
 import { VOTE_LABELS, type Vote } from '@/lib/domain';
 import { cn } from '@/lib/utils';
 import { type HearingView, openHearing, voteAndJudge } from './actions';
@@ -88,6 +89,7 @@ export function Hearing({
             <blockquote className="border-primary border-l-4 pl-4 text-2xl text-pretty leading-snug">
               « {claim} »
             </blockquote>
+            <WarningSigns text={claim} />
             <div className="grid gap-2">
               <p className="text-muted-foreground">
                 Le dossier contient {pieces.length} pièce{pieces.length > 1 ? 's' : ''} :
