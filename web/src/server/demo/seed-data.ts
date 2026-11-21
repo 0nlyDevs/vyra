@@ -167,29 +167,31 @@ const DEMO_VERSIONS: (typeof caseVersions.$inferInsert)[] = [
   },
 ];
 
+// La toile du module Enquête : chaque source est reliée à l'information analysée (la dernière
+// version de chaque affaire), avec ce qui change par rapport à elle.
 const DEMO_LINKS: (typeof versionLinks.$inferInsert)[] = [
   {
     caseId: DEMO_CASE_IDS.flood,
     fromVersionId: id(101),
-    toVersionId: id(102),
-    changeType: 'shared_unchanged',
-    note: 'La photo est reprise avec sa date d’origine.',
+    toVersionId: id(105),
+    changeType: 'figure_changed',
+    note: 'La photo du 12 mars 2019 devient celle de « ce matin » ; « 3 morts » et l’école fermée apparaissent.',
     confidence: 'high',
   },
   {
     caseId: DEMO_CASE_IDS.flood,
     fromVersionId: id(102),
-    toVersionId: id(103),
+    toVersionId: id(105),
     changeType: 'passage_cut',
-    note: 'La date de 2019 disparaît, « ce matin » apparaît.',
+    note: '« Souvenir : l’inondation de mars 2019 » disparaît : le souvenir devient une alerte.',
     confidence: 'medium',
   },
   {
     caseId: DEMO_CASE_IDS.flood,
     fromVersionId: id(103),
-    toVersionId: id(104),
+    toVersionId: id(105),
     changeType: 'figure_changed',
-    note: 'Ajout de « 3 morts » et de la fermeture de l’école, sans source.',
+    note: 'Ajout de « 3 morts », de la fermeture de l’école et de « la mairie cache la vérité », sans source.',
     confidence: 'medium',
   },
   {
@@ -203,17 +205,17 @@ const DEMO_LINKS: (typeof versionLinks.$inferInsert)[] = [
   {
     caseId: DEMO_CASE_IDS.water,
     fromVersionId: id(201),
-    toVersionId: id(202),
-    changeType: 'passage_cut',
-    note: 'Les horaires et les deux quartiers concernés disparaissent.',
-    confidence: 'high',
+    toVersionId: id(203),
+    changeType: 'figure_changed',
+    note: '« Lundi de 10 h à 14 h » devient « 10 jours », deux quartiers deviennent « toute la ville ».',
+    confidence: 'medium',
   },
   {
     caseId: DEMO_CASE_IDS.water,
     fromVersionId: id(202),
     toVersionId: id(203),
     changeType: 'figure_changed',
-    note: '« De 10 h à 14 h » devient « 10 jours », « deux quartiers » devient « toute la ville ».',
+    note: '« Lundi » devient « 10 jours à partir de lundi », « plusieurs quartiers » devient « toute la ville ».',
     confidence: 'medium',
   },
   {

@@ -103,12 +103,12 @@ export default async function CaseFilePage({
       <Card>
         <CardHeader>
           <CardTitle className="text-xl">
-            Propagation : {file.versions.length}{' '}
-            {file.versions.length > 1 ? 'versions retrouvées' : 'version retrouvée'}
+            Toile des sources : {file.versions.length - 1}{' '}
+            {file.versions.length - 1 > 1 ? 'sources retrouvées' : 'source retrouvée'}
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <PropagationGraph versions={file.versions} links={file.links} />
+          <PropagationGraph versions={file.versions} links={file.links} claim={file.claim} />
         </CardContent>
       </Card>
 

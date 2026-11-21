@@ -1,95 +1,90 @@
-// Disposition du graphe de propagation : une colonne par version (la plus ancienne retrouvée à
-// gauche), une ligne par branche. Une version qui reprend la précédente reste sur sa ligne ; une
-// deuxième reprise de la même version part sur une nouvelle ligne.
+// Disposition de la toile : l'information analysée au centre, chaque source autour, sur une
+// ellipse, dans l'ordre des dates (la plus ancienne en haut à droite, puis dans le sens des
+// aiguilles d'une montre). Chaque source est reliée au centre.
 
-type VersionRef = { id: string; position: number };
-type LinkRef = { id: string; fromVersionId: string; toVersionId: string };
+type VersionRef = { id: string; publishedAt: Date | null };
 
-export const GRAPH = {
-  // Largeur d'une colonne : laisse entre deux points la place de l'étiquette du lien. Elle se
-  // resserre jusqu'au minimum pour que tout le graphe tienne dans l'écran, sans défilement.
-  columnWidth: 240,
-  minColumnWidth: 168,
-  laneHeight: 184,
-  radius: 28,
-  // Largeur du texte sous chaque point (date, source).
-  labelWidth: 156,
-  // Hauteur réservée au texte sous le point le plus bas.
-  labelHeight: 150,
+export const WEB = {
+  centerRadius: 46,
+  nodeRadius: 26,
+  // Texte sous (ou au-dessus de) chaque source : date, nom, type.
+  labelWidth: 150,
+  labelHeight: 104,
+  // Demi-axes de l'ellipse : larges sur un écran large, jamais trop serrés.
+  maxRadiusX: 340,
+  minRadiusX: 170,
+  radiusY: 175,
+  // Place de l'étiquette d'un lien, entre le centre et la source (0 = centre, 1 = source).
+  chipAt: 0.56,
+  defaultWidth: 900,
 } as const;
 
-const MARGIN_X = GRAPH.labelWidth / 2;
-const MARGIN_Y = GRAPH.radius + 4;
+export type WebNode = {
+  id: string;
+  cx: number;
+  cy: number;
+  // L'étiquette va vers l'extérieur : au-dessus pour les sources du haut, dessous sinon.
+  labelAbove: boolean;
+  // Rang dans l'ordre des dates, pour l'apparition progressive.
+  order: number;
+};
 
-export type NodePlacement = { id: string; column: number; lane: number; cx: number; cy: number };
+export type WebEdge = {
+  nodeId: string;
+  x1: number;
+  y1: number;
+  x2: number;
+  y2: number;
+  chip: { x: number; y: number };
+};
 
-// La plus grande largeur de colonne qui fait tenir `count` versions dans `available` pixels.
-export function fitColumnWidth(count: number, available: number | null) {
-  if (!available || count < 2) return GRAPH.columnWidth;
-  const fitted = Math.floor((available - MARGIN_X * 2) / (count - 1));
-  return Math.max(GRAPH.minColumnWidth, Math.min(GRAPH.columnWidth, fitted));
+function time(date: Date | null) {
+  return date ? date.getTime() : Number.MAX_SAFE_INTEGER;
 }
 
-export function layoutGraph(
-  versions: VersionRef[],
-  links: LinkRef[],
-  columnWidth: number = GRAPH.columnWidth,
-) {
-  const ordered = [...versions].sort((a, b) => a.position - b.position);
-  const parentOf = new Map(links.map((link) => [link.toVersionId, link.fromVersionId]));
-  const laneOf = new Map<string, number>();
-  const parentLaneTaken = new Set<string>();
-  let nextLane = 0;
+export function layoutWeb(versions: VersionRef[], centerId: string, available: number | null) {
+  const width = Math.max(available ?? WEB.defaultWidth, WEB.minRadiusX * 2 + WEB.labelWidth);
+  const radiusX = Math.max(
+    WEB.minRadiusX,
+    Math.min(WEB.maxRadiusX, (width - WEB.labelWidth) / 2 - 8),
+  );
+  const top = WEB.labelHeight + WEB.nodeRadius + 8;
+  const center = { x: width / 2, y: top + WEB.radiusY };
+  const height = center.y + WEB.radiusY + WEB.nodeRadius + WEB.labelHeight + 8;
 
-  for (const version of ordered) {
-    const parent = parentOf.get(version.id);
-    const parentLane = parent === undefined ? undefined : laneOf.get(parent);
-    if (parent !== undefined && parentLane !== undefined && !parentLaneTaken.has(parent)) {
-      laneOf.set(version.id, parentLane);
-      parentLaneTaken.add(parent);
-    } else {
-      laneOf.set(version.id, nextLane);
-      nextLane += 1;
-    }
-  }
+  const around = versions
+    .filter((version) => version.id !== centerId)
+    .sort((a, b) => time(a.publishedAt) - time(b.publishedAt));
+  // Décalage d'un demi-pas : on évite de poser une source pile au-dessus ou au-dessous du centre.
+  const step = (2 * Math.PI) / Math.max(1, around.length);
+  const start = -Math.PI / 2 + step / 2;
 
-  const nodes: NodePlacement[] = ordered.map((version, column) => {
-    const lane = laneOf.get(version.id) ?? 0;
+  const nodes: WebNode[] = around.map((version, order) => {
+    const angle = start + order * step;
+    const cx = center.x + radiusX * Math.cos(angle);
+    const cy = center.y + WEB.radiusY * Math.sin(angle);
+    return { id: version.id, cx, cy, labelAbove: Math.sin(angle) < -0.2, order };
+  });
+
+  const edges: WebEdge[] = nodes.map((node) => {
+    const dx = node.cx - center.x;
+    const dy = node.cy - center.y;
+    const length = Math.hypot(dx, dy) || 1;
+    const ux = dx / length;
+    const uy = dy / length;
+    const x1 = center.x + ux * (WEB.centerRadius + 4);
+    const y1 = center.y + uy * (WEB.centerRadius + 4);
+    const x2 = node.cx - ux * (WEB.nodeRadius + 4);
+    const y2 = node.cy - uy * (WEB.nodeRadius + 4);
     return {
-      id: version.id,
-      column,
-      lane,
-      cx: MARGIN_X + column * columnWidth,
-      cy: MARGIN_Y + lane * GRAPH.laneHeight,
+      nodeId: node.id,
+      x1,
+      y1,
+      x2,
+      y2,
+      chip: { x: x1 + (x2 - x1) * WEB.chipAt, y: y1 + (y2 - y1) * WEB.chipAt },
     };
   });
-  const byId = new Map(nodes.map((node) => [node.id, node]));
 
-  const edges = links.flatMap((link) => {
-    const from = byId.get(link.fromVersionId);
-    const to = byId.get(link.toVersionId);
-    if (!from || !to) return [];
-    const start = { x: from.cx + GRAPH.radius + 4, y: from.cy };
-    const end = { x: to.cx - GRAPH.radius - 6, y: to.cy };
-    const bend = Math.max(24, (end.x - start.x) / 2);
-    return [
-      {
-        id: link.id,
-        column: to.column,
-        path: `M ${start.x} ${start.y} C ${start.x + bend} ${start.y}, ${end.x - bend} ${end.y}, ${end.x} ${end.y}`,
-        // Pointe de flèche : la courbe arrive toujours à l'horizontale.
-        arrow: `${end.x - 9},${end.y - 5} ${end.x},${end.y} ${end.x - 9},${end.y + 5}`,
-        middle: { x: (start.x + end.x) / 2, y: (start.y + end.y) / 2 },
-      },
-    ];
-  });
-
-  const lanes = Math.max(1, nextLane);
-  return {
-    nodes,
-    edges,
-    columnWidth,
-    width: MARGIN_X * 2 + Math.max(0, ordered.length - 1) * columnWidth,
-    height: MARGIN_Y + (lanes - 1) * GRAPH.laneHeight + GRAPH.radius + GRAPH.labelHeight,
-  };
+  return { width, height, center, nodes, edges };
 }
