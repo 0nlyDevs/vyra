@@ -1,0 +1,353 @@
+/* Préchargeur d'ouverture et règle de navigation de droite (graduée, avec le nom du hero qui s'y envole). */
+
+.landing .pre {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  background: var(--background);
+  color: var(--foreground);
+  display: grid;
+  grid-template-rows: 1fr auto;
+  padding: clamp(20px, 4vw, 48px);
+}
+
+.landing .pre-word {
+  align-self: end;
+  font-size: clamp(2.4rem, 8vw, 8rem);
+}
+
+.landing .pre-foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: end;
+  padding-top: 24px;
+}
+
+.landing .pre-num {
+  font-family: var(--font-mono);
+  font-size: clamp(2rem, 6vw, 5rem);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.04em;
+}
+
+/* ---------- Ruler (right rail) ---------- */
+
+.landing {
+  --ruler-ink: #ffffff;
+  --ruler-bg: var(--background);
+  /* ink and paper only: the needle is paper, brighter than the ticks */
+  --ruler-accent: #ffffff;
+  --ruler-accent-ink: #ffffff;
+}
+
+html[data-ruler="on"] {
+  scrollbar-width: none;
+}
+
+html[data-ruler="on"]::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none;
+}
+
+.landing .ruler {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  z-index: 40;
+  overflow: hidden;
+  cursor: crosshair;
+  font-family: var(--font-mono);
+}
+
+.landing .ruler-frost {
+  position: absolute;
+  inset: 0;
+  backdrop-filter: blur(9px);
+  -webkit-backdrop-filter: blur(9px);
+  background-color: color-mix(in srgb, var(--ruler-bg) 55%, transparent);
+}
+
+.landing .ruler-track {
+  position: absolute;
+  inset-inline: 0;
+  top: 0;
+  will-change: transform;
+}
+
+.landing .ruler-row {
+  position: absolute;
+  inset-inline: 0;
+  height: 0;
+}
+
+.landing .ruler-tick {
+  position: absolute;
+  right: 0;
+  top: 0;
+  display: block;
+  height: 1px;
+  background: var(--ruler-ink);
+  transform-origin: right center;
+}
+
+.landing .ruler-label {
+  position: absolute;
+  top: 0;
+  transform: translateY(-50%);
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  color: var(--ruler-ink);
+}
+
+.landing .ruler-bracket {
+  position: absolute;
+  inset-inline: 0;
+  top: 0;
+  height: 0;
+  opacity: 0;
+}
+
+.landing .ruler-bracket > div {
+  position: absolute;
+  inset: 0;
+  background: var(--ruler-ink);
+}
+
+.landing .ruler-bracket > span {
+  position: absolute;
+  inset-inline: 0;
+  display: block;
+  height: 1px;
+  background: var(--ruler-ink);
+  opacity: 0.5;
+}
+
+.landing .ruler-bracket > span:first-of-type {
+  top: 0;
+}
+
+.landing .ruler-bracket > span:last-of-type {
+  bottom: 0;
+}
+
+.landing .ruler-needle {
+  position: absolute;
+  inset-inline: 0;
+  top: 0;
+  height: 0;
+  will-change: transform;
+}
+
+.landing .ruler-needle-line {
+  position: absolute;
+  inset-inline: 0;
+  top: 0;
+  display: block;
+  height: 1px;
+  background: var(--ruler-accent);
+  box-shadow: 0 0 6px var(--ruler-accent);
+}
+
+.landing .ruler-readout {
+  position: absolute;
+  right: 2px;
+  top: 4px;
+  white-space: nowrap;
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  color: var(--ruler-accent-ink);
+}
+
+.landing .ruler-digits {
+  display: inline-flex;
+  height: 1em;
+  line-height: 1;
+  overflow: hidden;
+}
+
+.landing .ruler-digit-col {
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.28s cubic-bezier(0.2, 0.9, 0.2, 1);
+}
+
+.landing .ruler-digit-col > span {
+  display: block;
+  height: 1em;
+}
+
+.landing .ruler-ghost {
+  pointer-events: none;
+  position: fixed;
+  top: 0;
+  right: 0;
+  z-index: 40;
+  height: 0;
+  opacity: 0;
+}
+
+.landing .ruler-ghost > div {
+  position: absolute;
+  right: 0;
+  display: block;
+  background: var(--ruler-ink);
+}
+
+.landing .ruler-pools {
+  pointer-events: none;
+  position: fixed;
+  inset: 0;
+  z-index: 39;
+}
+
+.landing .ruler-pool {
+  position: absolute;
+  right: 0;
+  opacity: 0;
+  backdrop-filter: blur(9px);
+  -webkit-backdrop-filter: blur(9px);
+  background-color: color-mix(in srgb, var(--ruler-bg) 80%, transparent);
+}
+
+.landing .ruler-heads {
+  pointer-events: none;
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+}
+
+.landing .ruler-hit {
+  position: absolute;
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+.landing .ruler-letter {
+  position: absolute;
+  top: 0;
+  left: 0;
+  white-space: pre;
+  line-height: 1;
+  opacity: 0;
+  color: var(--ruler-ink);
+  font-family: var(--font-sans);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  /* Measured at 100px, drawn at 16-34px: a fixed optical size keeps the advances true at every size. */
+  font-optical-sizing: none;
+  will-change: transform, opacity;
+  text-shadow:
+    0 0 4px var(--ruler-bg),
+    0 0 10px var(--ruler-bg);
+}
+
+.landing .ruler-letter.is-hero {
+  letter-spacing: -0.04em;
+}
+
+.landing .ruler-static {
+  position: fixed;
+  z-index: 40;
+  text-align: right;
+}
+
+.landing .ruler-static-pool {
+  position: absolute;
+  inset: -40px -64px;
+  backdrop-filter: blur(9px);
+  -webkit-backdrop-filter: blur(9px);
+  background-color: color-mix(in srgb, var(--ruler-bg) 82%, transparent);
+  mask-image: radial-gradient(closest-side, black 55%, transparent 100%);
+  -webkit-mask-image: radial-gradient(closest-side, black 55%, transparent 100%);
+}
+
+.landing .ruler-static ul {
+  position: relative;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.landing .ruler-static a {
+  font-family: var(--font-sans);
+  font-weight: 800;
+  color: rgb(255 255 255 / 0.7);
+}
+
+.landing .ruler-static a:hover {
+  color: #fff;
+}
+
+.landing .rail-mobile {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 40;
+  pointer-events: none;
+  padding: 0 16px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+
+.landing .rail-mobile::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2px;
+  background: rgb(243 242 238 / 0.12);
+}
+
+.landing .rail-mobile i {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  height: 2px;
+  width: 100%;
+  background: var(--foreground);
+  transform-origin: left;
+  transform: scaleX(0);
+}
+
+@media (min-width: 1024px) {
+  .landing .rail-mobile {
+    display: none;
+  }
+}
+
+/* ---------- Rumeur (horizontal) ---------- */
+
+/* ---------- Le mot fixe, en haut à gauche ---------- */
+
+.landing .wordmark {
+  position: fixed;
+  top: 22px;
+  left: clamp(18px, 2.4vw, 36px);
+  z-index: 40;
+  font-family: var(--font-sans);
+  font-weight: 800;
+  letter-spacing: -0.05em;
+  font-size: 1.15rem;
+  line-height: 1;
+  opacity: 0;
+  transform: translateY(-8px);
+  pointer-events: none;
+}
+
+.landing .wordmark.is-on {
+  pointer-events: auto;
+}

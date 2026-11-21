@@ -48,6 +48,9 @@ export function Fin({ signedIn }: { signedIn: boolean }) {
               <li>
                 <a href="#difference">La différence</a>
               </li>
+              <li>
+                <Link href="/verifier">Déjà vérifié ?</Link>
+              </li>
             </ul>
           </nav>
           <nav aria-label="Compte">
