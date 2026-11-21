@@ -24,7 +24,10 @@ async function post<T>(
   try {
     const response = await fetch(`${env.PROCESSING_URL}${path}`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        ...(env.PROCESSING_TOKEN ? { 'X-Processing-Token': env.PROCESSING_TOKEN } : {}),
+      },
       body: JSON.stringify(body),
       signal: AbortSignal.timeout(timeoutMs),
       cache: 'no-store',
