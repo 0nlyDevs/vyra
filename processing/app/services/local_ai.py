@@ -76,6 +76,9 @@ def generate_json(
         ],
         "temperature": 0.3,
         "response_format": {"type": "json_object"},
+        # Sans « réflexion » : mesuré sur un M1 Pro, 1 s au lieu de 10 s pour une réponse courte,
+        # pour une qualité équivalente sur nos consignes.
+        "reasoning_effort": "none",
         "stream": False,
     }
     started = time.monotonic()
