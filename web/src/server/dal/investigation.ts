@@ -57,18 +57,34 @@ export async function addExploredVersions(input: {
       .returning({ versionId: versionExplorations.versionId });
     if (!claimed) return false;
 
+    // Une page déjà dans l'arbre (trouvée par une autre exploration en même temps) n'est pas
+    // ajoutée deux fois : ses liens pointent vers la version existante.
+    const existing = await tx
+      .select({ id: caseVersions.id, sourceUrl: caseVersions.sourceUrl })
+      .from(caseVersions)
+      .where(eq(caseVersions.caseId, input.caseId));
+    const idByUrl = new Map(existing.map((row) => [row.sourceUrl, row.id]));
     const idOf = new Map<string, string>();
     for (const version of input.versions) {
       const { key, ...values } = version;
+      const known = idByUrl.get(values.sourceUrl);
+      if (known) {
+        idOf.set(key, known);
+        continue;
+      }
       const [inserted] = await tx
         .insert(caseVersions)
         .values({ caseId: input.caseId, position: 0, ...values })
         .returning({ id: caseVersions.id });
-      if (inserted) idOf.set(key, inserted.id);
+      if (inserted) {
+        idOf.set(key, inserted.id);
+        idByUrl.set(values.sourceUrl, inserted.id);
+      }
     }
     const links = input.links.flatMap((link) => {
       const fromVersionId = idOf.get(link.from) ?? link.from;
       const toVersionId = idOf.get(link.to) ?? link.to;
+      if (fromVersionId === toVersionId) return [];
       return [{ ...link, caseId: input.caseId, fromVersionId, toVersionId }];
     });
     if (links.length > 0) {

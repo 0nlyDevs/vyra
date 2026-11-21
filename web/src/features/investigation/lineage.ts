@@ -99,8 +99,9 @@ function order(a: LineageNode, b: LineageNode) {
   return (a.time ?? Number.MAX_SAFE_INTEGER) - (b.time ?? Number.MAX_SAFE_INTEGER);
 }
 
-// Un parent par source, sauf la plus ancienne (la racine).
-export function buildLineage(nodes: LineageNode[]): LineageEdge[] {
+// Un parent par source, sauf la plus ancienne (la racine). Sans indice, une source se rattache à
+// `anchor` quand il est plus ancien qu'elle (la source qu'on explore), sinon à la racine.
+export function buildLineage(nodes: LineageNode[], anchor?: string): LineageEdge[] {
   const sorted = [...nodes].sort(order);
   const prints = new Map(sorted.map((node) => [node.key, shingles(node.text)]));
   const root = sorted[0];
@@ -119,7 +120,9 @@ export function buildLineage(nodes: LineageNode[]): LineageEdge[] {
     });
     const best = candidates.reduce((top, item) => (item.rank >= top.rank ? item : top));
     if (best.edge.basis === 'guess') {
-      return { parent: root.key, child: child.key, basis: 'guess', score: best.edge.score };
+      const earlier = sorted.slice(0, index + 1).some((node) => node.key === anchor);
+      const parent = anchor && earlier ? anchor : root.key;
+      return { parent, child: child.key, basis: 'guess', score: best.edge.score };
     }
     return best.edge;
   });
