@@ -35,7 +35,7 @@ export function RegionChooser() {
               <input type="hidden" name="region" value={region} />
               <button
                 type="submit"
-                className="grid h-full w-full gap-3 rounded-2xl border bg-card p-5 text-left transition-[border-color,transform] duration-150 ease-out hover:border-primary active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-ring"
+                className="grid h-full w-full gap-3 surface p-5 text-left transition-[border-color,transform] duration-150 ease-out hover:border-primary active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-ring"
               >
                 <Icon aria-hidden className="size-6 text-primary" />
                 <span className="font-semibold text-lg">{FEED_REGION_LABELS[region]}</span>
@@ -52,7 +52,7 @@ export function RegionChooser() {
 // Le changement de région, en haut du fil.
 export function RegionSwitch({ current }: { current: FeedRegion }) {
   return (
-    <fieldset className="m-0 flex min-w-0 gap-1 rounded-xl border-0 bg-muted p-1">
+    <fieldset className="m-0 flex min-w-0 gap-1 rounded-full border-0 bg-foreground/[0.05] p-1 shadow-[inset_0_0_0_1px_color-mix(in_oklch,var(--foreground)_6%,transparent)]">
       <legend className="sr-only">Région du fil</legend>
       {FEED_REGIONS.map((region) => (
         <form key={region} action={chooseRegion}>
@@ -61,9 +61,9 @@ export function RegionSwitch({ current }: { current: FeedRegion }) {
             type="submit"
             aria-pressed={region === current}
             className={cn(
-              'whitespace-nowrap rounded-lg px-3 py-1.5 font-medium text-sm transition-colors',
+              'whitespace-nowrap rounded-full px-3.5 py-1.5 font-medium text-sm transition-colors',
               region === current
-                ? 'bg-card text-foreground shadow-xs'
+                ? 'bg-foreground/[0.1] text-foreground shadow-[inset_0_1px_0_var(--sheen)]'
                 : 'text-muted-foreground hover:text-foreground',
             )}
           >

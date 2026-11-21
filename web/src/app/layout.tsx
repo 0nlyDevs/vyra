@@ -24,6 +24,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <ThemeProvider>
           {children}
           <Toaster position="top-right" />
+          <div className="grain" aria-hidden />
         </ThemeProvider>
       </body>
     </html>

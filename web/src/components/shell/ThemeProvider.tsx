@@ -3,12 +3,12 @@
 import { ThemeProvider as NextThemesProvider } from 'next-themes';
 import type { ReactNode } from 'react';
 
-// Thème clair par défaut (plus lisible au projecteur) ; le bouton de l'en-tête passe en sombre.
+// Thème nuit par défaut (direction « Nuit rouge ») ; le bouton de l'en-tête passe en clair.
 export function ThemeProvider({ children }: { children: ReactNode }) {
   return (
     <NextThemesProvider
       attribute="class"
-      defaultTheme="light"
+      defaultTheme="dark"
       enableSystem={false}
       disableTransitionOnChange
     >
