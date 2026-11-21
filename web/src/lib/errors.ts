@@ -24,17 +24,13 @@ export const ERRORS = defineErrors({
     code: 'AI_UNAVAILABLE',
     message: "L'IA est momentanément indisponible. Réessayez dans un instant.",
   },
-  FILE_TOO_LARGE: {
-    code: 'FILE_TOO_LARGE',
-    message: 'Le fichier est trop lourd : 8 Mo au maximum.',
+  ALREADY_REPORTED: {
+    code: 'ALREADY_REPORTED',
+    message: 'Vous avez déjà signalé ce contenu. Merci : il est suivi dans « Mes signalements ».',
   },
-  FILE_NOT_SUPPORTED: {
-    code: 'FILE_NOT_SUPPORTED',
-    message: 'Ce type de fichier n’est pas pris en charge.',
-  },
-  NOTHING_TO_ADD: {
-    code: 'NOTHING_TO_ADD',
-    message: 'Ce scan n’a relevé aucun indice à verser au dossier.',
+  REPORT_LIMIT_REACHED: {
+    code: 'REPORT_LIMIT_REACHED',
+    message: 'Vous avez atteint la limite de signalements pour aujourd’hui. Réessayez demain.',
   },
   INTERNAL: {
     code: 'INTERNAL',

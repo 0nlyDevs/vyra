@@ -1,5 +1,16 @@
 import 'server-only';
-import { and, cosineDistance, count, desc, eq, gte, inArray, isNotNull, max } from 'drizzle-orm';
+import {
+  and,
+  cosineDistance,
+  count,
+  desc,
+  eq,
+  gte,
+  inArray,
+  isNotNull,
+  isNull,
+  max,
+} from 'drizzle-orm';
 import type { CaseStatus, ReportReason, ReportState } from '@/lib/domain';
 import { db } from '@/server/db';
 import { cases, reportGroups, reports } from '@/server/db/schema';
@@ -159,6 +170,15 @@ export async function addReport(input: {
 }) {
   const [report] = await db.insert(reports).values(input).returning({ id: reports.id });
   return report;
+}
+
+// Donne au groupe le vecteur d'un de ses signalements s'il n'en a pas encore (groupe créé sans IA,
+// ou données de démo) : les signalements suivants le trouveront aussi par le sens.
+export async function fillGroupEmbedding(groupId: string, embedding: number[]) {
+  await db
+    .update(reportGroups)
+    .set({ embedding })
+    .where(and(eq(reportGroups.id, groupId), isNull(reportGroups.embedding)));
 }
 
 // Ouvre l'affaire du groupe (titre et texte repris du groupe), une seule fois même si deux
