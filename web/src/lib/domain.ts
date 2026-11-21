@@ -314,6 +314,69 @@ export const SCAN_OUTCOME_TONES = {
   no_clue: 'neutral',
 } satisfies Record<ScanOutcome, Tone>;
 
+// ─── Signes d'alerte (comment un message est écrit, lu sans IA) ─────────────────────────────
+
+export const TONE_LEVELS = ['sensational', 'marked', 'neutral'] as const;
+export type ToneLevel = (typeof TONE_LEVELS)[number];
+
+export const TONE_LEVEL_LABELS = {
+  sensational: 'Ton sensationnel',
+  marked: 'Ton appuyé',
+  neutral: 'Ton neutre',
+} satisfies Record<ToneLevel, string>;
+
+export const TONE_LEVEL_TONES = {
+  sensational: 'danger',
+  marked: 'warning',
+  neutral: 'neutral',
+} satisfies Record<ToneLevel, Tone>;
+
+export const TONE_SIGN_KINDS = [
+  'urgency',
+  'share',
+  'emotive',
+  'hidden',
+  'caps',
+  'exclamations',
+  'emoji',
+] as const;
+export type ToneSignKind = (typeof TONE_SIGN_KINDS)[number];
+
+export const TONE_SIGN_LABELS = {
+  urgency: 'Urgence',
+  share: 'Appel à partager',
+  emotive: 'Mot chargé d’émotion',
+  hidden: '« On vous cache la vérité »',
+  caps: 'Écrit en capitales',
+  exclamations: 'Points d’exclamation empilés',
+  emoji: 'Émoji d’alarme',
+} satisfies Record<ToneSignKind, string>;
+
+export const DANGER_LEVELS = ['high', 'medium', 'low'] as const;
+export type DangerLevel = (typeof DANGER_LEVELS)[number];
+
+export const DANGER_LEVEL_LABELS = {
+  high: 'Danger élevé si elle circule',
+  medium: 'Danger possible si elle circule',
+  low: 'Peu de danger apparent',
+} satisfies Record<DangerLevel, string>;
+
+export const DANGER_LEVEL_TONES = {
+  high: 'danger',
+  medium: 'warning',
+  low: 'neutral',
+} satisfies Record<DangerLevel, Tone>;
+
+export const DANGER_SIGN_KINDS = ['violence', 'accusation', 'panic', 'fake_order'] as const;
+export type DangerSignKind = (typeof DANGER_SIGN_KINDS)[number];
+
+export const DANGER_SIGN_LABELS = {
+  violence: 'Appel à la violence',
+  accusation: 'Accusation contre une personne',
+  panic: 'Peut créer la panique',
+  fake_order: 'Se présente comme un texte officiel',
+} satisfies Record<DangerSignKind, string>;
+
 // ─── Comptes ────────────────────────────────────────────────────────────────────────────────
 
 // Lien à usage unique envoyé par e-mail.
