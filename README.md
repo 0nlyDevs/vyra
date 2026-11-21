@@ -30,21 +30,23 @@ VS Code s'ouvre sur ce dossier avec `code .` depuis le terminal Ubuntu.
 Dernier recours si le dépôt reste dans `C:\…` et que les modifications ne s'affichent pas :
 créer un fichier `.env` à la racine avec `WATCH_POLL_INTERVAL_MS=1000`, puis relancer.
 
-### L'IA : Gemini pour développer, Gemma 4 en local pour la démo
+### L'IA : trois modes, Gemini par défaut
 
-Deux façons de faire répondre l'IA, avec les mêmes consignes. On choisit dans `processing/.env`
-(copié depuis `processing/.env.example`), puis `docker compose restart processing`.
+Le mode se choisit dans `processing/.env` (copié depuis `processing/.env.example`), avec `AI_MODE` :
 
-| | Gemini (par défaut) | Modèle local (démo) |
+| `AI_MODE` | Qui répond | À installer |
 |---|---|---|
-| Réglage | `AI_PROVIDER=gemini` | `AI_PROVIDER=local` |
-| À installer | Rien : une clé gratuite sur https://aistudio.google.com/apikey dans `GEMINI_API_KEY` | [Ollama](https://ollama.com), puis `ollama pull gemma4:e4b` et `ollama pull embeddinggemma` (environ 10 Go) |
-| Wifi | Nécessaire | Inutile |
-| Pour qui | Toute l'équipe pendant le développement | Le PC de la démo (16 Go de mémoire conseillés) |
+| `gemini` (par défaut) | Gemini seul | Une clé gratuite sur https://aistudio.google.com/apikey dans `GEMINI_API_KEY` |
+| `gemini-then-local` | Gemini, puis Gemma 4 en local s'il ne répond pas | La clé, plus [Ollama](https://ollama.com) avec `ollama pull gemma4:e4b` et `ollama pull embeddinggemma` (environ 7 Go, 16 Go de mémoire conseillés) |
+| `local` | Gemma 4 en local seul, sans wifi | Ollama et les deux modèles |
 
-Sans IA (pas de clé, wifi coupé, Ollama arrêté), l'application marche avec les réponses de
-secours. Vérifier : http://127.0.0.1:8000/health affiche `"ai": "gemini"` ou `"ai": "local"`.
-Après un changement d'IA, lancer `make seed` : les vecteurs des deux IA ne se comparent pas.
+Dans tous les modes, si aucune IA ne répond, la réponse préparée de chaque consigne s'affiche : la
+démo continue.
+
+Après un changement de `processing/.env` : `docker compose up -d --force-recreate processing`.
+Vérifier : http://127.0.0.1:8000/health affiche le mode (`"ai": "gemini"`…).
+En passant vers ou depuis `local`, lancer aussi `make seed` : les vecteurs des deux IA ne se
+comparent pas.
 
 ### Comptes, e-mails et connexion Google
 
