@@ -33,10 +33,12 @@ class Settings(BaseSettings):
     embedding_dimensions: int = 768
     # Sous les 30 s : la personne attend la réponse à l'écran, devant le jury.
     ai_timeout_seconds: float = 20.0
+    # Clé de l'API Tavily (https://tavily.com) : recherche web. Absente : recherche GDELT.
+    tavily_api_key: SecretStr | None = None
     # true : jamais d'appel à Gemini, toujours les réponses de secours (répétition du plan B).
     demo_offline: bool = False
 
-    @field_validator("gemini_api_key", mode="before")
+    @field_validator("gemini_api_key", "tavily_api_key", mode="before")
     @classmethod
     def _empty_as_missing(cls, value: object) -> object:
         # Une variable déclarée mais vide vaut « non configurée ».
