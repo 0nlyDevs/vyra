@@ -3,6 +3,10 @@
 Ajouter un prompt = deux fichiers, rien d'autre :
 - `app/prompts/<nom>.md` : la consigne donnée au modèle (format JSON attendu compris) ;
 - `app/fallbacks/<nom>.json` : la réponse montrée si Gemini ne répond pas (wifi coupé…).
+
+Facultatif : `app/fallbacks/<nom>--<variante>.json`, une réponse de secours propre à un cas de
+démo (une affaire, un fichier). Le web la demande avec `fallback_variant` ; sans fichier pour
+cette variante, la réponse de secours générale s'applique.
 """
 
 import json
@@ -13,8 +17,9 @@ from pathlib import Path
 from typing import Any, Literal
 
 from app.core.config import Settings
-from app.services import gemini
-from app.services.gemini import AiUnavailableError
+from app.schemas.ai import InlineFile
+from app.services import providers
+from app.services.llm_common import AiUnavailableError
 
 logger = logging.getLogger(__name__)
 
@@ -54,14 +59,21 @@ def load_fallback(name: str) -> dict[str, Any] | None:
 
 
 def run_prompt(
-    settings: Settings, name: str, payload: dict[str, Any]
+    settings: Settings,
+    name: str,
+    payload: dict[str, Any],
+    *,
+    files: list[InlineFile] | None = None,
+    fallback_variant: str | None = None,
 ) -> tuple[dict[str, Any], AiSource]:
     """Résultat du prompt `name` et sa provenance ; lève AiUnavailableError sans secours."""
     system_prompt = load_prompt(name)
     try:
-        return gemini.generate_json(settings, system_prompt, payload), "gemini"
+        # « gemini » désigne une réponse produite par un modèle, Gemini ou local.
+        return providers.generate_json(settings, system_prompt, payload, files=files), "gemini"
     except AiUnavailableError:
-        fallback = load_fallback(name)
+        fallback = load_fallback(f"{name}--{fallback_variant}") if fallback_variant else None
+        fallback = fallback or load_fallback(name)
         if fallback is None:
             raise
         logger.info("ia : réponse de secours pour %s", name)

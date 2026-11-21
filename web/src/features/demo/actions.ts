@@ -6,6 +6,7 @@ import { z } from 'zod';
 import { type ActionResult, fail, ok } from '@/lib/action-result';
 import { ERRORS } from '@/lib/errors';
 import { logger } from '@/lib/logger';
+import { AFTER_SIGN_IN_PATH } from '@/lib/navigation';
 import { getProfile } from '@/server/dal/profiles';
 import { db } from '@/server/db';
 import { resetDemoData } from '@/server/demo/seed-data';
@@ -13,13 +14,13 @@ import { endSession, startSession } from '@/server/session';
 
 const profileIdSchema = z.string().min(1).max(40);
 
-// Connexion de démo : on choisit un profil, sans mot de passe.
+// Comptes de démo en un clic (page de connexion), sans mot de passe : pour la scène.
 export async function signInAs(formData: FormData): Promise<void> {
   const parsed = profileIdSchema.safeParse(formData.get('profileId'));
   const profile = parsed.success ? await getProfile(parsed.data) : null;
   if (!profile) redirect('/login');
   await startSession(profile.id);
-  redirect('/dashboard');
+  redirect(AFTER_SIGN_IN_PATH);
 }
 
 export async function signOut(): Promise<void> {

@@ -1,23 +1,37 @@
 import {
   index,
   integer,
+  jsonb,
   pgTable,
   text,
   timestamp,
+  unique,
+  uniqueIndex,
   uuid,
   varchar,
   vector,
 } from 'drizzle-orm/pg-core';
 // Chemin relatif (et non `@/lib/…`) : drizzle-kit lit ce fichier sans les alias de tsconfig.
 import {
+  AI_SOURCES,
+  AUTH_TOKEN_PURPOSES,
   CASE_KINDS,
   CASE_STATUSES,
   CERTAINTY_LEVELS,
   CHANGE_TYPES,
+  type ClueKind,
+  type ClueRating,
   EVIDENCE_STANCES,
   EVIDENCE_STRENGTHS,
+  GAME_ANSWERS,
+  type GameAnswer,
+  HEARING_STATUSES,
   LINK_CONFIDENCES,
+  MEDIA_KINDS,
   PROFILE_ROLES,
+  REPORT_REASONS,
+  SCAN_OUTCOMES,
+  VOTES,
   WEB_SEARCH_STATUSES,
 } from '../../lib/domain';
 
@@ -51,6 +65,56 @@ export const notes = pgTable(
     index('notes_embedding_idx').using('hnsw', table.embedding.op('vector_cosine_ops')),
   ],
 );
+
+// ─── Comptes et sessions ─────────────────────────────────────────────────────────────────────
+// Un compte donne un moyen de se connecter à un profil : e-mail et mot de passe, ou Google.
+// Les autres modules ne lisent que `profiles`, avec getCurrentProfile() (src/server/session.ts).
+
+export const accounts = pgTable(
+  'accounts',
+  {
+    profileId: varchar('profile_id', { length: 40 })
+      .primaryKey()
+      .references(() => profiles.id, { onDelete: 'cascade' }),
+    // Toujours en minuscules.
+    email: text('email').notNull(),
+    // Vide pour un compte créé avec Google.
+    passwordHash: text('password_hash'),
+    googleSub: text('google_sub'),
+    emailVerifiedAt: timestamp('email_verified_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex('accounts_email_idx').on(table.email),
+    uniqueIndex('accounts_google_idx').on(table.googleSub),
+  ],
+);
+
+// Une session ouverte. Le cookie garde un jeton tiré au hasard ; la base n'en garde que l'empreinte.
+export const sessions = pgTable(
+  'sessions',
+  {
+    id: varchar('id', { length: 64 }).primaryKey(),
+    profileId: varchar('profile_id', { length: 40 })
+      .notNull()
+      .references(() => profiles.id, { onDelete: 'cascade' }),
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [index('sessions_profile_idx').on(table.profileId)],
+);
+
+// Un lien envoyé par e-mail (confirmation d'adresse, nouveau mot de passe), à usage unique.
+export const authTokens = pgTable('auth_tokens', {
+  id: varchar('id', { length: 64 }).primaryKey(),
+  profileId: varchar('profile_id', { length: 40 })
+    .notNull()
+    .references(() => profiles.id, { onDelete: 'cascade' }),
+  purpose: text('purpose', { enum: AUTH_TOKEN_PURPOSES }).notNull(),
+  expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+  usedAt: timestamp('used_at', { withTimezone: true }),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+});
 
 // ─── L'affaire : le dossier commun à tous les modules ───────────────────────────────────────
 // Ces quatre tables sont partagées. Chaque module ajoute SES tables plus bas, dans sa section
@@ -172,10 +236,199 @@ export const newsArticles = pgTable(
   ],
 );
 
+// ─── Boîte d'alertes ───
+// Un groupe réunit les signalements d'un même contenu, même formulé autrement. À
+// REPORT_CASE_THRESHOLD signaleurs différents, une affaire est ouverte et liée au groupe.
+export const reportGroups = pgTable(
+  'report_groups',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    // Le contenu en quelques mots, puis ce qu'il affirme (repris comme titre et texte de l'affaire).
+    title: text('title').notNull(),
+    summary: text('summary').notNull(),
+    // Publication du fil signalée, quand le signalement vient du fil. Pas encore de clé étrangère :
+    // la table du fil (`feed_posts`) arrive avec le module Fil d'actualité.
+    feedPostId: uuid('feed_post_id'),
+    // Vide tant que le seuil n'est pas atteint.
+    caseId: uuid('case_id').references(() => cases.id, { onDelete: 'set null' }),
+    // Vide quand l'IA était indisponible : le groupe reste trouvable par mots.
+    embedding: vector('embedding', { dimensions: EMBEDDING_DIMENSIONS }),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index('report_groups_feed_post_idx').on(table.feedPostId),
+    index('report_groups_embedding_idx').using('hnsw', table.embedding.op('vector_cosine_ops')),
+  ],
+);
+
+// Un signalement : qui, quoi, pourquoi. Son état se déduit de son groupe (voir domain.ts).
+export const reports = pgTable(
+  'reports',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    groupId: uuid('group_id')
+      .notNull()
+      .references(() => reportGroups.id, { onDelete: 'cascade' }),
+    reporterId: varchar('reporter_id', { length: 40 })
+      .notNull()
+      .references(() => profiles.id, { onDelete: 'cascade' }),
+    // Le texte signalé tel que la personne l'a vu (vide si elle n'a donné qu'un lien).
+    content: text('content').notNull().default(''),
+    url: text('url'),
+    feedPostId: uuid('feed_post_id'),
+    reason: text('reason', { enum: REPORT_REASONS }).notNull(),
+    description: text('description').notNull().default(''),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    // Une personne compte une seule fois par groupe.
+    unique('reports_group_reporter_unique').on(table.groupId, table.reporterId),
+    index('reports_reporter_idx').on(table.reporterId, table.createdAt),
+  ],
+);
+
+// ─── Tribunal (lot de Mahery) ────────────────────────────────────────────────────────────────
+
+export type Pleading = { argument: string; cited: number[] };
+export type HearingFindings = { confirmed: string[]; contested: string[]; missing: string[] };
+
+// Une audience : les deux plaidoiries, le vote du juré, puis la conclusion du juge.
+export const hearings = pgTable(
+  'hearings',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    caseId: uuid('case_id')
+      .notNull()
+      .references(() => cases.id, { onDelete: 'cascade' }),
+    profileId: varchar('profile_id', { length: 40 })
+      .notNull()
+      .references(() => profiles.id, { onDelete: 'cascade' }),
+    status: text('status', { enum: HEARING_STATUSES }).notNull().default('pleaded'),
+    prosecution: jsonb('prosecution').$type<Pleading>().notNull(),
+    defense: jsonb('defense').$type<Pleading>().notNull(),
+    pleadingsSource: text('pleadings_source', { enum: AI_SOURCES }).notNull(),
+    vote: text('vote', { enum: VOTES }),
+    certainty: text('certainty', { enum: CERTAINTY_LEVELS }),
+    findings: jsonb('findings').$type<HearingFindings>(),
+    conclusion: text('conclusion'),
+    whatToCheck: text('what_to_check'),
+    verdictSource: text('verdict_source', { enum: AI_SOURCES }),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    concludedAt: timestamp('concluded_at', { withTimezone: true }),
+  },
+  (table) => [index('hearings_case_idx').on(table.caseId)],
+);
+
+// ─── Scan d'image et de vocal (lot de Mahery) ────────────────────────────────────────────────
+
+export type MediaReport = {
+  format: string;
+  aiSignature: boolean;
+  generator: string | null;
+  c2pa: boolean;
+  aiSourceType: boolean;
+  stripped: boolean;
+  takenAt: string | null;
+  camera: string | null;
+  software: string | null;
+  gps: boolean;
+  findings: string[];
+};
+export type AlreadySeen = {
+  versionId: string;
+  caseId: string;
+  caseTitle: string;
+  sourceName: string;
+  publishedAt: string | null;
+  distance: number;
+};
+export type ImageReading = { description: string; observations: string[]; textInImage: string };
+export type Transcript = {
+  transcript: string;
+  language: string;
+  translation: string;
+  claim: string;
+};
+
+// Un fichier examiné : ce que dit le fichier, s'il a déjà été vu, ce qu'en lit l'IA.
+export const scans = pgTable('scans', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  profileId: varchar('profile_id', { length: 40 })
+    .notNull()
+    .references(() => profiles.id, { onDelete: 'cascade' }),
+  kind: text('kind', { enum: MEDIA_KINDS }).notNull(),
+  fileName: text('file_name').notNull(),
+  mimeType: text('mime_type').notNull(),
+  sha256: varchar('sha256', { length: 64 }).notNull(),
+  report: jsonb('report').$type<MediaReport>(),
+  alreadySeen: jsonb('already_seen').$type<AlreadySeen>(),
+  reading: jsonb('reading').$type<ImageReading>(),
+  transcript: jsonb('transcript').$type<Transcript>(),
+  outcome: text('outcome', { enum: SCAN_OUTCOMES }),
+  aiSource: text('ai_source', { enum: AI_SOURCES }),
+  // L'affaire à laquelle le scan a été versé, ou celle qu'il a ouverte.
+  caseId: uuid('case_id').references(() => cases.id, { onDelete: 'set null' }),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
+// ─── Jeu vrai ou fake ───
+
+// Un indice à retourner : ce qu'il montre, et s'il fallait le juger fiable.
+export type ScenarioClue = { kind: ClueKind; content: string; reliable: boolean };
+// Une réponse du joueur dans une partie.
+export type RunAnswer = {
+  scenarioId: string;
+  answer: GameAnswer;
+  correct: boolean;
+  ratings: Partial<Record<ClueKind, ClueRating>>;
+};
+
+// Une information du jeu, présentée comme une publication du fil. Toutes sont inventées.
+export const scenarios = pgTable('scenarios', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  // Ordre dans la série : les trois premières sont celles jouées avec la salle.
+  position: integer('position').notNull(),
+  title: text('title').notNull(),
+  content: text('content').notNull(),
+  sourceName: text('source_name').notNull(),
+  // Chemin d'une image dans web/public, s'il y en a une.
+  imagePath: text('image_path'),
+  // L'affaire de démo qui porte la même information, quand elle existe.
+  caseId: uuid('case_id').references(() => cases.id, { onDelete: 'set null' }),
+  clues: jsonb('clues').$type<ScenarioClue[]>().notNull(),
+  answer: text('answer', { enum: GAME_ANSWERS }).notNull(),
+  // Ce qu'il fallait voir, puis le réflexe à garder.
+  explanation: text('explanation').notNull(),
+  reflex: text('reflex').notNull(),
+});
+
+// Une série jouée : les réponses et le score (nombre de bonnes réponses sur `total`).
+export const gameRuns = pgTable(
+  'game_runs',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    profileId: varchar('profile_id', { length: 40 })
+      .notNull()
+      .references(() => profiles.id, { onDelete: 'cascade' }),
+    answers: jsonb('answers').$type<RunAnswer[]>().notNull(),
+    score: integer('score').notNull(),
+    total: integer('total').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [index('game_runs_profile_idx').on(table.profileId)],
+);
+
 export type Profile = typeof profiles.$inferSelect;
+export type Account = typeof accounts.$inferSelect;
 export type Note = typeof notes.$inferSelect;
 export type Case = typeof cases.$inferSelect;
 export type CaseVersion = typeof caseVersions.$inferSelect;
 export type VersionLink = typeof versionLinks.$inferSelect;
 export type Evidence = typeof evidence.$inferSelect;
 export type WebSearch = typeof webSearches.$inferSelect;
+export type ReportGroup = typeof reportGroups.$inferSelect;
+export type Report = typeof reports.$inferSelect;
+export type Hearing = typeof hearings.$inferSelect;
+export type Scan = typeof scans.$inferSelect;
+export type Scenario = typeof scenarios.$inferSelect;
+export type GameRun = typeof gameRuns.$inferSelect;

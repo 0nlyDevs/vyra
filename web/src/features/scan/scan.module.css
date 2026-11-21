@@ -1,0 +1,56 @@
+/* Effet de balayage pendant l'analyse d'une image : une ligne parcourt l'image de haut en bas.
+   Mouvement d'explication (pas d'interface répétée) : il peut être plus long et continu. */
+
+.frame {
+  position: relative;
+  overflow: hidden;
+  border-radius: 0.75rem;
+}
+
+.beam {
+  position: absolute;
+  inset-inline: 0;
+  top: -30%;
+  height: 30%;
+  pointer-events: none;
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    color-mix(in oklch, var(--primary) 28%, transparent)
+  );
+  animation: sweep 1.8s cubic-bezier(0.77, 0, 0.175, 1) infinite;
+}
+
+.beam::after {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  height: 2px;
+  background: var(--primary);
+  box-shadow: 0 0 14px var(--primary);
+}
+
+.dim {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: color-mix(in oklch, var(--background) 25%, transparent);
+}
+
+@keyframes sweep {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(433%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .beam {
+    animation: none;
+    top: 35%;
+    opacity: 0.6;
+  }
+}

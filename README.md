@@ -30,12 +30,42 @@ VS Code s'ouvre sur ce dossier avec `code .` depuis le terminal Ubuntu.
 Dernier recours si le dépôt reste dans `C:\…` et que les modifications ne s'affichent pas :
 créer un fichier `.env` à la racine avec `WATCH_POLL_INTERVAL_MS=1000`, puis relancer.
 
-### L'IA (Gemini)
+### L'IA : trois modes, Gemini par défaut
 
-Copier `processing/.env.example` en `processing/.env` et y mettre une clé gratuite
-(https://aistudio.google.com/apikey) : `GEMINI_API_KEY=…`. Puis `docker compose restart processing`.
-Sans clé, l'application marche avec les réponses de secours.
-Vérifier : http://127.0.0.1:8000/health doit afficher `"ai": "gemini"`.
+Le mode se choisit dans `processing/.env` (copié depuis `processing/.env.example`), avec `AI_MODE` :
+
+| `AI_MODE` | Qui répond | À installer |
+|---|---|---|
+| `gemini` (par défaut) | Gemini seul | Une clé gratuite sur https://aistudio.google.com/apikey dans `GEMINI_API_KEY` |
+| `gemini-then-local` | Gemini, puis Gemma 4 en local s'il ne répond pas | La clé, plus [Ollama](https://ollama.com) avec `ollama pull gemma4:e4b` et `ollama pull embeddinggemma` (environ 7 Go, 16 Go de mémoire conseillés) |
+| `local` | Gemma 4 en local seul, sans wifi | Ollama et les deux modèles |
+
+Dans tous les modes, si aucune IA ne répond, la réponse préparée de chaque consigne s'affiche : la
+démo continue.
+
+Après un changement de `processing/.env` : `docker compose up -d --force-recreate processing`.
+Vérifier : http://127.0.0.1:8000/health affiche le mode (`"ai": "gemini"`…).
+En passant vers ou depuis `local`, lancer aussi `make seed` : les vecteurs des deux IA ne se
+comparent pas.
+
+### Comptes, e-mails et connexion Google
+
+- **Comptes de démo** : boutons « Comptes de démo » sur la page de connexion, sans mot de passe à
+  taper sur scène. Leurs adresses (`rasoa@mindstack.demo`, `hery@mindstack.demo`) et leur mot de
+  passe sont dans `web/src/server/demo/seed-data.ts`.
+- **E-mails** : tous les e-mails envoyés (confirmation d'adresse, mot de passe oublié) s'affichent
+  sur http://localhost:8025 (Mailpit, lancé par Docker). Aucun ne part vraiment. Pour un vrai envoi,
+  changer `SMTP_URL`.
+- **Connexion avec Google** (facultative, demande le wifi) :
+  1. Sur https://console.cloud.google.com : « API et services », « Identifiants », « Créer des
+     identifiants », « ID client OAuth », type « Application Web ».
+  2. Origine JavaScript autorisée : `http://localhost:3000`. URI de redirection autorisé :
+     `http://localhost:3000/api/auth/google/callback`.
+  3. Mettre `GOOGLE_CLIENT_ID` et `GOOGLE_CLIENT_SECRET` dans `web/.env.local`, puis
+     `docker compose restart web`.
+
+  Sans ces deux valeurs, le bouton « Continuer avec Google » n'apparaît pas.
+- « Réinitialiser la démo » supprime les comptes créés pendant la démo ; les comptes de démo restent.
 
 ## Les commandes
 

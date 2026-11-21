@@ -15,7 +15,7 @@ Navigateur ────────▶│  web/  Next.js (port 3000)            
                     │        │ HTTP, depuis src/server/processing.ts seulement │
                     │        ▼                                                 │
                     │  processing/  FastAPI (127.0.0.1:8000)                   │
-                    │   • prompts d'IA (app/prompts/*.md) ─────────────────────┼──▶ API Gemini (wifi)
+                    │   • prompts d'IA (app/prompts/*.md) ─────────────────────┼──▶ Gemini (wifi) ou Ollama (PC)
                     │   • vecteurs pour la recherche par le sens               │
                     │   • réponses de secours (app/fallbacks/*.json)           │
                     └──────────────────────────────────────────────────────────┘
@@ -29,7 +29,7 @@ Navigateur ────────▶│  web/  Next.js (port 3000)            
 | Appelé par | Le navigateur | Uniquement `web/src/server/processing.ts` |
 | Base de données | **Seul propriétaire** (Drizzle) | Aucun accès |
 | Utilisateurs | Profil de démo en cookie | Ne les connaît pas |
-| Variables | `docker-compose.yml` (et `web/.env.local` hors Docker) | `processing/.env` (clé Gemini) |
+| Variables | `docker-compose.yml` (et `web/.env.local` hors Docker) | `processing/.env` (choix de l'IA, clé Gemini) |
 | Image Docker | `web/Dockerfile` + `web/scripts/docker-dev.sh` | `processing/Dockerfile` |
 
 ## L'arborescence
@@ -51,10 +51,13 @@ web/src/
 
 processing/app/
 ├── routers/              /health, /v1/prompts/{nom}, /v1/embeddings
+├── services/providers.py mode de l'IA (AI_MODE) : Gemini, Gemini puis Gemma 4, ou Gemma 4
 ├── services/gemini.py    appels à l'API Gemini (REST)
-├── services/ai_service.py Gemini d'abord, réponse de secours ensuite
+├── services/local_ai.py  appels au modèle local (Ollama, Gemma 4)
+├── services/media_inspect.py informations cachées d'une image (sans IA)
+├── services/ai_service.py l'IA d'abord, réponse de secours ensuite
 ├── prompts/<nom>.md      consignes données au modèle
-└── fallbacks/<nom>.json  réponses montrées si Gemini ne répond pas
+└── fallbacks/<nom>.json  réponses montrées si l'IA ne répond pas (<nom>--<cas>.json : propre à un cas de démo)
 ```
 
 ## Ajouter une fonctionnalité
@@ -73,12 +76,12 @@ processing/app/
 2. Écrire la réponse de secours `processing/app/fallbacks/<nom>.json`, de la même forme.
 3. Côté web : `runPrompt('<nom>', payload, schémaZod)` depuis une server action.
 
-Sans clé Gemini, wifi coupé ou `DEMO_OFFLINE=true`, la réponse de secours s'affiche : la démo
+Sans IA (pas de clé, wifi coupé, Ollama arrêté) ou `DEMO_OFFLINE=true`, la réponse de secours s'affiche : la démo
 continue. `GET http://127.0.0.1:8000/health` indique le mode (`gemini`, `offline`, `not-configured`).
 
 ## Recherche par le sens (pgvector)
 
-`embedTexts()` renvoie un vecteur de 768 nombres par texte (Gemini). On le range dans une colonne
+`embedTexts()` renvoie un vecteur de 768 nombres par texte (Gemini ou EmbeddingGemma en local). On le range dans une colonne
 `vector` (voir `notes.embedding`) et on trie par `cosineDistance` (voir `server/dal/notes.ts`).
 Sans IA, la recherche repasse par mots (`ilike`).
 

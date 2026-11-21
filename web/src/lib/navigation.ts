@@ -1,10 +1,10 @@
 import {
+  Gamepad2,
   Gavel,
   House,
   type LucideIcon,
   Palette,
   ScanSearch,
-  Search,
   Siren,
   Smartphone,
   Waypoints,
@@ -12,6 +12,9 @@ import {
 
 // La navigation de l'application, à un seul endroit : la barre latérale et l'accueil la lisent.
 // Ajouter un écran principal = ajouter une ligne ici et créer son dossier dans src/app/(app)/.
+
+// Page ouverte après la connexion. À passer sur le fil d'actualité quand il existera.
+export const AFTER_SIGN_IN_PATH = '/dashboard';
 
 export type NavItem = {
   href: string;
@@ -53,10 +56,10 @@ export const MODULE_ITEMS: NavItem[] = [
     icon: Siren,
   },
   {
-    href: '/detective',
-    label: 'Détective',
-    description: 'Apprendre les bons réflexes en menant l’enquête.',
-    icon: Search,
+    href: '/game',
+    label: 'Vrai ou fake',
+    description: 'Apprendre à distinguer le vrai du faux, en jouant.',
+    icon: Gamepad2,
   },
   {
     href: '/phone',
