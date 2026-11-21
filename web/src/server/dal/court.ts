@@ -1,5 +1,5 @@
 import 'server-only';
-import { and, asc, cosineDistance, desc, eq, isNotNull, sql } from 'drizzle-orm';
+import { and, asc, cosineDistance, desc, eq, isNotNull, ne, sql } from 'drizzle-orm';
 import type { AiSource, CertaintyLevel, Vote } from '@/lib/domain';
 import { db } from '@/server/db';
 import { cases, type HearingFindings, hearings, type Pleading } from '@/server/db/schema';
@@ -138,7 +138,7 @@ export async function findJudgedCase(text: string, embedding: number[] | null) {
 // Les affaires conclues, les plus récentes d'abord : la partie publique, sans compte.
 export function listConcludedCases() {
   return db
-    .select({ ...judgedColumns, createdAt: cases.createdAt })
+    .select({ ...judgedColumns, kind: cases.kind, createdAt: cases.createdAt })
     .from(cases)
     .where(eq(cases.status, 'concluded'))
     .orderBy(desc(cases.createdAt));
@@ -153,4 +153,13 @@ export async function getConcludedCase(id: string) {
     .limit(1);
   if (!found) return null;
   return { ...found, hearing: await getLatestHearing(id) };
+}
+
+// Affaires réelles encore à l'enquête ou à l'audience (pour le flash radio).
+export async function listOpenRealCases() {
+  return db
+    .select({ id: cases.id, title: cases.title })
+    .from(cases)
+    .where(and(eq(cases.kind, 'real'), ne(cases.status, 'concluded')))
+    .orderBy(desc(cases.createdAt));
 }
