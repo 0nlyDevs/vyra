@@ -22,20 +22,25 @@ const STOP_WORDS = new Set([
   'voici',
 ]);
 
+// Longueur de la racine gardée : « inonde » et « inondation » donnent tous deux « inond ».
+const STEM_LENGTH = 5;
+
+// Les racines des mots significatifs : sans accents, sans « s » ni « e » final (« mortes » et
+// « morts » donnent « mort »), coupées à cinq lettres.
 export function significantWords(text: string) {
-  const words = text
+  const stems = text
     .toLowerCase()
     .normalize('NFD')
     .replace(/\p{Diacritic}/gu, '')
     .split(/[^\p{L}\p{N}]+/u)
-    .filter((word) => word.length >= 4 && !STOP_WORDS.has(word));
-  return new Set(words);
+    .filter((word) => word.length >= 4 && !STOP_WORDS.has(word))
+    .map((word) => word.replace(/[es]+$/, '').slice(0, STEM_LENGTH));
+  return new Set(stems);
 }
 
-// Part des mots du texte reçu qu'on retrouve dans l'affaire (0 à 1).
+// Part des mots du texte reçu qu'on retrouve dans l'affaire (0 à 1), et leur nombre.
 export function wordOverlap(input: Set<string>, known: Set<string>) {
-  if (input.size === 0) return 0;
   let shared = 0;
   for (const word of input) if (known.has(word)) shared += 1;
-  return shared / input.size;
+  return { shared, ratio: input.size === 0 ? 0 : shared / input.size };
 }
