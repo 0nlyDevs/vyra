@@ -9,6 +9,9 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     <NextThemesProvider
       attribute="class"
       defaultTheme="dark"
+      // Nouvelle clé : l'ancien choix « clair » (défaut d'avant la refonte) ne s'applique plus,
+      // tout le monde redémarre en nuit et peut repasser en clair avec le bouton.
+      storageKey="mindstack-theme"
       enableSystem={false}
       disableTransitionOnChange
     >
