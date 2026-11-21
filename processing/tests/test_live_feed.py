@@ -156,3 +156,28 @@ def test_facebook_video_pages_keep_views_and_real_date() -> None:
     assert video.published_at == "2026-08-18T00:00:00+00:00"
     assert "Comments" not in video.text
     assert "Sorry" not in video.text
+
+
+def test_facebook_marks_are_removed_and_empty_posts_dropped() -> None:
+    group_url = "https://www.facebook.com/groups/1689/posts/"
+    results = [
+        {
+            # Seulement des mentions de Facebook : aucun texte de post.
+            "url": f"{group_url}1",
+            "title": "VAOVAO ETO MADAGASIKARA - Facebook",
+            "content": (
+                "Inokôa ▻ VAOVAO ETO MADAGASIKARA. 16m · Public · May be an image of text ; "
+                "L'info 24-7 ▻ VAOVAO ETO MADAGASIKARA. 12h · Public · May be an image"
+            ),
+        },
+        {
+            "url": f"{group_url}2",
+            "title": "VAOVAO ETO MADAGASIKARA - Facebook",
+            "content": (
+                "VAOVAO ETO MADAGASIKARA 1m ・ Tapaka ny jiro nandritra ny alina tany Ambilobe, "
+                "hoy ireo mponina. May be an image of text"
+            ),
+        },
+    ]
+    [post] = parse_facebook(results, "Facebook")
+    assert post.text == "Tapaka ny jiro nandritra ny alina tany Ambilobe, hoy ireo mponina."

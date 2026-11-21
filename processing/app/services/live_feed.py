@@ -74,6 +74,18 @@ _MONTH = "|".join(MONTH_NAMES)
 FACEBOOK_DATE = re.compile(
     rf"\b(?:(\d{{1,2}}) ({_MONTH}),? (\d{{4}})|({_MONTH}) (\d{{1,2}}), (\d{{4}}))\b"
 )
+# Texte de remplacement d'une image : « May be an image of text », « May be a graphic of… ».
+FACEBOOK_IMAGE_ALT = re.compile(
+    r"May be an? (?:image|video|graphic|meme|illustration|cartoon|screenshot)"
+    r"(?: of [^;.·・]*)?[;.]?",
+    re.IGNORECASE,
+)
+# « Inokôa ▻ VAOVAO ETO MADAGASIKARA. » : qui a publié, et dans quel groupe.
+FACEBOOK_SHARED_IN = re.compile(r"[^.;▻►]{1,60}\s*[▻►]\s*[^.;·・]{1,80}[.;]?\s*")
+# L'âge du post : « 16m · Public », « 12h · », « 3m. ».
+FACEBOOK_AGE = re.compile(
+    r"\b\d{1,2}\s?(?:m|min|h|j|d|w|y)\s*(?:[·・]\s*Public\b\s*[·・]?|[·・.](?=\s|$))\s*"
+)
 FACEBOOK_ON = re.compile(r"^(.+?) on Facebook\b", re.IGNORECASE)
 PAGE_IMAGE = (
     re.compile(
@@ -325,7 +337,21 @@ def _clean_facebook(content: str) -> str:
     text = re.sub(r"Image \d+:\s*", "", text)
     text = " ".join(re.sub(r"[#*]+", "", text).split())
     first, *rest = re.split(r"\s*·?\s*Other posts\s*·?\s*", text)
-    return first if _meaningful_length(first) >= SOCIAL_MIN_CHARS or not rest else " ".join(rest)
+    text = first if _meaningful_length(first) >= SOCIAL_MIN_CHARS or not rest else " ".join(rest)
+    return _strip_facebook_marks(text)
+
+
+def _strip_facebook_marks(text: str) -> str:
+    """Retire ce que Facebook ajoute autour d'un post : « Auteur ▻ Groupe. », « 16m · Public »,
+    « May be an image of text ». Un post fait seulement de ces mentions devient vide."""
+    text = FACEBOOK_IMAGE_ALT.sub(" ", text)
+    text = FACEBOOK_SHARED_IN.sub(" ", text)
+    text = FACEBOOK_AGE.sub(" ", text)
+    text = re.sub(r"(?:^|\s)Public\s*[·・]\s*|\s*[·・]\s*Public\b", " ", text)
+    # Séparateurs restés seuls ou en double, après le nettoyage.
+    text = re.sub(r"\s*[;·・]\s*(?=[;·・]|$)", "", text)
+    text = re.sub(r"^[\s;·・.,-]+", "", text)
+    return " ".join(text.split())
 
 
 def parse_facebook(results: Any, source_name: str) -> list[LiveItem]:
@@ -341,6 +367,12 @@ def parse_facebook(results: Any, source_name: str) -> list[LiveItem]:
             continue
         views, raw_title = _facebook_video(" ".join(str(result.get("title") or "").split()))
         place, title = _facebook_place(parsed.path, raw_title)
+        group = re.search(r"« (.+) »", place)
+        if group:
+            name = re.escape(group.group(1))
+            text = re.sub(rf"^(?:{name}\s*[.·・]?\s*)+", "", text, flags=re.IGNORECASE)
+            if _meaningful_length(text) < SOCIAL_MIN_CHARS:
+                continue
         if title and text.lower().startswith(title.rstrip(".… ").lower()[:40]):
             title = None
         published = _iso(str(result.get("published_date") or "")) or _facebook_date(text)
