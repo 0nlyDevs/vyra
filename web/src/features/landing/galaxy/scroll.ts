@@ -25,3 +25,5 @@ export function destroyScroll() {
   lenis?.destroy();
   lenis = null;
 }
+
+export const getLenis = () => lenis;

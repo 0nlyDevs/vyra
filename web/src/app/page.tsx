@@ -2,7 +2,8 @@ import { Comparison } from '@/features/landing/Comparison';
 import { Fin } from '@/features/landing/Fin';
 import { Hero } from '@/features/landing/Hero';
 import { LandingMotion } from '@/features/landing/LandingMotion';
-import { LandingNav } from '@/features/landing/LandingNav';
+import { LandingChrome } from '@/features/landing/rail/LandingChrome';
+import '@/features/landing/rail/rail.css';
 import '@/features/landing/landing.css';
 import { Parcours } from '@/features/landing/Parcours';
 import { SourcesMarquee } from '@/features/landing/SourcesMarquee';
@@ -18,7 +19,7 @@ export default async function HomePage() {
   return (
     <div className="landing dark min-h-[100dvh] overflow-x-clip bg-background text-foreground">
       <LandingMotion />
-      <LandingNav signedIn={signedIn} />
+      <LandingChrome />
       <main>
         <Hero signedIn={signedIn} />
         <Parcours />
