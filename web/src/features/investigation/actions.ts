@@ -5,9 +5,10 @@ import { redirect } from 'next/navigation';
 import { type ActionResult, fail, ok } from '@/lib/action-result';
 import { ERRORS } from '@/lib/errors';
 import { getCurrentProfile } from '@/server/session';
+import { type ExploreResult, exploreLevel, exploreVersion } from './explore';
 import { type HarvestResult, refreshNewsIndex } from './news-index';
 import { openCaseFromClaim } from './open-case';
-import { caseIdSchema, openCaseSchema } from './schema';
+import { caseIdSchema, exploreSchema, openCaseSchema } from './schema';
 import { searchWebVersions, type WebSearchResult } from './web-versions';
 
 // Nouvelle analyse depuis /cases : ouvre l'affaire existante ou en crée une, puis y emmène.
@@ -54,5 +55,34 @@ export async function refreshPressIndex(): Promise<ActionResult<HarvestResult>> 
   if (!profile) return fail(ERRORS.UNAUTHORIZED);
   const result = await refreshNewsIndex(true);
   if (result.ok) revalidatePath('/cases');
+  return result;
+}
+
+// Explorer une source de l'arbre : chercher qui l'a reprise ensuite, et l'ajouter à l'arbre.
+export async function exploreSource(
+  caseId: string,
+  versionId: string,
+): Promise<ActionResult<ExploreResult>> {
+  const profile = await getCurrentProfile();
+  if (!profile) return fail(ERRORS.UNAUTHORIZED);
+  const parsed = exploreSchema.safeParse({ caseId, versionId });
+  if (!parsed.success) return fail(ERRORS.VALIDATION_FAILED, parsed.error);
+
+  const result = await exploreVersion(parsed.data.caseId, parsed.data.versionId);
+  if (result.ok) revalidatePath(`/cases/${parsed.data.caseId}`);
+  return result;
+}
+
+// « Explorer un niveau de plus » : toutes les sources en bout de branche sont explorées.
+export async function exploreNextLevel(
+  caseId: string,
+): Promise<ActionResult<{ explored: number; added: number }>> {
+  const profile = await getCurrentProfile();
+  if (!profile) return fail(ERRORS.UNAUTHORIZED);
+  const parsed = caseIdSchema.safeParse(caseId);
+  if (!parsed.success) return fail(ERRORS.VALIDATION_FAILED, parsed.error);
+
+  const result = await exploreLevel(parsed.data);
+  if (result.ok) revalidatePath(`/cases/${parsed.data}`);
   return result;
 }

@@ -1,10 +1,108 @@
 import 'server-only';
-import { asc, cosineDistance, eq, isNotNull, isNull } from 'drizzle-orm';
+import { asc, cosineDistance, eq, isNotNull, isNull, sql } from 'drizzle-orm';
 import type { ChangeType, LinkConfidence, WebSearchStatus } from '@/lib/domain';
 import { db } from '@/server/db';
-import { cases, caseVersions, versionLinks, webSearches } from '@/server/db/schema';
+import {
+  cases,
+  caseVersions,
+  versionExplorations,
+  versionLinks,
+  webSearches,
+} from '@/server/db/schema';
 
 // Écritures et recherches du module Enquête sur le dossier commun (tables de l'affaire).
+
+// Les sources déjà explorées d'une affaire, et le nombre de reprises ajoutées par chacune.
+export function listExploredVersions(caseId: string) {
+  return db
+    .select({
+      versionId: versionExplorations.versionId,
+      addedCount: versionExplorations.addedCount,
+    })
+    .from(versionExplorations)
+    .where(eq(versionExplorations.caseId, caseId));
+}
+
+// Ajoute les reprises trouvées en explorant une version : les nouvelles versions, leurs liens, puis
+// renumérote toutes les versions de l'affaire par date (1 = la plus ancienne). Renvoie false si
+// cette version a déjà été explorée.
+export async function addExploredVersions(input: {
+  caseId: string;
+  exploredId: string;
+  versions: {
+    key: string;
+    content: string;
+    sourceName: string;
+    sourceUrl: string;
+    publishedAt: Date | null;
+  }[];
+  // Clés : celles des nouvelles versions, ou l'identifiant d'une version existante.
+  links: {
+    from: string;
+    to: string;
+    changeType: ChangeType;
+    note: string;
+    confidence: LinkConfidence;
+  }[];
+}) {
+  return db.transaction(async (tx) => {
+    const [claimed] = await tx
+      .insert(versionExplorations)
+      .values({
+        versionId: input.exploredId,
+        caseId: input.caseId,
+        addedCount: input.versions.length,
+      })
+      .onConflictDoNothing()
+      .returning({ versionId: versionExplorations.versionId });
+    if (!claimed) return false;
+
+    // Une page déjà dans l'arbre (trouvée par une autre exploration en même temps) n'est pas
+    // ajoutée deux fois : ses liens pointent vers la version existante.
+    const existing = await tx
+      .select({ id: caseVersions.id, sourceUrl: caseVersions.sourceUrl })
+      .from(caseVersions)
+      .where(eq(caseVersions.caseId, input.caseId));
+    const idByUrl = new Map(existing.map((row) => [row.sourceUrl, row.id]));
+    const idOf = new Map<string, string>();
+    for (const version of input.versions) {
+      const { key, ...values } = version;
+      const known = idByUrl.get(values.sourceUrl);
+      if (known) {
+        idOf.set(key, known);
+        continue;
+      }
+      const [inserted] = await tx
+        .insert(caseVersions)
+        .values({ caseId: input.caseId, position: 0, ...values })
+        .returning({ id: caseVersions.id });
+      if (inserted) {
+        idOf.set(key, inserted.id);
+        idByUrl.set(values.sourceUrl, inserted.id);
+      }
+    }
+    const links = input.links.flatMap((link) => {
+      const fromVersionId = idOf.get(link.from) ?? link.from;
+      const toVersionId = idOf.get(link.to) ?? link.to;
+      if (fromVersionId === toVersionId) return [];
+      return [{ ...link, caseId: input.caseId, fromVersionId, toVersionId }];
+    });
+    if (links.length > 0) {
+      await tx.insert(versionLinks).values(links.map(({ from: _from, to: _to, ...link }) => link));
+    }
+
+    // Les numéros suivent les dates : une reprise trouvée plus tard s'insère à sa place.
+    await tx.execute(sql`
+      update ${caseVersions} set position = ranked.rank
+      from (
+        select id, row_number() over (order by published_at asc nulls last, position asc) as rank
+        from ${caseVersions} where case_id = ${input.caseId}
+      ) as ranked
+      where ${caseVersions.id} = ranked.id
+    `);
+    return true;
+  });
+}
 
 // Affaires sans vecteur : celles des données de démo, ou créées quand l'IA était indisponible.
 export function listCasesWithoutEmbedding() {

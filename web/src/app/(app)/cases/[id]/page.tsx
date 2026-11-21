@@ -12,12 +12,13 @@ import { ToneBadge } from '@/components/common/ToneBadge';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { frontierOf } from '@/features/investigation/explore';
 import { PropagationGraph } from '@/features/investigation/PropagationGraph';
 import { WebSearchPanel } from '@/features/investigation/WebSearchPanel';
 import { EVIDENCE_STRENGTH_LABELS, MATCH_KIND_LABELS, MATCH_KINDS } from '@/lib/domain';
 import { formatDateTime } from '@/lib/format';
 import { getCaseFile } from '@/server/dal/cases';
-import { getWebSearch } from '@/server/dal/investigation';
+import { getWebSearch, listExploredVersions } from '@/server/dal/investigation';
 
 // Le dossier d'une affaire, en lecture seule : versions retrouvées et pièces.
 // Le module Enquête remplace la liste des versions par le graphe ; le tribunal part des pièces.
@@ -35,7 +36,11 @@ export default async function CaseFilePage({
 
   const file = await getCaseFile(id);
   if (!file) notFound();
-  const webSearch = await getWebSearch(id);
+  const [webSearch, explored, frontier] = await Promise.all([
+    getWebSearch(id),
+    listExploredVersions(id),
+    frontierOf(id),
+  ]);
 
   return (
     <div className="grid gap-8">
@@ -103,12 +108,19 @@ export default async function CaseFilePage({
       <Card>
         <CardHeader>
           <CardTitle className="text-xl">
-            Propagation : {file.versions.length}{' '}
-            {file.versions.length > 1 ? 'versions retrouvées' : 'version retrouvée'}
+            Propagation : {file.versions.length - 1}{' '}
+            {file.versions.length - 1 > 1 ? 'sources retrouvées' : 'source retrouvée'}
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <PropagationGraph versions={file.versions} links={file.links} />
+          <PropagationGraph
+            caseId={file.id}
+            versions={file.versions}
+            links={file.links}
+            claim={file.claim}
+            explored={explored}
+            frontier={frontier.length}
+          />
         </CardContent>
       </Card>
 

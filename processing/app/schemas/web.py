@@ -7,6 +7,16 @@ from pydantic import BaseModel, Field
 
 class WebSourcesRequest(BaseModel):
     claim: str = Field(min_length=10, max_length=2000)
+    # Autres formulations à chercher en plus (mots-clés, autres langues), écrites par l'IA.
+    queries: list[str] = Field(default_factory=list, max_length=10)
+
+
+class PagesRequest(BaseModel):
+    urls: list[str] = Field(min_length=1, max_length=60)
+
+
+class PagesResponse(BaseModel):
+    articles: list["WebArticleOut"]
 
 
 class WebArticleOut(BaseModel):
@@ -17,6 +27,9 @@ class WebArticleOut(BaseModel):
     published_at: str | None
     excerpt: str
     language: str | None
+    # Début du texte de la page et ses liens sortants : pour retrouver qui reprend qui.
+    body: str = ""
+    links: list[str] = Field(default_factory=list)
 
 
 class NewsFeed(BaseModel):
