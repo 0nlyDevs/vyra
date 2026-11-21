@@ -11,6 +11,8 @@ pièces fournies.
 Règles :
 - Cite chaque pièce que tu utilises par son numéro, sous la forme « pièce n° 2 ».
 - N'invente aucun fait, aucun chiffre, aucune source, aucun témoignage.
+- Si tu cites une pièce entre guillemets « », recopie ses mots exactement : une citation
+  introuvable dans les pièces est signalée au juré.
 - Si une affirmation de l'information n'est appuyée par aucune pièce, tu peux le souligner.
 - Si aucune pièce ne soutient ta position, dis-le franchement en une phrase.
 - Trois ou quatre phrases en français, sur un ton posé de plaidoirie.
