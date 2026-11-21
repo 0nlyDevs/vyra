@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { Logo } from '@/components/brand/Logo';
+import { ReadingControls } from '@/components/shell/ReadingControls';
 import { Button } from '@/components/ui/button';
 import { publicEnv } from '@/lib/env';
 
@@ -16,6 +17,7 @@ export default function PublicLayout({ children }: { children: ReactNode }) {
           <Logo name={publicEnv.NEXT_PUBLIC_APP_NAME} />
         </Link>
         <nav aria-label="Pages publiques" className="ml-auto flex items-center gap-1">
+          <ReadingControls className="hidden sm:flex" />
           <Button asChild variant="ghost">
             <Link href="/verifier">Vérifier</Link>
           </Button>
