@@ -336,6 +336,9 @@ function RunSummary({
           Rejouer
         </Button>
         <Button asChild size="lg" variant="outline">
+          <Link href="/game/family">Bonus : prévenir le groupe famille</Link>
+        </Button>
+        <Button asChild size="lg" variant="ghost">
           <Link href="/game">Retour au jeu</Link>
         </Button>
       </div>

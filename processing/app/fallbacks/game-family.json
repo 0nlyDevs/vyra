@@ -1,0 +1,18 @@
+{
+  "replies": [
+    {
+      "name": "Tonton Fidy",
+      "message": "Ah bon ? Je l'ai reçu d'un ami, je pensais rendre service aux jeunes de la famille."
+    },
+    {
+      "name": "Cousine Mialy",
+      "message": "Merci de nous prévenir. Je n'envoie rien ce soir, je passe d'abord au guichet de l'Office de l'emploi."
+    }
+  ],
+  "feedback": {
+    "kind": true,
+    "sourced": true,
+    "useful": true,
+    "tip": "Un bon message remercie celui qui a partagé, cite la source officielle et dit quoi faire : ne rien payer, vérifier au guichet."
+  }
+}
