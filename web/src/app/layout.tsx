@@ -1,3 +1,4 @@
+import { Analytics } from '@vercel/analytics/next';
 import { GeistMono } from 'geist/font/mono';
 import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
@@ -30,6 +31,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           <Toaster position="top-right" />
           <div className="grain" aria-hidden />
         </ThemeProvider>
+        <Analytics />
       </body>
     </html>
   );
