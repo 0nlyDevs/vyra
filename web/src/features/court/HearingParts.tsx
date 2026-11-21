@@ -100,7 +100,7 @@ export function Witnesses({
       {pieces.map((piece, index) => (
         <li
           key={piece.id}
-          className={cn('grid content-start gap-2 rounded-xl border bg-card p-4', ENTER)}
+          className={cn('grid content-start gap-2 surface p-4', ENTER)}
           // Les témoins entrent l'un après l'autre, sans bloquer la lecture.
           style={{ animationDelay: `${index * 70}ms` }}
         >
@@ -140,7 +140,7 @@ function FindingList({
   empty: string;
 }) {
   return (
-    <section className="grid content-start gap-2 rounded-xl border bg-card p-4">
+    <section className="grid content-start gap-2 surface p-4">
       <h3 className="flex items-center gap-2 font-semibold">
         {icon}
         {title}
