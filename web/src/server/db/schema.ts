@@ -256,6 +256,19 @@ export const webSearches = pgTable('web_searches', {
   searchedAt: timestamp('searched_at', { withTimezone: true }).defaultNow().notNull(),
 });
 
+// Module Enquête : les sources déjà explorées (recherche de leurs reprises), une fois chacune.
+export const versionExplorations = pgTable('version_explorations', {
+  versionId: uuid('version_id')
+    .primaryKey()
+    .references(() => caseVersions.id, { onDelete: 'cascade' }),
+  caseId: uuid('case_id')
+    .notNull()
+    .references(() => cases.id, { onDelete: 'cascade' }),
+  // Reprises ajoutées à l'arbre par cette exploration.
+  addedCount: integer('added_count').notNull(),
+  exploredAt: timestamp('explored_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
 // Module Enquête : l'index de presse. Les derniers articles de journaux choisis, lus dans leurs
 // flux RSS et enregistrés avec leur vecteur : la recherche d'une information s'y fait sans réseau.
 export const newsArticles = pgTable(

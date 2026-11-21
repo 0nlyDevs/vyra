@@ -24,7 +24,7 @@ const HARVEST_MAX_AGE_MS = 60 * 60 * 1000;
 const EMBED_BATCH = 40;
 const EMBED_PER_HARVEST = 240;
 const INDEX_MAX_DISTANCE = 0.3;
-const INDEX_LIMIT = 6;
+const INDEX_LIMIT = 20;
 const WORDS_SCAN = 400;
 const WORDS_MIN_OVERLAP = 0.4;
 const WORDS_MIN_SHARED = 3;
@@ -120,5 +120,8 @@ function toArticle(item: {
     published_at: item.publishedAt?.toISOString() ?? null,
     excerpt: item.summary,
     language: null,
+    // L'index ne garde que le résumé : la comparaison se fait dessus.
+    body: '',
+    links: [],
   };
 }

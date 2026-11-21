@@ -17,12 +17,12 @@ import json
 import logging
 import re
 import unicodedata
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from email.utils import parsedate_to_datetime
 from html.parser import HTMLParser
 from typing import Any
-from urllib.parse import urlparse
+from urllib.parse import urljoin, urlparse
 
 import httpx
 
@@ -41,13 +41,36 @@ TAVILY_URL = "https://api.tavily.com/search"
 TAVILY_TIMEOUT_SECONDS = 15.0
 TAVILY_QUERY_MAX_CHARS = 380
 # Temps accordé pour aller lire la date des articles que la recherche n'a pas datés.
-DATE_SECONDS = 6.0
+DATE_SECONDS = 8.0
+# Pages lues pour compléter les résultats (date, texte, liens), en même temps et en temps limité.
+PAGES_TO_COMPLETE = 40
+# GDELT : nombre d'articles gardés par recherche.
 MAX_ARTICLES = 8
+# Tavily : résultats par requête, et autres formulations de l'information cherchées en plus.
+TAVILY_MAX_RESULTS = 20
+MAX_QUERIES = 6
+# Requête ciblée sur les réseaux sociaux et les forums publics.
+SOCIAL_DOMAINS = [
+    "facebook.com",
+    "x.com",
+    "twitter.com",
+    "reddit.com",
+    "youtube.com",
+    "tiktok.com",
+    "instagram.com",
+    "t.me",
+]
+# Lecture de pages données (exploration en suivant les liens).
+PAGES_MAX = 30
 PAGE_TIMEOUT_SECONDS = 8.0
 PAGES_TOTAL_SECONDS = 14.0
 # On ne lit que le début des pages : titre, date et premières lignes sont en haut.
 PAGE_MAX_BYTES = 600_000
 EXCERPT_MAX_CHARS = 500
+# Début du texte et liens gardés par page : assez pour repérer les phrases recopiées et la source
+# citée, sans alourdir la réponse.
+BODY_MAX_CHARS = 4_000
+LINKS_MAX = 150
 USER_AGENT = "MindStack/0.1 (verification d'informations, DevFest 2026)"
 
 STOP_WORDS = frozenset(
@@ -128,6 +151,10 @@ class WebArticle:
     published_at: str | None
     excerpt: str
     language: str | None
+    # Le texte de la page (début) et ses liens sortants : ils servent à retrouver qui reprend qui
+    # (phrases recopiées, lien vers l'article d'origine).
+    body: str = ""
+    links: list[str] = field(default_factory=list)
 
     def as_dict(self) -> dict[str, Any]:
         return {
@@ -137,6 +164,8 @@ class WebArticle:
             "published_at": self.published_at,
             "excerpt": self.excerpt,
             "language": self.language,
+            "body": self.body,
+            "links": self.links,
         }
 
 
@@ -206,6 +235,7 @@ class _PageReader(HTMLParser):
         self.title = ""
         self.time_datetime: str | None = None
         self.paragraphs: list[str] = []
+        self.links: list[str] = []
         self._in_title = False
         self._in_p = False
         self._current: list[str] = []
@@ -223,6 +253,8 @@ class _PageReader(HTMLParser):
         elif tag == "p":
             self._in_p = True
             self._current = []
+        elif tag == "a" and attributes.get("href") and len(self.links) < LINKS_MAX:
+            self.links.append(attributes["href"])
 
     def handle_endtag(self, tag: str) -> None:
         if tag == "title":
@@ -240,8 +272,8 @@ class _PageReader(HTMLParser):
             self._current.append(data)
 
 
-def read_page(html: str) -> dict[str, str | None]:
-    """Titre, date (ISO) et extrait d'une page HTML. Champs absents : None."""
+def read_page(html: str, base_url: str = "") -> dict[str, Any]:
+    """Titre, date (ISO), extrait, texte et liens d'une page HTML. Champs absents : None ou vide."""
     reader = _PageReader()
     # Une page mal formée donne ce qui a pu être lu avant l'erreur.
     with contextlib.suppress(AssertionError, ValueError):
@@ -259,10 +291,13 @@ def read_page(html: str) -> dict[str, str | None]:
     if len(excerpt) < 80 and reader.paragraphs:
         excerpt = " ".join(reader.paragraphs[:2])
     title = meta.get("og:title") or " ".join(reader.title.split())
+    links = [urljoin(base_url, href) for href in reader.links]
     return {
         "title": title.strip() or None,
         "published_at": _iso_date(published),
         "excerpt": _shorten(" ".join(excerpt.split())) or None,
+        "body": " ".join(reader.paragraphs)[:BODY_MAX_CHARS],
+        "links": [link for link in links if link.startswith("http")],
     }
 
 
@@ -304,13 +339,13 @@ async def _download_page(client: httpx.AsyncClient, url: str) -> str | None:
         return body.decode(response.encoding or "utf-8", errors="replace")
 
 
-async def _fetch_page(client: httpx.AsyncClient, url: str) -> dict[str, str | None] | None:
-    """Titre, date et extrait d'une page web ; None si elle ne se lit pas (bloquée, lente…)."""
+async def _fetch_page(client: httpx.AsyncClient, url: str) -> dict[str, Any] | None:
+    """Titre, date, extrait, texte et liens d'une page web ; None si elle ne se lit pas."""
     try:
         html = await call_with_connect_retry_async(lambda: _download_page(client, url))
     except httpx.HTTPError:
         return None
-    return read_page(html) if html is not None else None
+    return read_page(html, url) if html is not None else None
 
 
 async def _read_article(client: httpx.AsyncClient, item: dict[str, Any]) -> WebArticle:
@@ -330,6 +365,8 @@ async def _read_article(client: httpx.AsyncClient, item: dict[str, Any]) -> WebA
     article.title = page["title"] or article.title
     article.published_at = page["published_at"] or article.published_at
     article.excerpt = page["excerpt"] or ""
+    article.body = page["body"]
+    article.links = page["links"]
     return article
 
 
@@ -350,31 +387,44 @@ async def _finish(tasks: list[asyncio.Task[Any]], seconds: float) -> list[Any]:
 
 
 async def find_articles(
-    settings: Settings, claim: str, *, transport: httpx.AsyncBaseTransport | None = None
+    settings: Settings,
+    claim: str,
+    queries: list[str] | None = None,
+    *,
+    transport: httpx.AsyncBaseTransport | None = None,
 ) -> tuple[list[WebArticle], str]:
     """Articles proches de l'information, datés, et le moteur utilisé (« tavily » ou « gdelt »).
 
-    Tavily si sa clé est configurée (rapide, presse et forums), sinon GDELT (presse seulement).
+    Tavily si sa clé est configurée (rapide, presse, forums, réseaux) : l'information elle-même,
+    plus les autres formulations `queries` (mots-clés, autres langues). Sinon GDELT (presse).
     Lève WebSearchUnavailableError si la recherche ne peut pas se faire.
     """
     if settings.demo_offline:
         raise WebSearchUnavailableError("offline")
     if settings.tavily_api_key is not None:
         key = settings.tavily_api_key.get_secret_value()
-        return await _find_with_tavily(key, claim, transport), "tavily"
+        return await _find_with_tavily(key, claim, queries or [], transport), "tavily"
     return await _find_with_gdelt(claim, transport), "gdelt"
 
 
 async def _tavily(
-    client: httpx.AsyncClient, key: str, claim: str, topic: str
+    client: httpx.AsyncClient,
+    key: str,
+    query: str,
+    topic: str,
+    domains: list[str] | None = None,
 ) -> list[dict[str, Any]]:
-    body = {
-        # Tavily accepte une phrase entière : l'information elle-même est la meilleure requête.
-        "query": claim[:TAVILY_QUERY_MAX_CHARS],
+    body: dict[str, Any] = {
+        # Tavily accepte une phrase entière : l'information elle-même est une bonne requête.
+        "query": query[:TAVILY_QUERY_MAX_CHARS],
         "topic": topic,
         "search_depth": "basic",
-        "max_results": MAX_ARTICLES,
+        "max_results": TAVILY_MAX_RESULTS,
+        # Le texte de chaque page, en Markdown : on y lit les phrases et les liens.
+        "include_raw_content": "markdown",
     }
+    if domains:
+        body["include_domains"] = domains
     headers = {"Authorization": f"Bearer {key}"}
     response = await call_with_connect_retry_async(
         lambda: client.post(TAVILY_URL, headers=headers, json=body)
@@ -388,6 +438,7 @@ async def _tavily(
 def _from_tavily(item: dict[str, Any]) -> WebArticle:
     url = str(item["url"])
     published = item.get("published_date")
+    raw = str(item.get("raw_content") or "")
     return WebArticle(
         url=url,
         title=" ".join(str(item.get("title") or "").split()),
@@ -398,7 +449,16 @@ def _from_tavily(item: dict[str, Any]) -> WebArticle:
             " ".join(re.sub(r"[#*_>`|]+", " ", str(item.get("content") or "")).split())
         ),
         language=None,
+        body=_markdown_text(raw)[:BODY_MAX_CHARS],
+        links=re.findall(r"\]\((https?://[^)\s]+)\)", raw)[:LINKS_MAX],
     )
+
+
+def _markdown_text(markdown: str) -> str:
+    """Le texte d'une page en Markdown, sans images ni adresses de liens."""
+    text = re.sub(r"!\[[^\]]*\]\([^)]*\)", " ", markdown)
+    text = re.sub(r"\[([^\]]*)\]\([^)]*\)", r"\1", text)
+    return " ".join(re.sub(r"[#*_>`|]+", " ", text).split())
 
 
 def _rfc_date(value: str) -> str | None:
@@ -410,16 +470,20 @@ def _rfc_date(value: str) -> str | None:
 
 
 async def _find_with_tavily(
-    key: str, claim: str, transport: httpx.AsyncBaseTransport | None
+    key: str, claim: str, queries: list[str], transport: httpx.AsyncBaseTransport | None
 ) -> list[WebArticle]:
     headers = {"User-Agent": USER_AGENT}
     async with httpx.AsyncClient(
         timeout=TAVILY_TIMEOUT_SECONDS, follow_redirects=True, headers=headers, transport=transport
     ) as client:
-        # Actualités (datées) et web général (forums, Reddit, blogs) en même temps.
+        # Tout en même temps : l'information en actualités (datées) et sur le web général, sur les
+        # réseaux sociaux, puis chaque autre formulation (mots-clés, autres langues).
+        others = [query for query in queries if query.strip() and query.strip() != claim.strip()]
         responses = await asyncio.gather(
             _tavily(client, key, claim, "news"),
             _tavily(client, key, claim, "general"),
+            _tavily(client, key, claim, "general", SOCIAL_DOMAINS),
+            *(_tavily(client, key, query, "general") for query in others[:MAX_QUERIES]),
             return_exceptions=True,
         )
         if all(isinstance(response, BaseException) for response in responses):
@@ -435,16 +499,25 @@ async def _find_with_tavily(
                 if article.title:
                     articles.setdefault(article.url, article)
 
-        # Sans date, on va la lire sur la page, en temps limité : sinon l'article reste non daté.
-        undated = [article for article in articles.values() if article.published_at is None]
+        # Sans date ou sans texte, on va les lire sur la page, en temps limité : sinon l'article
+        # reste non daté, ou comparé aux autres par son seul extrait.
+        incomplete = [
+            article
+            for article in articles.values()
+            if article.published_at is None or not article.body
+        ][:PAGES_TO_COMPLETE]
 
         async def complete(article: WebArticle) -> None:
             page = await _fetch_page(client, article.url)
-            if page is not None:
-                article.published_at = page["published_at"]
+            if page is None:
+                return
+            article.published_at = article.published_at or page["published_at"]
+            article.body = article.body or page["body"]
+            article.links = article.links or page["links"]
 
-        await _finish([asyncio.create_task(complete(article)) for article in undated], DATE_SECONDS)
-    logger.info("tavily : %d articles, %d sans date au départ", len(articles), len(undated))
+        tasks = [asyncio.create_task(complete(article)) for article in incomplete]
+        await _finish(tasks, DATE_SECONDS)
+    logger.info("tavily : %d articles, %d complétés sur leur page", len(articles), len(incomplete))
     return list(articles.values())
 
 
@@ -476,3 +549,39 @@ async def _find_with_gdelt(
         articles: list[WebArticle] = await _finish(tasks, PAGES_TOTAL_SECONDS)
     logger.info("gdelt : %d articles trouvés, %d lus", len(unique), len(articles))
     return [article for article in articles if article.title]
+
+
+async def read_pages(
+    settings: Settings, urls: list[str], *, transport: httpx.AsyncBaseTransport | None = None
+) -> list[WebArticle]:
+    """Titre, date, extrait, texte et liens de pages données (les liens d'un article qu'on suit
+    pour remonter à ses sources). Les pages illisibles ou trop lentes sont ignorées."""
+    if settings.demo_offline:
+        raise WebSearchUnavailableError("offline")
+    unique = list(dict.fromkeys(url for url in urls if url.startswith("http")))[:PAGES_MAX]
+    async with httpx.AsyncClient(
+        timeout=PAGE_TIMEOUT_SECONDS,
+        follow_redirects=True,
+        headers={"User-Agent": USER_AGENT},
+        transport=transport,
+    ) as client:
+
+        async def read(url: str) -> WebArticle | None:
+            page = await _fetch_page(client, url)
+            if page is None or not page["title"]:
+                return None
+            return WebArticle(
+                url=url,
+                title=page["title"],
+                site=_site(url),
+                published_at=page["published_at"],
+                excerpt=page["excerpt"] or "",
+                language=None,
+                body=page["body"],
+                links=page["links"],
+            )
+
+        results = await _finish([asyncio.create_task(read(url)) for url in unique], DATE_SECONDS)
+    articles = [article for article in results if article is not None]
+    logger.info("pages : %d lues sur %d", len(articles), len(unique))
+    return articles

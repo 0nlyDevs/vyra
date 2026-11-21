@@ -101,10 +101,19 @@ const DEMO_VERSIONS: (typeof caseVersions.$inferInsert)[] = [
     sourceName: 'Infos Quartier 24 (page de réseau social)',
     publishedAt: daysAgo(1, 7, 10),
   },
+  // Une autre branche : une radio reprend la page de quartier, sans rien ajouter.
+  {
+    id: id(107),
+    caseId: DEMO_CASE_IDS.flood,
+    position: 4,
+    content: 'Selon Infos Quartier 24, une inondation a eu lieu ce matin à Ambohitsoa-Nord.',
+    sourceName: 'Radio des Collines (page de réseau social)',
+    publishedAt: daysAgo(1, 7, 40),
+  },
   {
     id: id(104),
     caseId: DEMO_CASE_IDS.flood,
-    position: 4,
+    position: 5,
     content:
       'URGENT : inondation ce matin à Ambohitsoa-Nord, 3 morts, l’école est fermée. Partagez !',
     sourceName: 'Message transféré',
@@ -113,11 +122,21 @@ const DEMO_VERSIONS: (typeof caseVersions.$inferInsert)[] = [
   {
     id: id(105),
     caseId: DEMO_CASE_IDS.flood,
-    position: 5,
+    position: 6,
     content:
       'URGENT : inondation ce matin à Ambohitsoa-Nord, 3 morts, l’école est fermée. La mairie cache la vérité. Partagez vite !',
     sourceName: 'Message transféré',
     publishedAt: daysAgo(1, 9, 15),
+  },
+  // Le démenti : la mairie rappelle que la photo date de 2019.
+  {
+    id: id(106),
+    caseId: DEMO_CASE_IDS.flood,
+    position: 7,
+    content:
+      'Communiqué : aucune inondation ce matin à Ambohitsoa-Nord. La photo qui circule date de mars 2019. Aucune victime, l’école est ouverte.',
+    sourceName: 'Mairie d’Ambohitsoa (communiqué officiel)',
+    publishedAt: daysAgo(1, 11),
   },
   // Dix jours sans eau
   {
@@ -167,13 +186,15 @@ const DEMO_VERSIONS: (typeof caseVersions.$inferInsert)[] = [
   },
 ];
 
+// L'arbre de propagation du module Enquête : chaque version est reliée à celle qu'elle reprend
+// (de `from` vers `to`), avec ce qui change ; un démenti est relié à ce qu'il dément.
 const DEMO_LINKS: (typeof versionLinks.$inferInsert)[] = [
   {
     caseId: DEMO_CASE_IDS.flood,
     fromVersionId: id(101),
     toVersionId: id(102),
     changeType: 'shared_unchanged',
-    note: 'La photo est reprise avec sa date d’origine.',
+    note: 'Phrases reprises. La photo est reprise avec sa date d’origine, « mars 2019 ».',
     confidence: 'high',
   },
   {
@@ -181,15 +202,23 @@ const DEMO_LINKS: (typeof versionLinks.$inferInsert)[] = [
     fromVersionId: id(102),
     toVersionId: id(103),
     changeType: 'passage_cut',
-    note: 'La date de 2019 disparaît, « ce matin » apparaît.',
+    note: 'Même photo. « Souvenir : mars 2019 » disparaît, « ce matin » apparaît : le souvenir devient une actualité.',
     confidence: 'medium',
+  },
+  {
+    caseId: DEMO_CASE_IDS.flood,
+    fromVersionId: id(103),
+    toVersionId: id(107),
+    changeType: 'shared_unchanged',
+    note: 'Cite Infos Quartier 24. Reprise sans rien ajouter.',
+    confidence: 'high',
   },
   {
     caseId: DEMO_CASE_IDS.flood,
     fromVersionId: id(103),
     toVersionId: id(104),
     changeType: 'figure_changed',
-    note: 'Ajout de « 3 morts » et de la fermeture de l’école, sans source.',
+    note: 'Phrases reprises. Ajout de « 3 morts » et de la fermeture de l’école, sans source.',
     confidence: 'medium',
   },
   {
@@ -197,7 +226,15 @@ const DEMO_LINKS: (typeof versionLinks.$inferInsert)[] = [
     fromVersionId: id(104),
     toVersionId: id(105),
     changeType: 'tone_hardened',
-    note: 'Ajout d’une accusation : « la mairie cache la vérité ».',
+    note: 'Phrases reprises. Ajout d’une accusation : « la mairie cache la vérité ».',
+    confidence: 'high',
+  },
+  {
+    caseId: DEMO_CASE_IDS.flood,
+    fromVersionId: id(106),
+    toVersionId: id(105),
+    changeType: 'contradicts',
+    note: 'La mairie dément : la photo date de mars 2019, aucune victime, l’école est ouverte.',
     confidence: 'high',
   },
   {
@@ -205,7 +242,7 @@ const DEMO_LINKS: (typeof versionLinks.$inferInsert)[] = [
     fromVersionId: id(201),
     toVersionId: id(202),
     changeType: 'passage_cut',
-    note: 'Les horaires et les deux quartiers concernés disparaissent.',
+    note: 'Les horaires (10 h à 14 h) et les deux quartiers concernés disparaissent.',
     confidence: 'high',
   },
   {
@@ -213,7 +250,7 @@ const DEMO_LINKS: (typeof versionLinks.$inferInsert)[] = [
     fromVersionId: id(202),
     toVersionId: id(203),
     changeType: 'figure_changed',
-    note: '« De 10 h à 14 h » devient « 10 jours », « deux quartiers » devient « toute la ville ».',
+    note: '« Lundi » devient « 10 jours à partir de lundi », « plusieurs quartiers » devient « toute la ville ».',
     confidence: 'medium',
   },
   {

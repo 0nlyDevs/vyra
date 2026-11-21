@@ -105,8 +105,8 @@ export function WebSearchPanel({
             <strong className="font-semibold">
               {done.contradicting} {done.contradicting > 1 ? 'sources démentent' : 'source dément'}
             </strong>{' '}
-            cette information, selon l’IA. Elles ne sont pas dans le graphe : elles relèvent du
-            tribunal.
+            cette information, selon l’IA : dans l’arbre, leur lien porte la mention « Dément
+            l’information ».
           </span>
         </p>
       )}
@@ -123,8 +123,8 @@ function WebSearchSummary({ done }: { done: Done }) {
           <strong className="font-semibold">
             {done.kept} {done.kept > 1 ? 'sources retrouvées' : 'source retrouvée'}
           </strong>{' '}
-          sur le web. Elles sont rangées par date dans le graphe ; cliquez sur un point pour lire le
-          texte et ouvrir la source.
+          sur le web. Dans l’arbre, chacune est reliée à celle qu’elle reprend ; cliquez sur un lien
+          pour voir ce qui change, ou sur une source pour la lire et l’explorer.
         </span>
       ) : (
         <span>

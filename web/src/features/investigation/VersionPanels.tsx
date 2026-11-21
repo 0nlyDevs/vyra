@@ -1,4 +1,5 @@
 import { ExternalLink } from 'lucide-react';
+import type { ReactNode } from 'react';
 import { ToneBadge } from '@/components/common/ToneBadge';
 import {
   CHANGE_TYPE_LABELS,
@@ -7,17 +8,21 @@ import {
   SOURCE_KIND_LABELS,
   SOURCE_KIND_TONES,
 } from '@/lib/domain';
-import { formatDate } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import type { CaseFile } from '@/server/dal/cases';
+import { formatDay as formatDate } from './dates';
 import { sourceKind } from './source-kind';
 import { type DiffPart, diffWords } from './word-diff';
 
 type Version = CaseFile['versions'][number];
 type Link = CaseFile['links'][number];
 
-// Panneau d'une version : son texte, sa source, sa date.
-export function VersionDetail({ version }: { version: Version }) {
+// Le lien affiché entre une source et l'information analysée. `estimated` : calculé sans IA, à
+// partir des mots ajoutés et retirés, faute de lien enregistré.
+export type ShownLink = Pick<Link, 'changeType' | 'note' | 'confidence'> & { estimated: boolean };
+
+// Panneau d'une version : son texte, sa source, sa date, et une action (explorer ses reprises).
+export function VersionDetail({ version, action }: { version: Version; action?: ReactNode }) {
   return (
     <section
       aria-label={`Version ${version.position}`}
@@ -38,6 +43,7 @@ export function VersionDetail({ version }: { version: Version }) {
           <ExternalLink className="size-3.5" aria-hidden />
         </a>
       )}
+      {action}
     </section>
   );
 }
@@ -47,20 +53,23 @@ export function VersionComparison({
   before,
   after,
   link,
+  afterIsCenter = false,
 }: {
   before: Version;
   after: Version;
-  link: Link | null;
+  link: ShownLink | null;
+  afterIsCenter?: boolean;
 }) {
   const diff = diffWords(before.content, after.content);
+  const target = afterIsCenter ? 'information analysée' : `version ${after.position}`;
   return (
     <section
-      aria-label={`Comparaison des versions ${before.position} et ${after.position}`}
+      aria-label={`Comparaison de la version ${before.position} et de la ${target}`}
       className="grid gap-5 rounded-xl border bg-card p-5 shadow-sm"
     >
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h3 className="font-semibold text-lg">
-          Version {before.position} → version {after.position}
+          Version {before.position} → {target}
         </h3>
         <ul className="flex flex-wrap gap-4 text-sm" aria-label="Légende">
           <li className="flex items-center gap-2">
@@ -82,6 +91,7 @@ export function VersionComparison({
           <span>{link.note}</span>
           <span className="text-muted-foreground text-sm">
             Confiance : {LINK_CONFIDENCE_LABELS[link.confidence].toLowerCase()}.
+            {link.estimated && ' Estimation sans IA.'}
           </span>
         </p>
       )}

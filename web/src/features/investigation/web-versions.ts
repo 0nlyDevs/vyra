@@ -1,7 +1,6 @@
 import 'server-only';
-import { z } from 'zod';
 import { type ActionResult, fail, ok } from '@/lib/action-result';
-import { CHANGE_TYPES, LINK_CONFIDENCES, type WebSearchStatus } from '@/lib/domain';
+import type { WebSearchStatus } from '@/lib/domain';
 import { ERRORS } from '@/lib/errors';
 import { getCaseFile } from '@/server/dal/cases';
 import {
@@ -10,21 +9,26 @@ import {
   type OrderedVersion,
   saveWebSearch,
 } from '@/server/dal/investigation';
-import { embedTexts, findWebSources, runPrompt, type WebArticle } from '@/server/processing';
-import { guessChange } from './guess-change';
+import { embedTexts, findWebSources, type WebArticle } from '@/server/processing';
 import { refreshNewsIndex, searchNewsIndex } from './news-index';
 import { confirmSameInformation } from './same-information';
+import { searchQueries } from './search-queries';
+import { describeTree } from './tree-links';
 import { significantWords, wordOverlap } from './word-match';
 
-// Recherche web d'une affaire : les articles de presse qui rapportent la même information
-// deviennent des versions du graphe, rangées par date et reliées entre elles.
+// Recherche web d'une affaire : les sources qui rapportent la même information deviennent des
+// versions, reliées en arbre de propagation (qui reprend qui), avec démentis et contexte.
 
-// Distance cosinus maximale entre l'information et un article (titre et extrait).
-const WEB_MAX_DISTANCE = 0.3;
+// Distance cosinus maximale entre l'information et un article (titre et extrait). Large : l'IA
+// confirme ensuite chaque source, et une version dans une autre langue est plus loin.
+const WEB_MAX_DISTANCE = 0.38;
 // Sans IA : part et nombre minimal de mots de l'information retrouvés dans l'article.
 const WEB_MIN_OVERLAP = 0.4;
 const WEB_MIN_SHARED = 3;
-const MAX_KEPT = 6;
+// Pages examinées au plus (dans l'ordre des moteurs) : les quotas gratuits de l'IA (vecteurs,
+// confirmations) ne suivent pas au-delà. Toutes celles qui passent les filtres vont dans l'arbre.
+const MAX_CANDIDATES = 60;
+const EMBED_BATCH = 50;
 const CONTENT_MAX_LENGTH = 600;
 
 export type WebSearchResult = {
@@ -34,17 +38,19 @@ export type WebSearchResult = {
   contradicting: number;
 };
 
-const compareSchema = z.object({
-  links: z.array(
-    z.object({
-      changeType: z.enum(CHANGE_TYPES),
-      note: z.string().min(1),
-      confidence: z.enum(LINK_CONFIDENCES),
-    }),
-  ),
-});
+// Une seule recherche à la fois par affaire : si la page la relance pendant qu'elle tourne (page
+// montée deux fois, deux onglets), on attend la même au lieu de payer une seconde recherche.
+const running = new Map<string, Promise<ActionResult<WebSearchResult>>>();
 
-export async function searchWebVersions(caseId: string): Promise<ActionResult<WebSearchResult>> {
+export function searchWebVersions(caseId: string): Promise<ActionResult<WebSearchResult>> {
+  const current = running.get(caseId);
+  if (current) return current;
+  const task = search(caseId).finally(() => running.delete(caseId));
+  running.set(caseId, task);
+  return task;
+}
+
+async function search(caseId: string): Promise<ActionResult<WebSearchResult>> {
   const file = await getCaseFile(caseId);
   if (!file) return fail(ERRORS.NOT_FOUND);
 
@@ -62,36 +68,45 @@ export async function searchWebVersions(caseId: string): Promise<ActionResult<We
     return ok({ status: 'prepared', kept: 0, contradicting: 0 });
   }
 
-  // Le web (Tavily) et la mise à jour de l'index de presse en même temps.
-  const [search] = await Promise.all([findWebSources(file.claim), refreshNewsIndex()]);
+  // D'autres formulations (faits clés, anglais, malgache, démenti), puis le web (Tavily) et la
+  // mise à jour de l'index de presse en même temps.
+  const queries = await searchQueries(file.claim);
+  const [search] = await Promise.all([findWebSources(file.claim, queries), refreshNewsIndex()]);
   const webReached = search.ok && search.data.source !== 'fallback';
-  const found = webReached ? search.data.articles : [];
+  const found = (webReached ? search.data.articles : []).slice(0, MAX_CANDIDATES);
 
-  const vectors = await embedTexts([file.claim, ...found.map(articleText)]);
-  const claimVector = vectors.ok ? (vectors.data[0] ?? null) : null;
-  const fromWeb = keepSameInformation(file.claim, found, vectors.ok ? vectors.data.slice(1) : null);
+  const vectors = await embedInBatches([file.claim, ...found.map(articleText)]);
+  const claimVector = vectors?.[0] ?? null;
+  const fromWeb = keepSameInformation(file.claim, found, vectors);
   const fromIndex = await searchNewsIndex(file.claim, claimVector);
   // Ni web ni index : on n'enregistre rien, la personne peut relancer.
   if (!webReached && fromIndex.length === 0) return fail(ERRORS.WEB_SEARCH_UNAVAILABLE);
 
+  // Sans vecteurs (quota de l'IA épuisé), le tri par mots écarte les autres langues et les
+  // reformulations : on soumet alors tous les candidats à l'IA, qui juge chacun.
+  const prefiltered = vectors ? fromWeb : found;
   // À adresse égale, l'article de l'index l'emporte : il porte le nom du journal.
-  const unique = [...new Map([...fromWeb, ...fromIndex].map((item) => [item.url, item])).values()];
-  // L'IA confirme chaque source proche par le sens : seule une source qui rapporte le même fait
-  // devient une version. Celles qui le démentent sont comptées. Sans IA : les vecteurs suffisent.
-  const relations = await confirmSameInformation(file.claim, unique.map(articleText));
-  const same = relations
-    ? unique.filter((_, index) => relations[index]?.relation === 'same')
-    : unique;
-  const contradicting = relations
-    ? relations.filter((item) => item.relation === 'contradicts').length
-    : 0;
-  const kept = same
-    .sort((a, b) => dateValue(a.published_at) - dateValue(b.published_at))
-    .slice(0, MAX_KEPT);
+  const unique = [
+    ...new Map([...prefiltered, ...fromIndex].map((item) => [item.url, item])).values(),
+  ];
+  // L'IA dit ce que chaque source rapporte par rapport à l'information : le même fait, un démenti,
+  // ou le même sujet (contexte). Toutes vont dans l'arbre, sauf les sources sans rapport.
+  const confirmations = await confirmSameInformation(file.claim, unique.map(articleText));
+  // Ni vecteurs ni IA : le tri par mots, en dernier recours.
+  const candidates = confirmations || vectors ? unique : [...fromWeb, ...fromIndex];
+  const judged = candidates.flatMap((article, index) => {
+    const confirmation = confirmations?.[index];
+    if (confirmation?.relation === 'unrelated') return [];
+    return [{ article, relation: confirmation?.relation ?? 'same', reason: confirmation?.reason }];
+  });
+  const contradicting = judged.filter((item) => item.relation === 'contradicts').length;
+  const kept = judged.sort(
+    (a, b) => dateValue(a.article.published_at) - dateValue(b.article.published_at),
+  );
 
-  // Les articles du plus ancien au plus récent, puis le texte reçu (la version la plus récente).
+  // Les sources du plus ancien au plus récent, puis le texte reçu, au centre de la toile.
   const ordered: OrderedVersion[] = [
-    ...kept.map((article) => ({
+    ...kept.map(({ article }) => ({
       content: articleText(article),
       sourceName: article.site,
       sourceUrl: article.url,
@@ -99,8 +114,39 @@ export async function searchWebVersions(caseId: string): Promise<ActionResult<We
     })),
     { id: received.id },
   ];
-  const texts = [...kept.map(articleText), received.content];
-  const links = await describeLinks(texts);
+  // L'arbre : qui reprend qui parmi les sources et le texte reçu, puis démentis et contexte.
+  const receivedKey = 'received';
+  const treeLinks = await describeTree([
+    ...kept.map(({ article, relation, reason }, index) => ({
+      key: String(index),
+      relation,
+      text: articleText(article),
+      body: article.body,
+      url: article.url,
+      site: article.site,
+      links: article.links,
+      time: article.published_at ? Date.parse(article.published_at) : null,
+      reason,
+    })),
+    {
+      key: receivedKey,
+      relation: 'same',
+      text: received.content,
+      body: '',
+      url: received.sourceUrl,
+      site: received.sourceName,
+      links: [],
+      time: received.publishedAt?.getTime() ?? Date.now(),
+    },
+  ]);
+  const indexOf = (key: string) => (key === receivedKey ? kept.length : Number(key));
+  const links: LinkBetween[] = treeLinks.map((link) => ({
+    from: indexOf(link.from),
+    to: indexOf(link.to),
+    changeType: link.changeType,
+    note: link.note,
+    confidence: link.confidence,
+  }));
 
   const status = kept.length > 0 ? 'found' : 'nothing_found';
   await saveWebSearch({
@@ -135,20 +181,15 @@ function keepSameInformation(
   });
 }
 
-// Un lien entre chaque version et la suivante : ce qui a changé, selon l'IA ou à défaut estimé.
-async function describeLinks(texts: string[]): Promise<LinkBetween[]> {
-  const pairs = texts.slice(1).map((after, index) => ({ before: texts[index] ?? '', after }));
-  if (pairs.length === 0) return [];
-  const described = await runPrompt('compare-versions', { pairs }, compareSchema);
-  const fromAi =
-    described.ok && described.data.result.links.length === pairs.length
-      ? described.data.result.links
-      : null;
-  return pairs.map((pair, index) => ({
-    from: index,
-    to: index + 1,
-    ...(fromAi?.[index] ?? guessChange(pair.before, pair.after)),
-  }));
+// Les vecteurs de tous les textes, par paquets ; `null` si un paquet échoue (quota, hors ligne).
+async function embedInBatches(texts: string[]) {
+  const vectors: number[][] = [];
+  for (let start = 0; start < texts.length; start += EMBED_BATCH) {
+    const batch = await embedTexts(texts.slice(start, start + EMBED_BATCH));
+    if (!batch.ok) return null;
+    vectors.push(...batch.data);
+  }
+  return vectors;
 }
 
 function articleText(article: WebArticle) {

@@ -84,20 +84,32 @@ const webArticleSchema = z.object({
   published_at: z.string().nullable(),
   excerpt: z.string(),
   language: z.string().nullable(),
+  // Début du texte de la page et ses liens sortants : pour retrouver qui reprend qui.
+  body: z.string().default(''),
+  links: z.array(z.string()).default([]),
 });
 export type WebArticle = z.infer<typeof webArticleSchema>;
 
-// Articles et messages qui rapportent l'information (Tavily, sinon GDELT).
-// `source: 'fallback'` : recherche impossible.
+// Articles et messages qui rapportent l'information (Tavily, sinon GDELT), cherchés aussi avec
+// les autres formulations `queries` (mots-clés, autres langues). `source: 'fallback'` : recherche
+// impossible.
 export async function findWebSources(
   claim: string,
+  queries: string[] = [],
 ): Promise<ActionResult<{ articles: WebArticle[]; source: 'tavily' | 'gdelt' | 'fallback' }>> {
   const schema = z.object({
     articles: z.array(webArticleSchema),
     source: z.enum(['tavily', 'gdelt', 'fallback']),
   });
-  const data = await post('/v1/web-sources', { claim }, schema, WEB_SEARCH_TIMEOUT_MS);
+  const data = await post('/v1/web-sources', { claim, queries }, schema, WEB_SEARCH_TIMEOUT_MS);
   return data ? ok(data) : fail(ERRORS.AI_UNAVAILABLE);
+}
+
+// Titre, date, texte et liens de pages données (pour suivre les liens d'un article).
+export async function readPages(urls: string[]): Promise<ActionResult<WebArticle[]>> {
+  const schema = z.object({ articles: z.array(webArticleSchema) });
+  const data = await post('/v1/pages', { urls }, schema, WEB_SEARCH_TIMEOUT_MS);
+  return data ? ok(data.articles) : fail(ERRORS.WEB_SEARCH_UNAVAILABLE);
 }
 
 const newsItemSchema = z.object({
