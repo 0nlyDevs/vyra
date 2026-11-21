@@ -9,7 +9,7 @@ from fastapi import FastAPI
 from app.core.config import Settings, get_settings
 from app.core.errors import register_error_handlers
 from app.core.logging import configure_logging
-from app.routers import ai, health
+from app.routers import ai, health, web
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -28,6 +28,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     application.include_router(health.router)
     # Tout nouveau routeur s'ajoute ici.
     application.include_router(ai.router)
+    application.include_router(web.router)
     return application
 
 
