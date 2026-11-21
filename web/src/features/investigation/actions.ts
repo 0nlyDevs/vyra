@@ -5,7 +5,7 @@ import { redirect } from 'next/navigation';
 import { type ActionResult, fail, ok } from '@/lib/action-result';
 import { ERRORS } from '@/lib/errors';
 import { getCurrentProfile } from '@/server/session';
-import { type ExploreResult, exploreVersion } from './explore';
+import { type ExploreResult, exploreLevel, exploreVersion } from './explore';
 import { type HarvestResult, refreshNewsIndex } from './news-index';
 import { openCaseFromClaim } from './open-case';
 import { caseIdSchema, exploreSchema, openCaseSchema } from './schema';
@@ -70,5 +70,19 @@ export async function exploreSource(
 
   const result = await exploreVersion(parsed.data.caseId, parsed.data.versionId);
   if (result.ok) revalidatePath(`/cases/${parsed.data.caseId}`);
+  return result;
+}
+
+// « Explorer un niveau de plus » : toutes les sources en bout de branche sont explorées.
+export async function exploreNextLevel(
+  caseId: string,
+): Promise<ActionResult<{ explored: number; added: number }>> {
+  const profile = await getCurrentProfile();
+  if (!profile) return fail(ERRORS.UNAUTHORIZED);
+  const parsed = caseIdSchema.safeParse(caseId);
+  if (!parsed.success) return fail(ERRORS.VALIDATION_FAILED, parsed.error);
+
+  const result = await exploreLevel(parsed.data);
+  if (result.ok) revalidatePath(`/cases/${parsed.data}`);
   return result;
 }

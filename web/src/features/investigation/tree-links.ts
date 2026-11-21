@@ -47,6 +47,8 @@ const compareSchema = z.object({
   ),
 });
 
+const COMPARE_BATCH = 12;
+
 // La confiance d'un lien « reprend » vient de l'indice trouvé, pas de l'IA.
 const BASIS_CONFIDENCE = {
   link: 'high',
@@ -62,7 +64,8 @@ function basisNote(basis: LineageBasis, parent: TreeItem) {
   return 'Reprise possible, sans phrase commune.';
 }
 
-export async function describeTree(items: TreeItem[]): Promise<TreeLink[]> {
+// `anchor` : la version à laquelle se rattache une page sans indice (la source qu'on explore).
+export async function describeTree(items: TreeItem[], anchor?: string): Promise<TreeLink[]> {
   const byKey = new Map(items.map((item) => [item.key, item]));
   const versions = items.filter((item) => item.relation === 'same');
   const lineage = buildLineage(
@@ -74,6 +77,7 @@ export async function describeTree(items: TreeItem[]): Promise<TreeLink[]> {
       site: item.site,
       links: item.links,
     })),
+    anchor,
   );
 
   // Ce qui change d'une version à celle qui la reprend : l'IA, en un seul appel.
@@ -81,16 +85,24 @@ export async function describeTree(items: TreeItem[]): Promise<TreeLink[]> {
     before: byKey.get(edge.parent)?.text ?? '',
     after: byKey.get(edge.child)?.text ?? '',
   }));
-  const described =
-    pairs.length > 0 ? await runPrompt('compare-versions', { pairs }, compareSchema) : null;
-  const fromAi =
-    described?.ok && described.data.result.links.length === pairs.length
-      ? described.data.result.links
-      : null;
+  // Par paquets envoyés en même temps : un grand arbre ne tient pas dans une seule réponse.
+  const batches: (typeof pairs)[] = [];
+  for (let start = 0; start < pairs.length; start += COMPARE_BATCH) {
+    batches.push(pairs.slice(start, start + COMPARE_BATCH));
+  }
+  const described = await Promise.all(
+    batches.map(async (batch) => {
+      const answer = await runPrompt('compare-versions', { pairs: batch }, compareSchema);
+      return answer.ok && answer.data.result.links.length === batch.length
+        ? answer.data.result.links
+        : batch.map(() => null);
+    }),
+  );
+  const fromAi = described.flat();
 
   const reprises: TreeLink[] = lineage.map((edge, index) => {
     const pair = pairs[index] ?? { before: '', after: '' };
-    const change = fromAi?.[index] ?? guessChange(pair.before, pair.after);
+    const change = fromAi[index] ?? guessChange(pair.before, pair.after);
     const parent = byKey.get(edge.parent);
     return {
       from: edge.parent,
@@ -123,11 +135,13 @@ export async function describeTree(items: TreeItem[]): Promise<TreeLink[]> {
         },
       ];
     }
-    if (item.relation === 'related' && root) {
+    // Le contexte se rattache à la source explorée, sinon à la racine.
+    const contextTarget = anchor ?? root?.key;
+    if (item.relation === 'related' && contextTarget) {
       return [
         {
           from: item.key,
-          to: root.key,
+          to: contextTarget,
           changeType: 'related',
           note: item.reason ?? 'Même sujet, autre fait, selon l’IA.',
           confidence: 'medium',
