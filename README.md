@@ -67,6 +67,18 @@ dans `web/`. Facultatif : l'application tourne sans.
 
 Avec Node 22 installé : `make web-local` (base et processing restent dans Docker).
 
+## Envoyer son travail
+
+Valable pour tout le monde, humain ou assistant. Avant **chaque** PR :
+
+1. Récupérer `main` et le fusionner dans sa branche : `git fetch origin`, puis
+   `git merge origin/main`.
+2. Régler les conflits, s'il y en a.
+3. Relancer `make check` (Windows : les commandes de la cible `check` du `Makefile`).
+4. Pousser la branche et ouvrir la PR.
+
+Pas de `rebase` sur une branche déjà poussée.
+
 ## Où lire quoi
 
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) : qui fait quoi, comment ajouter une fonctionnalité.
