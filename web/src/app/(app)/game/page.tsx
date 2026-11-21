@@ -1,4 +1,4 @@
-import { Play } from 'lucide-react';
+import { Play, Users } from 'lucide-react';
 import Link from 'next/link';
 import { PageHeader } from '@/components/common/PageHeader';
 import { ToneBadge } from '@/components/common/ToneBadge';
@@ -55,12 +55,20 @@ export default async function GamePage() {
                 </li>
               ))}
             </ol>
-            <Button asChild size="lg" className="justify-self-start">
-              <Link href="/game/play">
-                <Play aria-hidden />
-                Jouer une série
-              </Link>
-            </Button>
+            <div className="flex flex-wrap gap-3">
+              <Button asChild size="lg">
+                <Link href="/game/play">
+                  <Play aria-hidden />
+                  Jouer une série
+                </Link>
+              </Button>
+              <Button asChild size="lg" variant="outline">
+                <Link href="/game/family">
+                  <Users aria-hidden />
+                  Bonus : le groupe famille
+                </Link>
+              </Button>
+            </div>
             <p className="text-muted-foreground text-sm">
               Toutes les informations du jeu sont inventées, comme les lieux et les médias cités.
             </p>
