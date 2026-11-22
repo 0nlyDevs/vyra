@@ -232,11 +232,11 @@
 
       <section class="case">
         <header><span class="num">11</span><h3>La plateforme est arrêtée</h3></header>
-        <p class="do">Arrêter le web : <code>docker compose stop web</code>. Refaire le scénario 01, puis relancer : <code>docker compose start web</code>.</p>
+        <p class="do">Dans « Réglages », saisir <code>http://localhost:3000</code> avec la plateforme locale arrêtée (ou couper le réseau). Refaire le scénario 01, puis relancer la plateforme.</p>
         <div class="expect">
           <b>Attendu</b>
           <ul>
-            <li>Message encadré « Plateforme injoignable à http://localhost:3000… », étape 02 en échec.</li>
+            <li>Message encadré « Plateforme injoignable à … », étape 02 en échec ; une panne de l’hébergeur dit « a répondu une erreur », pas « injoignable ».</li>
             <li>Après le redémarrage, « Vérifier ce contenu » marche de nouveau sans recharger l’extension.</li>
           </ul>
         </div>
@@ -244,11 +244,11 @@
 
       <section class="case">
         <header><span class="num">12</span><h3>Réglages et thèmes</h3></header>
-        <p class="do">Cliquer « Réglages » en haut du panneau, garder <code>http://localhost:3000</code> et « Enregistrer ». Puis passer le système en thème clair, puis sombre.</p>
+        <p class="do">Cliquer « Réglages » en haut du panneau : l’adresse proposée est <code>https://vyra-mg.vercel.app</code>. Enregistrer, puis « Rétablir l’adresse en ligne ». Puis passer le système en thème clair, puis sombre.</p>
         <div class="expect">
           <b>Attendu</b>
           <ul>
-            <li>« Enregistré : http://localhost:3000 », sans demande de permission (localhost est déjà autorisé). Une autre adresse demande votre accord.</li>
+            <li>« Enregistré : https://vyra-mg.vercel.app » sans demande de permission (le site en ligne et localhost sont déjà autorisés) ; « Adresse rétablie » après le bouton. Une autre adresse demande votre accord.</li>
             <li>Le panneau suit le thème du système : papier et encre en clair, inversés en sombre ; seuls les verdicts sont en couleur.</li>
           </ul>
         </div>
