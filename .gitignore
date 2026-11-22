@@ -26,3 +26,4 @@ __pycache__/
 .vercel
 .env*
 !.env.example
+vyra-extension.zip

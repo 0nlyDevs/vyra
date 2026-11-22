@@ -1,7 +1,7 @@
 # Extension « Vérifier ici »
 
 Vérifier un texte, un lien ou une image sans quitter la page qu'on lit. L'extension s'ouvre en
-panneau latéral et interroge la plateforme (route publique `POST /api/check`, sans compte).
+panneau latéral et interroge la plateforme en ligne (`https://vyra-mg.vercel.app`, route publique `POST /api/check`, sans compte).
 
 - **Clic droit sur un texte sélectionné** : affaire déjà jugée qui lui ressemble, signes d'alerte
   relevés dans les mots (sans IA) et vérifications déjà publiées.
@@ -12,13 +12,21 @@ panneau latéral et interroge la plateforme (route publique `POST /api/check`, s
 
 Jamais de verdict nouveau : seules les conclusions du tribunal sont affichées.
 
-## Installer (mode développeur)
+## Installer (sans la publier)
 
-1. Lancer la plateforme (`docker compose up --build`), accessible sur `http://localhost:3000`.
+L'extension n'est pas sur le Chrome Web Store : elle s'installe à la main, une fois par navigateur.
+
+1. Créer le paquet : `sh extension/pack.sh` (donne `vyra-extension.zip`), puis le décompresser.
+   Ou utiliser directement le dossier `extension/`.
 2. Dans Chrome, Edge ou Brave : ouvrir `chrome://extensions`, activer le **mode développeur**.
-3. **Charger l'extension non empaquetée** et choisir ce dossier `extension/`.
+3. **Charger l'extension non empaquetée** et choisir le dossier décompressé.
 4. Épingler l'icône. Sur n'importe quelle page : sélectionner un texte, clic droit,
    « Vérifier ce texte ».
+
+Elle interroge `https://vyra-mg.vercel.app` par défaut. Pour la plateforme locale
+(`docker compose up --build`), mettre `http://localhost:3000` dans **Réglages** ; « Rétablir
+l'adresse en ligne » y revient. La première demande sur le site en ligne peut prendre quelques
+secondes (hébergement qui s'endort).
 
 Pas de build ni de dépendance : JavaScript, HTML et CSS tels quels (Manifest V3, Chrome 116+).
 
@@ -44,5 +52,5 @@ plateforme arrêtée, chacun avec le résultat attendu. Pour l'ouvrir depuis le 
 - Rien ne part avant le clic sur « Vérifier ce contenu ». Un texte sélectionné est envoyé comme
   texte seul.
 - Le contenu en attente reste en mémoire de session. Seule l'adresse de la plateforme est gardée.
-- Une adresse autre que `localhost` (plateforme en ligne) se règle dans **Réglages** et demande
+- Une adresse autre que `vyra-mg.vercel.app` et `localhost` se règle dans **Réglages** et demande
   votre accord.

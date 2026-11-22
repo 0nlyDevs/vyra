@@ -2,7 +2,11 @@
 // l'affaire déjà jugée, les signes d'alerte et les vérifications publiées. Jamais de verdict nouveau.
 // Tout le texte venu du réseau passe par textContent : rien n'est interprété comme du HTML.
 
-const DEFAULT_BASE_URL = 'http://localhost:3000';
+// La plateforme en ligne par défaut ; une autre adresse (http://localhost:3000 en développement)
+// se règle dans Réglages.
+const DEFAULT_BASE_URL = 'https://vyra-mg.vercel.app';
+// Une première requête sur un hébergement qui s'endort peut être longue : au-delà, on s'arrête.
+const CHECK_TIMEOUT_MS = 40_000;
 const REVERSE_SEARCH = [
   ['Google Lens', (url) => `https://lens.google.com/uploadbyurl?url=${encodeURIComponent(url)}`],
   ['TinEye', (url) => `https://tineye.com/search?url=${encodeURIComponent(url)}`],
@@ -229,24 +233,34 @@ async function check(pending) {
   button.disabled = true;
   $('paste-check').disabled = true;
   setSteps(1);
-  setStatus('Recherche dans les affaires jugées et chez les vérificateurs…');
+  setStatus('Recherche dans les affaires jugées et chez les vérificateurs… La première demande peut prendre quelques secondes.');
   try {
     const response = await fetch(`${base}/api/check`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(pending.kind === 'text' ? { text: pending.text } : { url: pending.url }),
+      signal: AbortSignal.timeout(CHECK_TIMEOUT_MS),
     });
-    const data = await response.json();
-    if (!response.ok) {
+    // Une panne de l'hébergeur renvoie une page, pas du JSON : on ne la prend pas pour un réseau coupé.
+    const data = await response.json().catch(() => null);
+    if (!response.ok || !data) {
       setSteps(1, true);
-      setStatus(data.error || 'Vérification impossible.', 'error');
+      setStatus(
+        data?.error || `La plateforme a répondu une erreur (${response.status}). Réessayez dans un instant.`,
+        'error',
+      );
       return;
     }
     setStatus('');
     renderResult(data, base, pending);
-  } catch {
+  } catch (error) {
     setSteps(1, true);
-    setStatus(`Plateforme injoignable à ${base}. Vérifiez qu’elle tourne, ou changez son adresse dans Réglages.`, 'error');
+    setStatus(
+      error?.name === 'TimeoutError'
+        ? 'La plateforme met trop de temps à répondre. Réessayez dans un instant.'
+        : `Plateforme injoignable à ${base}. Vérifiez votre connexion, ou changez son adresse dans Réglages.`,
+      'error',
+    );
   } finally {
     button.disabled = false;
     $('paste-check').disabled = false;
@@ -292,7 +306,7 @@ $('settings').addEventListener('submit', async (event) => {
     $('settings-status').textContent = 'Adresse invalide.';
     return;
   }
-  // Une autre adresse que localhost demande l'accord de la personne (permission facultative).
+  // Une adresse que l'extension ne connaît pas demande l'accord de la personne (permission facultative).
   const granted = await chrome.permissions.request({ origins: [`${origin}/*`] });
   if (!granted) {
     $('settings-status').textContent = 'Permission refusée : adresse non enregistrée.';
@@ -300,6 +314,12 @@ $('settings').addEventListener('submit', async (event) => {
   }
   await chrome.storage.local.set({ baseUrl: origin });
   $('settings-status').textContent = `Enregistré : ${origin}`;
+});
+
+$('settings-reset').addEventListener('click', async () => {
+  await chrome.storage.local.remove('baseUrl');
+  $('base-url').value = DEFAULT_BASE_URL;
+  $('settings-status').textContent = `Adresse rétablie : ${DEFAULT_BASE_URL}`;
 });
 
 setSteps(0);
