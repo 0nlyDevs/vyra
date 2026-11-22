@@ -10,7 +10,8 @@ const INK = '#0a0a0b';
 const PAPER = '#f3f2ee';
 const MUTED = '#55544e';
 const BORDER = '#e2e1dc';
-const SANS = "'Bricolage Grotesque',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
+const SANS =
+  "'Bricolage Grotesque',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
 const SERIF = "'Cormorant Garamond',Georgia,'Times New Roman',serif";
 
 function escapeHtml(value: string) {
