@@ -1,21 +1,30 @@
-# Qui fait quoi (équipe de 5)
+# Qui fait quoi
 
-À remplir en équipe avant le départ.
+## Les rôles dans l'application
 
-## Pendant l'épreuve d'algo (HackerRank)
-
-| Personne | Rôle |
-|---|---|
-| … | … |
-
-## Pendant le projet
-
-| Personne | Rôle | Dossiers |
+| Rôle | Libellé | Pouvoirs |
 |---|---|---|
-| … | Capitaine : reçoit le sujet, assemble, présente | tout |
-| … | Front : écran principal | `web/src/app`, `web/src/features/…` |
-| … | Front : écrans secondaires et thème | `web/src/app/globals.css`, `web/src/features/…` |
-| … | IA et données | `processing/`, `web/src/server/` |
-| … | Pitch et démo : slides, script, vidéo de secours | `docs/DEMO.md`, `docs/PITCH.md` |
+| Visiteur (sans compte) | : | Vérifier un message, lire une conclusion, signaler, vérifier un sceau, flash radio, extension |
+| `member` | Citoyen | Fil, enquêtes, scan, tribunal et vote, assistant, jeu, boîte d'alertes (10 signalements par jour) |
+| `admin` | Vérificateur | Tout ce qui précède, plus : voir les groupes d'alertes, ouvrir une affaire sans attendre le seuil de 5 signalements, tenir l'annuaire officiel, réinitialiser la démo |
 
-Règle : chacun travaille dans ses dossiers, pour ne pas se marcher dessus.
+Les droits sont vérifiés côté serveur (`isVerifier` dans `web/src/lib/domain.ts`), jamais côté
+client. Comptes de démo : `rasoa@mindstack.demo` (Vérificateur), `hery@mindstack.demo` (Citoyen).
+
+## L'équipe
+
+D'après l'historique git (`git shortlog -sn`), par domaine :
+
+| Domaine | Dossiers |
+|---|---|
+| Enquêtes : arbre des versions, exploration du web, recherche élargie | `web/src/features/investigation` |
+| Scan d'images, de vidéos et de vocaux ; lectures IA en pointillés ; API mobile du scan | `web/src/features/scan`, `processing/app/services/media*` |
+| Jeu « Vrai ou fake ? » | `web/src/features/game` |
+| Sécurité, migrations, CI, déploiement, rotation des clés Tavily et Fact Check | `.github/`, `web/drizzle`, `processing/app/services/key_pool.py` |
+| Accueil animé, extension | `web/src/features/landing`, `extension/` |
+| Design « encre et papier » (mobile, extension) | `vyra-mobile/src/ui`, `extension/sidepanel.css` |
+| Fil d'actualité, assistant et voix, chaîne de fournisseurs d'IA, mobile, extension | `web/src/features/feed`, `web/src/features/assistant`, `processing/app/services/providers.py` |
+| Build Android automatique | `vyra-mobile` (CI) |
+
+Règle : chacun travaille dans ses dossiers et ouvre une PR vers `main`, fusionnée en *squash*.
+Messages de commit conventionnels (`feat:`, `fix:`, `docs:`…).

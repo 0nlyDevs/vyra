@@ -1,101 +1,129 @@
 # Architecture
 
+Vyra tient en quatre morceaux : le **site** (Next.js), le service d'**IA et de calcul**
+(`processing/`, FastAPI), la **base** (Postgres + pgvector) et deux **clients** légers, l'extension
+du navigateur et l'application mobile, qui parlent au même site.
+
 ## Vue d'ensemble
 
 ```
-                    ┌──────────────────────────────────────────────────────────┐
-                    │  PC de démo, tout en local, dans Docker                  │
-                    │                                                          │
-Navigateur ────────▶│  web/  Next.js (port 3000)                               │
-(projeté en direct) │   • pages grand écran (React, shadcn/ui)                 │
-                    │   • server actions (logique métier)                      │
-                    │   • connexion de démo (choix d'un profil)                │
-                    │   • seul accès à la base ────────────────────────────────┼──▶ Postgres + pgvector
-                    │        │                                                 │    (Docker, port 5433)
-                    │        │ HTTP, depuis src/server/processing.ts seulement │
-                    │        ▼                                                 │
-                    │  processing/  FastAPI (127.0.0.1:8000)                   │
-                    │   • prompts d'IA (app/prompts/*.md) ─────────────────────┼──▶ Gemini (wifi) ou Ollama (PC)
-                    │   • vecteurs pour la recherche par le sens               │
-                    │   • réponses de secours (app/fallbacks/*.json)           │
-                    └──────────────────────────────────────────────────────────┘
+ Navigateur ──────┐
+ Application      │  HTTPS            ┌────────────────────────────────────────────┐
+ mobile (Expo) ───┼─ Bearer ────────▶ │ web/  Next.js 16 (Vercel, ou Docker en local)│
+ Extension ───────┘  /api/v1, /api/check│  • pages, server actions, routes /api       │
+ (panneau latéral)                      │  • sessions, rôles, limites de débit       │
+                                        │  • SEUL accès à la base ───────────────────┼─▶ Postgres + pgvector
+                                        └───────────────┬────────────────────────────┘    (Neon en ligne,
+                                                        │ HTTP + PROCESSING_TOKEN          Docker en local)
+                                                        │ (src/server/processing.ts seul)
+                                        ┌───────────────▼────────────────────────────┐
+                                        │ processing/  FastAPI (Render, ou Docker)   │
+                                        │  • prompts d'IA (app/prompts/*.md)         │──▶ Groq → Gemini → DeepSeek
+                                        │  • vecteurs (recherche par le sens)        │    (rotation de clés)
+                                        │  • examen de médias : métadonnées, copie   │──▶ ElevenLabs (voix),
+                                        │    protégée, vidéo (ffmpeg), voix           │    Groq Whisper (dictée)
+                                        │  • lecture de pages, fil, vérifications    │──▶ Tavily, Google Fact Check
+                                        │  • réponses de secours sans IA             │
+                                        └────────────────────────────────────────────┘
 ```
 
 ## Qui possède quoi
 
 | | `web/` (Next.js) | `processing/` (FastAPI) |
 |---|---|---|
-| Rôle | Interface et logique métier | IA et calculs en Python |
-| Appelé par | Le navigateur | Uniquement `web/src/server/processing.ts` |
-| Base de données | **Seul propriétaire** (Drizzle) | Aucun accès |
-| Utilisateurs | Profil de démo en cookie | Ne les connaît pas |
-| Variables | `docker-compose.yml` (et `web/.env.local` hors Docker) | `processing/.env` (choix de l'IA, clé Gemini) |
-| Image Docker | `web/Dockerfile` + `web/scripts/docker-dev.sh` | `processing/Dockerfile` |
+| Rôle | Interface, logique métier, droits | IA et calculs en Python |
+| Appelé par | Navigateur, mobile, extension | Uniquement `web/src/server/processing.ts` |
+| Base de données | **Seul propriétaire** (Drizzle, migrations versionnées) | Aucun accès |
+| Utilisateurs | Comptes e-mail ou Google, sessions, rôles | Ne les connaît pas |
+| Secrets | `web/.env` : base, `PROCESSING_TOKEN`, `SEAL_SECRET`, SMTP, Google | `processing/.env` : clés des IA, `PROCESSING_TOKEN` |
+| Hébergement | Vercel (`vercel-build` applique les migrations) | Render (`render.yaml`) |
+
+## Les trois façons d'entrer
+
+| Client | Où | Comment il parle au site |
+|---|---|---|
+| Site | `web/` | Server actions et pages |
+| Application mobile | dépôt `vyra-mobile` (Expo) | `/api/v1/*` avec un jeton `Bearer` ([API-MOBILE.md](API-MOBILE.md)) |
+| Extension | `extension/` | Route **publique** `POST /api/check` (texte ou lien) et `POST /api/check/image`, sans compte, limitées par adresse |
+
+Le site expose donc deux surfaces d'API : `/api/v1` (avec compte, CORS réglé par `next.config.ts`)
+et `/api/check*` (sans compte, pensée pour l'extension : jamais de verdict nouveau, rien de gardé).
+
+## Ce qui est jugé par qui
+
+C'est le cœur de la confiance : **aucune IA ne conclut seule.**
+
+1. **Le code lit le message** sans IA (`features/signals`) : ton (urgence, appel à partager,
+   capitales), danger (accusation, panique, faux ordre officiel). Les mots sont cités tels quels.
+2. **L'IA propose** : lecture d'une image, plaidoiries du tribunal, version « calme » de What If.
+   Ses lectures s'affichent en **pointillés** à côté des faits ; le mode *Sans IA* ne garde que les
+   faits.
+3. **Le tribunal conclut** avec un niveau de certitude, après le vote du public.
+4. **Un sceau signé** (HMAC, `SEAL_SECRET`) prouve qu'une carte de conclusion est authentique.
+
+Sans IA ni réseau, tout continue : réponses de secours (`processing/app/fallbacks/`), recherche par
+mots, flash radio écrit sans IA.
+
+## Sécurité
+
+| Risque | Mesure |
+|---|---|
+| Accès aux données d'autrui | Rôles vérifiés côté serveur à chaque action (`isVerifier`), jamais côté client |
+| Abus des routes publiques | Limites par adresse en base (`server/rate-limit.ts`) : connexion, signalements (10/jour), vérifications (60/h), examens d'image (30/h) |
+| Lecture de pages vers une adresse interne (SSRF) | `processing/app/services/safe_url.py` refuse les adresses privées |
+| Image personnelle envoyée à une IA | Copie protégée : visages floutés, informations cachées retirées ; l'original ne part nulle part |
+| Appels directs à processing | `PROCESSING_TOKEN` partagé (sans lui : 401) |
+| Fausse conclusion | Sceau signé, vérifiable sans compte (`/verifier/sceau`) |
+| Navigateur | `X-Frame-Options`, `nosniff`, `Referrer-Policy`, CORS limité à `/api/v1` |
+| Secrets | Jamais dans le dépôt : `.env` ignorés, `*.env.example` documentés ; clés d'IA en rotation (plusieurs par fournisseur) |
+| Extension | Aucun script injecté, aucune lecture de page ; un site n'est lu qu'avec l'accord de la personne |
+
+## Recherche par le sens (pgvector)
+
+Les affaires, les publications du fil et les infos retrouvées sont transformées en vecteurs par
+`processing/`. La base cherche le plus proche (`cosineDistance`) ; si rien n'est assez proche, ou sans
+IA, la recherche repasse par les mots. Les « sujets qui reviennent » sont des paires de publications
+proches venues de sources différentes (`features/feed/topics.ts`).
 
 ## L'arborescence
 
 ```
-web/src/
-├── app/                  pages (App Router) ; (app)/ = espace connecté
-├── components/ui/        composants shadcn (bouton, carte, champ, tableau…)
-├── components/form/      champs de formulaire accessibles
-├── components/states/    vide, chargement, erreur
-├── features/<nom>/       une fonctionnalité = un dossier (actions, schéma Zod, composants)
-├── lib/                  env.ts, erreurs, ActionResult, logger, domain.ts
-└── server/
-    ├── db/schema.ts      toutes les tables (Drizzle)
-    ├── dal/              accès aux données
-    ├── demo/seed-data.ts données de démo (make seed, bouton « Réinitialiser »)
-    ├── session.ts        profil de démo en cookie
-    └── processing.ts     seul appel vers FastAPI : runPrompt(), embedTexts()
-
-processing/app/
-├── routers/              /health, /v1/prompts/{nom}, /v1/embeddings
-├── services/providers.py quelle IA répond : AI_PROVIDERS (groq, gemini, deepseek dans l'ordre), puis Gemma 4 selon AI_MODE
-├── services/key_pool.py  rotation des clés d'API quand l'une atteint son quota
-├── services/openai_compat.py  Groq et DeepSeek (format chat completions)
-├── services/gemini.py    appels à l'API Gemini (REST)
-├── services/local_ai.py  appels au modèle local (Ollama, Gemma 4)
-├── services/media_inspect.py informations cachées d'une image (sans IA)
-├── services/ai_service.py l'IA d'abord, réponse de secours ensuite
-├── prompts/<nom>.md      consignes données au modèle
-└── fallbacks/<nom>.json  réponses montrées si l'IA ne répond pas (<nom>--<cas>.json : propre à un cas de démo)
+web/src/app           pages et routes API (app/api/v1, app/api/check)
+web/src/features      une fonctionnalité par dossier (actions, composants, schéma, tests)
+web/src/server        accès base (dal/), processing, session, limites, démo
+web/src/lib           valeurs du domaine (domain.ts), formats, erreurs
+web/drizzle           migrations SQL versionnées
+processing/app        routers/, services/, prompts/, fallbacks/, core/
+processing/tests      tests pytest (rotation des clés, voix, médias, prompts…)
+extension/            panneau latéral Manifest V3 (JS sans build), scénarios de test
+docs/                 ce dossier
 ```
 
 ## Ajouter une fonctionnalité
 
-1. Les tables : dans `web/src/server/db/schema.ts`, puis `make db-push` (au prochain
-   `docker compose up`, c'est fait aussi automatiquement).
-2. Les données de démo : dans `web/src/server/demo/seed-data.ts`, puis `make seed`.
-3. L'accès aux données : `web/src/server/dal/<nom>.ts`.
-4. Le dossier `web/src/features/<nom>/` : `schema.ts` (Zod), `actions.ts` (server actions),
-   composants. Copier `features/notes/`, l'exemple complet.
-5. La page : `web/src/app/(app)/<route>/page.tsx`.
+1. Un dossier `web/src/features/<nom>/` : `schema.ts` (Zod), `actions.ts`, composants.
+2. Dans l'action, toujours dans cet ordre : **connexion → validation → droits → DAL**.
+3. Une valeur du domaine (liste, libellé) se déclare dans `lib/domain.ts`, jamais en dur.
+4. Une table de plus : modifier `server/db/schema.ts`, puis `npm run db:generate` et committer
+   `web/drizzle/` (la CI refuse sinon).
+5. De la logique pure : un `*.test.ts` à côté, `npm test`.
 
 ## Ajouter un appel à l'IA
 
-1. Écrire la consigne `processing/app/prompts/<nom>.md` : le JSON reçu, le JSON attendu.
-2. Écrire la réponse de secours `processing/app/fallbacks/<nom>.json`, de la même forme.
-3. Côté web : `runPrompt('<nom>', payload, schémaZod)` depuis une server action.
-
-Sans IA (pas de clé, wifi coupé, Ollama arrêté) ou `DEMO_OFFLINE=true`, la réponse de secours s'affiche : la démo
-continue. `GET http://127.0.0.1:8000/health` indique le mode (`gemini`, `offline`, `not-configured`).
-
-## Recherche par le sens (pgvector)
-
-`embedTexts()` renvoie un vecteur de 768 nombres par texte (Gemini ou EmbeddingGemma en local). On le range dans une colonne
-`vector` (voir `notes.embedding`) et on trie par `cosineDistance` (voir `server/dal/notes.ts`).
-Sans IA, la recherche repasse par mots (`ilike`).
+Un prompt dans `processing/app/prompts/<nom>.md`, sa réponse de secours dans
+`processing/app/fallbacks/<nom>.json`, puis un appel depuis `web/src/server/processing.ts`
+(`runPrompt`). L'ordre des fournisseurs et la rotation des clés sont réglés par variables
+(`processing/.env.example`) : un fournisseur à bout de quota passe la main au suivant.
 
 ## Choix techniques
 
 | Choix | Raison |
 |---|---|
-| Next.js + FastAPI | L'équipe connaît (WebCup) ; Python pour l'IA |
-| Tout dans Docker Compose | Mac, Linux et Windows : une commande, rien d'autre à installer que Docker |
-| Postgres + pgvector | Recherche par le sens |
-| `node_modules` et `.next` dans des volumes Docker | Rapide sur Mac et Windows ; pas de conflit avec un `npm install` hors Docker |
-| Drizzle, sans migrations (`db-push`) | Connu de l'équipe ; à 5 en 24 h, pas de conflits de migrations |
-| Gemini en REST (httpx) | Événement Google ; aucune dépendance de plus |
-| Réponses de secours | Le wifi de la salle est le plus grand risque de la démo |
-| Connexion de démo sans mot de passe | Le jury ne teste pas l'application |
+| Next.js + FastAPI | Interface et logique en TypeScript ; l'IA et le traitement de médias en Python |
+| Un seul propriétaire de la base | Les droits se vérifient à un seul endroit |
+| Postgres + pgvector | Recherche par le sens, sans service de plus |
+| Chaîne de fournisseurs avec rotation de clés | Les quotas gratuits sont l'obstacle réel ; une panne ne coupe pas le service |
+| Réponses de secours | Le réseau de la salle est le plus grand risque d'une démo |
+| Migrations Drizzle appliquées au déploiement | Une base en ligne ne se met pas à jour à la main |
+| Extension en JS sans build | Rien à installer pour la relire |
+| Docker Compose | Une commande sur Mac, Linux et Windows |
