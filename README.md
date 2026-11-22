@@ -193,8 +193,8 @@ Whisper, donc une clé Groq suffit.
 
 1. `curl http://127.0.0.1:8000/health` : `"ai"` liste les IA qui ont une clé (`"deepseek"`,
    `"groq+gemini"`…). `not-configured` : aucune clé.
-2. `curl -s -X POST http://127.0.0.1:8000/v1/prompts/summarize -H 'content-type: application/json'
-   -d '{"payload":{"notes":["Le marché ouvre à 7 h.","Il pleut sur Tamatave."]}}'` : `"source":"gemini"`
+2. `curl -s -X POST http://127.0.0.1:8000/v1/prompts/same-information -H 'content-type: application/json'
+   -d '{"payload":{"claim":"Il pleut sur Tamatave.","candidates":["Averses sur Tamatave ce matin."]}}'` : `"source":"gemini"`
    veut dire qu'un modèle a répondu (Groq, Gemini ou DeepSeek) ; `"source":"fallback"` : réponse
    préparée, aucune IA n'a répondu.
 3. `docker compose logs processing --tail 20` : « ia : groq ne répond pas, relais par gemini » montre

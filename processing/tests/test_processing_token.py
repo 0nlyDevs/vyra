@@ -5,8 +5,8 @@ from fastapi.testclient import TestClient
 from app.main import create_app
 from tests.conftest import make_settings
 
-PROMPT = "/v1/prompts/summarize"
-BODY = {"payload": {"notes": ["a"]}}
+PROMPT = "/v1/prompts/same-information"
+BODY = {"payload": {"claim": "a", "candidates": ["b"]}}
 
 
 def _client() -> TestClient:

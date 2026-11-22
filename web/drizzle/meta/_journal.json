@@ -8,6 +8,13 @@
       "when": 1795321351955,
       "tag": "0000_base",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1795323236789,
+      "tag": "0001_chubby_patch",
+      "breakpoints": true
     }
   ]
 }

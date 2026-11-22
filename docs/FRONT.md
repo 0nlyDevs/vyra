@@ -6,26 +6,16 @@ Une base concrète pour partir tous du même point. Ce ne sont pas des règles f
 Pour tout voir d'un coup : lancer l'application, entrer avec un profil, ouvrir **Kit d'interface**
 (`/kit`) dans la barre latérale.
 
-## Les skills front, toujours d'abord
+## Les principes
 
-Avant tout travail d'interface, et surtout au début d'une tâche, on consulte les skills front de
-l'équipe. Ils sont dans le dépôt public `mindstack-frontend-skills`
-(https://github.com/mahery-oniniaina/mindstack-frontend-skills), qui s'installe en une commande
-(voir son README).
-
-| Besoin | Skill à consulter |
-|---|---|
-| Couleurs, jetons, échelles | `design-system` |
-| Composants shadcn, Tailwind, thème, mode sombre | `ui-styling` |
-| Concevoir, critiquer ou finir un écran | `impeccable`, `taste-skill` |
-| Donner un rendu haut de gamme, ou très épuré | `soft-skill`, `minimalist-skill` |
-| Détails de finition d'un composant | `emil-design-eng` |
-| Animations : en créer, en relire, en trouver | `animate`, `review-animations`, `find-animation-opportunities` |
-| Messages qui s'affichent en haut de l'écran | `ask-sonner` |
-| Choisir une bibliothèque d'interface | `pick-ui-library` |
-
-La base actuelle a été posée avec `design-system` (les jetons en trois couches) et `ui-styling`
-(les composants). Les skills de finition n'ont pas encore été passés dessus.
+- **Réutiliser avant de créer** : un composant de base, un badge d'état, un état de page existent
+  déjà (tableau ci-dessous).
+- **La couleur dit quelque chose** : elle n'est réservée qu'aux verdicts, toujours avec une icône et
+  un mot. Tout le reste est à l'encre sur du papier.
+- **Une page lisible d'un coup d'œil** : une chose en grand, le reste en second ; peu de défilement
+  sur téléphone (rangées qui défilent de côté plutôt qu'une longue pile).
+- **Accessible** : contrastes mesurés (tests de jetons côté mobile), cibles de 44 px, jamais la
+  couleur seule.
 
 ## Ce qui existe
 
@@ -40,42 +30,43 @@ La base actuelle a été posée avec `design-system` (les jetons en trois couche
 | Entrées du menu | `web/src/lib/navigation.ts` |
 | Valeurs du domaine et leurs libellés (certitude, états, tons…) | `web/src/lib/domain.ts` |
 | Dates en français | `web/src/lib/format.ts` |
-| Un exemple complet (base, IA, secours) | `web/src/features/notes/` et la page `/exemple` |
+| Un exemple complet (action, schéma Zod, IA, secours) | `web/src/features/whatif/` |
 
 ## Le thème
 
-Direction « Nuit rouge » : une nuit teintée de rouge, un seul accent (le rouge MindStack), un
-texte couleur os. La nuit est le thème par défaut ; le clair reste au choix (bouton dans
-l'en-tête). L'accueil et les pages de compte sont toujours en nuit (classe `dark` sur leur
-cadre). Les couleurs sont des jetons en trois couches dans `globals.css` : les valeurs brutes,
-puis leur rôle, puis ce qui est propre à un composant.
+Direction « encre et papier » : un fond papier (`#f3f2ee`) et une encre (`#0a0a0b`) qui
+s'inversent en thème sombre ; le thème suit le système par défaut et se change dans l'en-tête.
+Bricolage Grotesque porte le texte ; Cormorant Garamond italique est réservée aux passages cités.
+Les couleurs sont des jetons en trois couches dans `globals.css` : les valeurs brutes, puis leur
+rôle, puis ce qui est propre à un composant. Le mobile (`vyra-mobile/src/lib/tokens.ts`) et
+l'extension (`extension/sidepanel.css`) reprennent les mêmes valeurs.
 
 Les briques du langage visuel, toutes dans `globals.css` :
 
 | Classe | Pour |
 |---|---|
 | `display` | Les titres : interlettrage serré qui se resserre quand le corps grandit |
-| `eyebrow` | La petite ligne en capitales rouges au-dessus d'un titre |
+| `eyebrow` | La petite ligne en capitales au-dessus d'un titre |
 | `surface` | Une carte : fond, reflet en haut, filet fin (sans bordure dure) |
 | `bezel` + `bezel-core` | Le cadre double (coque fine autour d'un cœur), pour mettre un bloc en avant |
 | `glass` | Le verre : seulement pour ce qui flotte (barre du haut, panneaux) |
 | `link-arrow`, `btn-swap` | Le lien avec flèche qui glisse, la flèche qui sort et revient dans un bouton |
 
-Boutons : des pilules. `default` (rouge) pour l'action principale d'un écran, `solid` (clair sur
-nuit) réservé à l'accueil, `secondary`, `outline`, `ghost` pour le reste. Les animations passent par
+Boutons : des pilules. `default` (l'encre) pour l'action principale d'un écran, `solid` réservé
+à l'accueil, `secondary`, `outline`, `ghost` pour le reste. Les animations passent par
 `motion` (`src/components/motion/Reveal.tsx` : `Reveal` au défilement, `MaskLines` pour un titre
 ligne par ligne) avec les courbes de `src/lib/motion.ts`.
 
 Dans une page, on écrit le rôle, pas la couleur : `bg-primary`, `text-muted-foreground`,
-`bg-success-soft text-success`. Changer le rouge de toute l'application se fait à un seul endroit :
-le nuancier `--red-*`.
+`bg-success-soft text-success`. Changer la palette de toute l'application se fait à un seul
+endroit : les jetons de `globals.css`.
 
 ## Ajouter un écran
 
 1. Créer `web/src/app/(app)/<nom>/page.tsx` : la barre latérale et l'en-tête arrivent seuls.
 2. Commencer la page par `PageHeader`.
 3. Ajouter l'entrée du menu dans `web/src/lib/navigation.ts` si c'est un écran principal.
-4. Mettre la logique dans `web/src/features/<nom>/`, comme l'exemple `notes`.
+4. Mettre la logique dans `web/src/features/<nom>/`, comme `whatif`.
 
 Les pages des modules : `/feed` (fil d'actualité, ouvert après la connexion), `/cases`,
 `/court`, `/reports`, `/game`, et `/scan`.
