@@ -48,7 +48,7 @@ export async function SealCard({
               le passe pas.
             </p>
             <Link
-              href="/scan?onglet=sceau"
+              href="/scan?tab=seal"
               className="justify-self-start text-sm underline underline-offset-4"
             >
               Vérifier un sceau reçu

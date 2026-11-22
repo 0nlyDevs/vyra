@@ -49,8 +49,8 @@ export async function openCase(
   // Le bandeau de la page dit comment l'affaire a été retrouvée, et pourquoi selon l'IA.
   const query = new URLSearchParams(
     outcome.matchedBy
-      ? { retrouvee: outcome.matchedBy, ...(outcome.reason ? { pourquoi: outcome.reason } : {}) }
-      : { nouvelle: '1' },
+      ? { matched: outcome.matchedBy, ...(outcome.reason ? { reason: outcome.reason } : {}) }
+      : { new: '1' },
   );
   redirect(`/cases/${outcome.caseId}?${query.toString()}`);
 }

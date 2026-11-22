@@ -25,9 +25,9 @@ export default async function TipFollowPage({
   searchParams,
 }: {
   params: Promise<{ token: string }>;
-  searchParams: Promise<{ nouveau?: string }>;
+  searchParams: Promise<{ new?: string }>;
 }) {
-  const [{ token }, { nouveau }] = await Promise.all([params, searchParams]);
+  const [{ token }, { new: isNew }] = await Promise.all([params, searchParams]);
   if (!followTokenSchema.safeParse(token).success) notFound();
   const report = await getReportByFollowToken(token);
   if (!report) notFound();
@@ -35,7 +35,7 @@ export default async function TipFollowPage({
 
   return (
     <>
-      {nouveau && (
+      {isNew && (
         <div className="grid gap-1 rounded-xl bg-success-soft p-4">
           <p className="font-semibold text-success">Signalement envoyé. Merci.</p>
           <p className="text-pretty">
@@ -91,7 +91,7 @@ export default async function TipFollowPage({
           </p>
           {report.state === 'concluded' && report.caseId && (
             <Button asChild className="justify-self-start">
-              <Link href={`/verifier/${report.caseId}`}>Lire la conclusion</Link>
+              <Link href={`/check/${report.caseId}`}>Lire la conclusion</Link>
             </Button>
           )}
         </CardContent>

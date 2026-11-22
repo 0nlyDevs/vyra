@@ -139,8 +139,8 @@ export async function openCaseFromLink(formData: FormData) {
   revalidatePath('/cases');
   const query = new URLSearchParams(
     outcome.matchedBy
-      ? { retrouvee: outcome.matchedBy, ...(outcome.reason ? { pourquoi: outcome.reason } : {}) }
-      : { nouvelle: '1' },
+      ? { matched: outcome.matchedBy, ...(outcome.reason ? { reason: outcome.reason } : {}) }
+      : { new: '1' },
   );
   redirect(`/cases/${outcome.caseId}?${query.toString()}`);
 }

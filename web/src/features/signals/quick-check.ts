@@ -115,7 +115,7 @@ export async function quickCheck(input: unknown): Promise<QuickCheckOutcome> {
       judged: judged?.certainty
         ? {
             id: judged.id,
-            url: `/verifier/${judged.id}`,
+            url: `/check/${judged.id}`,
             title: judged.title,
             certainty: judged.certainty,
             label: CERTAINTY_LABELS[judged.certainty],

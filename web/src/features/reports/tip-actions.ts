@@ -35,5 +35,5 @@ export async function submitTip(
     description: '',
   });
   if (!outcome) return fail(ERRORS.ALREADY_REPORTED);
-  redirect(`/verifier/suivi/${followToken}?nouveau=1`);
+  redirect(`/check/track/${followToken}?new=1`);
 }

@@ -26,7 +26,7 @@ export async function QuickCheckPanel({ query }: { query: string }) {
   return (
     <div className="grid gap-6">
       <form action="/scan" className="grid gap-3">
-        <input type="hidden" name="onglet" value="texte" />
+        <input type="hidden" name="tab" value="text" />
         <label htmlFor="quick-check" className="font-medium">
           Le message ou le lien
         </label>

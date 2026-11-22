@@ -8,7 +8,7 @@ import { SealOutcome } from './SealOutcome';
 export type SealQuery = { c?: string; s?: string; code?: string };
 
 // Vérifier une carte partagée : son QR (lien signé) ou son code tapé à la main. Le même bloc sur la
-// page publique /verifier/sceau et dans l'onglet « Sceau » du scan ; `hidden` garde l'onglet ouvert
+// page publique /check/seal et dans l'onglet « Sceau » du scan ; `hidden` garde l'onglet ouvert
 // après l'envoi du formulaire.
 export async function SealCheckPanel({
   query,

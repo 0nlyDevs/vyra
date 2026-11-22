@@ -98,7 +98,7 @@ jobs:
           curl --fail --silent --show-error --retry 15 --retry-connrefused --retry-delay 2 \
             --max-time 30 --output /dev/null http://127.0.0.1:3000/
           curl --fail --silent --show-error --max-time 30 --output /dev/null \
-            http://127.0.0.1:3000/verifier/flash
+            http://127.0.0.1:3000/check/flash
       - name: Afficher les journaux en cas d’échec
         if: failure()
         run: cat "$RUNNER_TEMP/vyra-web.log" 2>/dev/null || true

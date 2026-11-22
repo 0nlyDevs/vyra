@@ -65,10 +65,7 @@ export default async function PublicVerdictPage({ params }: { params: Promise<{ 
               <span>
                 Conclusion scellée <span className="font-mono font-semibold">{seal.code}</span>
               </span>
-              <Link
-                href={`/verifier/sceau?code=${seal.code}`}
-                className="underline underline-offset-4"
-              >
+              <Link href={`/check/seal?code=${seal.code}`} className="underline underline-offset-4">
                 Vérifier ce sceau
               </Link>
             </p>
@@ -152,7 +149,7 @@ export default async function PublicVerdictPage({ params }: { params: Promise<{ 
       )}
 
       <AiNotice />
-      <Link href="/verifier" className="text-primary underline-offset-4 hover:underline">
+      <Link href="/check" className="text-primary underline-offset-4 hover:underline">
         ← Toutes les affaires jugées
       </Link>
     </>

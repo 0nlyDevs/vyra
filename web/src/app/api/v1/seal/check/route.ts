@@ -3,7 +3,7 @@ import { checkCode, checkSignature, type SealCheck } from '@/features/seal/check
 import { apiFail, apiOk } from '@/server/api';
 import { normalizeSealCode } from '@/server/seal';
 
-// Vérifier un sceau, sans compte, comme la page /verifier/sceau : `?c=<id>&s=<signature>` (le lien
+// Vérifier un sceau, sans compte, comme la page /check/seal : `?c=<id>&s=<signature>` (le lien
 // du QR) ou `?code=VY-XXXX-XXXX` (le code tapé). Réponse : `{ status, content?, code? }`, où
 // `status` vaut genuine, mismatch ou unknown.
 export async function GET(request: Request) {

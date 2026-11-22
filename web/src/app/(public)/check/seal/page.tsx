@@ -12,7 +12,7 @@ export default async function SealPage({ searchParams }: { searchParams: Promise
         title="Vérifier un sceau"
         description="Une carte de conclusion Vyra porte un QR et un code. Scannez le QR, ou tapez le code : vous voyez si la carte est authentique, et la vraie conclusion."
       />
-      <SealCheckPanel query={await searchParams} action="/verifier/sceau" />
+      <SealCheckPanel query={await searchParams} action="/check/seal" />
     </>
   );
 }

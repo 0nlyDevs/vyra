@@ -11,9 +11,9 @@ import { useSlidingPill } from '@/lib/use-sliding-pill';
 type Place = { href: string; label: string; icon: LucideIcon; also?: string[] };
 
 const PLACES: Place[] = [
-  { href: '/verifier', label: 'Vérifier', icon: Search },
-  { href: '/verifier/signaler', label: 'Signaler', icon: Siren, also: ['/verifier/suivi'] },
-  { href: '/verifier/flash', label: 'Flash radio', icon: Radio },
+  { href: '/check', label: 'Vérifier', icon: Search },
+  { href: '/check/report', label: 'Signaler', icon: Siren, also: ['/check/track'] },
+  { href: '/check/flash', label: 'Flash radio', icon: Radio },
 ];
 
 /** La page allumée : la plus précise qui correspond (Signaler et son suivi, sinon Vérifier). */
