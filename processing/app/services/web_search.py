@@ -27,6 +27,7 @@ from urllib.parse import urljoin, urlparse
 import httpx
 
 from app.core.config import Settings
+from app.services import key_pool
 from app.services.connect_retry import call_with_connect_retry_async
 from app.services.safe_url import Resolver, public_only_hook, resolve_host
 
@@ -402,15 +403,15 @@ async def find_articles(
     """
     if settings.demo_offline:
         raise WebSearchUnavailableError("offline")
-    if settings.tavily_api_key is not None:
-        key = settings.tavily_api_key.get_secret_value()
-        return await _find_with_tavily(key, claim, queries or [], transport), "tavily"
+    # Toutes les clés Tavily au repos (quota) : GDELT, comme sans clé.
+    if key_pool.available_keys("tavily", settings.keys_for("tavily")):
+        return await _find_with_tavily(settings, claim, queries or [], transport), "tavily"
     return await _find_with_gdelt(claim, transport), "gdelt"
 
 
 async def _tavily(
     client: httpx.AsyncClient,
-    key: str,
+    settings: Settings,
     query: str,
     topic: str,
     domains: list[str] | None = None,
@@ -426,11 +427,17 @@ async def _tavily(
     }
     if domains:
         body["include_domains"] = domains
-    headers = {"Authorization": f"Bearer {key}"}
-    response = await call_with_connect_retry_async(
-        lambda: client.post(TAVILY_URL, headers=headers, json=body)
+
+    async def send(key: str) -> httpx.Response:
+        response = await call_with_connect_retry_async(
+            lambda: client.post(TAVILY_URL, headers={"Authorization": f"Bearer {key}"}, json=body)
+        )
+        response.raise_for_status()
+        return response
+
+    response = await key_pool.call_with_rotation_async(
+        "tavily", settings.keys_for("tavily"), settings, send
     )
-    response.raise_for_status()
     data = response.json()
     results = data.get("results", []) if isinstance(data, dict) else []
     return [item for item in results if isinstance(item, dict) and item.get("url")]
@@ -471,7 +478,7 @@ def _rfc_date(value: str) -> str | None:
 
 
 async def _find_with_tavily(
-    key: str, claim: str, queries: list[str], transport: httpx.AsyncBaseTransport | None
+    settings: Settings, claim: str, queries: list[str], transport: httpx.AsyncBaseTransport | None
 ) -> list[WebArticle]:
     headers = {"User-Agent": USER_AGENT}
     async with httpx.AsyncClient(
@@ -481,10 +488,10 @@ async def _find_with_tavily(
         # réseaux sociaux, puis chaque autre formulation (mots-clés, autres langues).
         others = [query for query in queries if query.strip() and query.strip() != claim.strip()]
         responses = await asyncio.gather(
-            _tavily(client, key, claim, "news"),
-            _tavily(client, key, claim, "general"),
-            _tavily(client, key, claim, "general", SOCIAL_DOMAINS),
-            *(_tavily(client, key, query, "general") for query in others[:MAX_QUERIES]),
+            _tavily(client, settings, claim, "news"),
+            _tavily(client, settings, claim, "general"),
+            _tavily(client, settings, claim, "general", SOCIAL_DOMAINS),
+            *(_tavily(client, settings, query, "general") for query in others[:MAX_QUERIES]),
             return_exceptions=True,
         )
         if all(isinstance(response, BaseException) for response in responses):

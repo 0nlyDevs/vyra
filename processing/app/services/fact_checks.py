@@ -22,7 +22,9 @@ from urllib.parse import quote, urlparse
 import httpx
 
 from app.core.config import Settings
+from app.services import key_pool
 from app.services.connect_retry import call_with_connect_retry_async
+from app.services.llm_common import AiUnavailableError
 from app.services.web_search import keywords
 
 logger = logging.getLogger(__name__)
@@ -122,14 +124,24 @@ def _plain(text: str) -> str:
     return " ".join(re.sub(r"<[^>]+>|[#*_>`|]+", " ", text).split())
 
 
-async def _claim_reviews(client: httpx.AsyncClient, key: str, query: str) -> list[FactCheck]:
-    response = await call_with_connect_retry_async(
-        lambda: client.get(
-            FACT_CHECK_TOOLS_URL,
-            params={"query": query, "languageCode": "fr", "pageSize": MAX_REVIEWS, "key": key},
+async def _claim_reviews(
+    client: httpx.AsyncClient, settings: Settings, query: str
+) -> list[FactCheck]:
+    async def send(key: str) -> httpx.Response:
+        # La clé part dans un en-tête, pas dans l'adresse : elle n'apparaît pas dans les journaux.
+        response = await call_with_connect_retry_async(
+            lambda: client.get(
+                FACT_CHECK_TOOLS_URL,
+                params={"query": query, "languageCode": "fr", "pageSize": MAX_REVIEWS},
+                headers={"x-goog-api-key": key},
+            )
         )
+        response.raise_for_status()
+        return response
+
+    response = await key_pool.call_with_rotation_async(
+        "factcheck", settings.keys_for("factcheck"), settings, send
     )
-    response.raise_for_status()
     found: list[FactCheck] = []
     for claim in response.json().get("claims", []):
         for review in claim.get("claimReview", [])[:1]:
@@ -149,7 +161,9 @@ async def _claim_reviews(client: httpx.AsyncClient, key: str, query: str) -> lis
     return found
 
 
-async def _fact_checker_pages(client: httpx.AsyncClient, key: str, query: str) -> list[FactCheck]:
+async def _fact_checker_pages(
+    client: httpx.AsyncClient, settings: Settings, query: str
+) -> list[FactCheck]:
     domains = sorted({entry.split("/")[0] for entry in FACT_CHECKERS})
     body = {
         "query": query,
@@ -158,10 +172,17 @@ async def _fact_checker_pages(client: httpx.AsyncClient, key: str, query: str) -
         "max_results": MAX_REVIEWS + 4,
         "include_domains": domains,
     }
-    response = await call_with_connect_retry_async(
-        lambda: client.post(TAVILY_URL, headers={"Authorization": f"Bearer {key}"}, json=body)
+
+    async def send(key: str) -> httpx.Response:
+        response = await call_with_connect_retry_async(
+            lambda: client.post(TAVILY_URL, headers={"Authorization": f"Bearer {key}"}, json=body)
+        )
+        response.raise_for_status()
+        return response
+
+    response = await key_pool.call_with_rotation_async(
+        "tavily", settings.keys_for("tavily"), settings, send
     )
-    response.raise_for_status()
     found: list[FactCheck] = []
     for item in response.json().get("results", []):
         url = str(item.get("url") or "")
@@ -223,7 +244,7 @@ async def _safely(label: str, call: Any) -> list[Any] | None:
     """Le résultat de la recherche, ou None si elle n'a pas pu se faire (réseau, quota…)."""
     try:
         return await call
-    except (httpx.HTTPError, ValueError) as error:
+    except (httpx.HTTPError, ValueError, AiUnavailableError) as error:
         logger.warning("Recherche %s impossible : %s", label, type(error).__name__)
         return None
 
@@ -242,12 +263,10 @@ async def find_fact_checks(
         timeout=TIMEOUT_SECONDS, headers=headers, transport=transport, follow_redirects=True
     ) as client:
         calls: list[Any] = []
-        if settings.google_factcheck_api_key is not None:
-            key = settings.google_factcheck_api_key.get_secret_value()
-            calls.append(_safely("Fact Check Tools", _claim_reviews(client, key, query)))
-        if settings.tavily_api_key is not None:
-            key = settings.tavily_api_key.get_secret_value()
-            calls.append(_safely("vérificateurs", _fact_checker_pages(client, key, query)))
+        if settings.keys_for("factcheck"):
+            calls.append(_safely("Fact Check Tools", _claim_reviews(client, settings, query)))
+        if settings.keys_for("tavily"):
+            calls.append(_safely("vérificateurs", _fact_checker_pages(client, settings, query)))
         wiki_calls = [
             _safely(f"Wikipédia {language}", _wikipedia(client, wiki_query, language))
             for language in WIKIPEDIA_LANGUAGES

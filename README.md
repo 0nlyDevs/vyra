@@ -147,7 +147,10 @@ L'ordre des IA est groq, gemini, deepseek. Une IA sans clé est sautée ; si la 
 quota ou en panne, la suivante prend le relais, puis la réponse préparée de chaque consigne : la démo
 continue. Quand une clé atteint son quota (erreur 429), la suivante du même fournisseur prend le
 relais toute seule, puis la clé épuisée est mise de côté (60 s pour une limite de débit, 1 h pour un
-quota du jour). Les clés n'apparaissent jamais dans les journaux. Après un changement :
+quota du jour). La recherche a la même rotation : `TAVILY_API_KEYS=cle1,cle2` (forfait épuisé :
+clé suivante, puis GDELT quand toutes se reposent) et `GOOGLE_FACTCHECK_API_KEYS=cle1,cle2`. Les
+anciennes variables à une seule clé (`TAVILY_API_KEY`, `GOOGLE_FACTCHECK_API_KEY`) restent lues.
+Les clés n'apparaissent jamais dans les journaux. Après un changement :
 `docker compose up -d --force-recreate processing`.
 
 **Attention aux quotas** : ils sont comptés par projet (Gemini), par organisation (Groq) ou par
