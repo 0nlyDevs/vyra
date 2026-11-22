@@ -106,6 +106,14 @@ class Settings(BaseSettings):
     # Plusieurs : `GOOGLE_FACTCHECK_API_KEYS=cle1,cle2`.
     google_factcheck_api_key: SecretStr | None = None
     google_factcheck_api_keys: CsvSecrets = []
+    # Voix : la dictée passe par Groq Whisper (les clés Groq ci-dessus), la lecture à voix haute par
+    # ElevenLabs (https://elevenlabs.io). Sans clé ElevenLabs, c'est la voix du navigateur qui lit.
+    stt_model: str = "whisper-large-v3"
+    elevenlabs_api_keys: CsvSecrets = []
+    elevenlabs_base_url: str = "https://api.elevenlabs.io/v1"
+    # « George » : une voix par défaut, utilisable avec un compte gratuit.
+    elevenlabs_voice_id: str = "JBFqnCBsd6RMkjVDRZzb"
+    elevenlabs_model: str = "eleven_flash_v2_5"
     # true : jamais d'appel à Gemini, toujours les réponses de secours (répétition du plan B).
     demo_offline: bool = False
     # Secret partagé avec le web (même valeur des deux côtés), exigé dans l'en-tête
@@ -119,13 +127,14 @@ class Settings(BaseSettings):
         "deepseek_api_keys",
         "tavily_api_keys",
         "google_factcheck_api_keys",
+        "elevenlabs_api_keys",
         mode="before",
     )
     @classmethod
     def _csv(cls, value: object) -> object:
         return _split_csv(value)
 
-    @field_validator("gemini_base_url", "groq_base_url", "deepseek_base_url")
+    @field_validator("gemini_base_url", "groq_base_url", "deepseek_base_url", "elevenlabs_base_url")
     @classmethod
     def _no_trailing_slash(cls, value: str) -> str:
         return value.strip().rstrip("/")
@@ -170,6 +179,7 @@ class Settings(BaseSettings):
             "deepseek": (self.deepseek_api_keys, None),
             "tavily": (self.tavily_api_keys, self.tavily_api_key),
             "factcheck": (self.google_factcheck_api_keys, self.google_factcheck_api_key),
+            "elevenlabs": (self.elevenlabs_api_keys, None),
         }[provider]
         secrets = [*many, *([single] if single else [])]
         return list(dict.fromkeys(secret.get_secret_value() for secret in secrets))
