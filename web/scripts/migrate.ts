@@ -3,9 +3,9 @@
 //
 // Remplace `drizzle-kit migrate` : son indicateur de progression efface le message d'erreur dans
 // les journaux Vercel, on ne voyait pas pourquoi un déploiement s'arrêtait. Ici l'erreur est écrite
-// en clair. Autre différence : une base déjà remplie mais sans journal de migrations (créée avec
-// `db:push`) est rattachée à la première migration au lieu de la rejouer, ce qui échouerait avec
-// « la table existe déjà ».
+// en clair. Il installe aussi pgvector sur une base neuve (sans lui, « le type vector n'existe pas »)
+// et rattache une base déjà remplie, mais sans journal de migrations (créée avec `db:push`), à la
+// première migration au lieu de la rejouer, ce qui échouerait avec « la table existe déjà ».
 import { readMigrationFiles } from 'drizzle-orm/migrator';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import { migrate } from 'drizzle-orm/postgres-js/migrator';
@@ -50,6 +50,9 @@ async function main() {
 
   const sql = postgres(url, { max: 1, onnotice: () => {} });
   try {
+    // La base doit connaître pgvector avant la première table (colonnes `vector`). En local, Docker
+    // l'installe à la création (docker/initdb) ; sur une base neuve en ligne, c'est ici.
+    await sql`create extension if not exists vector`;
     // Base déjà remplie dont le journal ne connaît pas la migration de base (journal absent, vide
     // ou daté autrement) : on l'enregistre comme appliquée au lieu de la rejouer.
     const [state] = await sql<{ filled: boolean }[]>`
