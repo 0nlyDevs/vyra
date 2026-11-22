@@ -17,7 +17,7 @@ function say(message: string) {
   process.stdout.write(`migrations : ${message}\n`);
 }
 
-function describe(error: unknown) {
+function describe(error: unknown): string {
   const pg = error as {
     code?: string;
     message?: string;
