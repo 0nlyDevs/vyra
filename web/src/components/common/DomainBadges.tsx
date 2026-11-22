@@ -13,11 +13,12 @@ import {
   type EvidenceStance,
 } from '@/lib/domain';
 import { ToneBadge } from './ToneBadge';
+import { VerdictBadge } from './VerdictBadge';
 
 // Badges métier : le libellé et la couleur viennent de src/lib/domain.ts, jamais d'un texte en dur.
 
 export function CertaintyBadge({ level }: { level: CertaintyLevel }) {
-  return <ToneBadge tone={CERTAINTY_TONES[level]}>{CERTAINTY_LABELS[level]}</ToneBadge>;
+  return <VerdictBadge tone={CERTAINTY_TONES[level]}>{CERTAINTY_LABELS[level]}</VerdictBadge>;
 }
 
 export function CaseStatusBadge({ status }: { status: CaseStatus }) {
