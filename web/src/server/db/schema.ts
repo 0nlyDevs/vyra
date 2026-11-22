@@ -481,6 +481,51 @@ export const gameRuns = pgTable(
   (table) => [index('game_runs_profile_idx').on(table.profileId)],
 );
 
+// ─── Annuaire officiel : « Est-ce bien eux ? » ───────────────────────────────────────────────
+// Les canaux par lesquels une institution parle vraiment, et ses communiqués d'origine. Un
+// message qui se réclame d'elle est comparé à ces deux listes, par du code, sans IA.
+
+export type InstitutionChannels = {
+  // Domaines des sites et adresses e-mail (« regie-eaux.mg »), sans « www ».
+  domains: string[];
+  // Numéros, chiffres seuls, sur 9 chiffres pour Madagascar (« 340000101 »).
+  phones: string[];
+  // Pages et comptes de réseaux sociaux, en minuscules (« facebook.com/regieeaux »).
+  pages: string[];
+  // Noms d'expéditeur des SMS (« REGIE-EAUX »).
+  senders: string[];
+};
+
+export const institutions = pgTable('institutions', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  name: text('name').notNull(),
+  // Les autres noms qu'un message peut lui donner (« la Régie », « la JIRAMA »…).
+  aliases: jsonb('aliases').$type<string[]>().notNull().default([]),
+  channels: jsonb('channels').$type<InstitutionChannels>().notNull(),
+  // Ce que l'institution ne fait jamais (« ne demande jamais de paiement par mobile money »).
+  never: text('never').notNull().default(''),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
+// Un communiqué d'origine, recopié depuis le canal officiel de l'institution.
+export const institutionNotices = pgTable(
+  'institution_notices',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    institutionId: uuid('institution_id')
+      .notNull()
+      .references(() => institutions.id, { onDelete: 'cascade' }),
+    title: text('title').notNull(),
+    content: text('content').notNull(),
+    sourceUrl: text('source_url'),
+    publishedAt: timestamp('published_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [index('institution_notices_institution_idx').on(table.institutionId)],
+);
+
+export type Institution = typeof institutions.$inferSelect;
+export type InstitutionNotice = typeof institutionNotices.$inferSelect;
 export type Profile = typeof profiles.$inferSelect;
 export type FeedPost = typeof feedPosts.$inferSelect;
 export type Account = typeof accounts.$inferSelect;
