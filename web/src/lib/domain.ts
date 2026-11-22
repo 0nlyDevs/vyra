@@ -262,6 +262,9 @@ export const REPORT_STATE_TONES = {
 
 // À ce nombre de signaleurs différents, une affaire est ouverte pour le groupe.
 export const REPORT_CASE_THRESHOLD = 5;
+// Signalements sans compte comptés au plus pour un groupe : il faut toujours des membres pour
+// atteindre le seuil.
+export const REPORT_ANONYMOUS_CAP = 2;
 // Signalements permis par personne sur 24 heures.
 export const REPORT_DAILY_LIMIT = 10;
 
