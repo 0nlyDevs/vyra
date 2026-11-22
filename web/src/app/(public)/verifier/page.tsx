@@ -54,7 +54,7 @@ export default async function VerifyPage({
           {match ? (
             <Card className="border-foreground">
               <CardHeader className="flex flex-wrap items-center gap-2">
-                <ToneBadge tone="info">Déjà vérifié</ToneBadge>
+                <ToneBadge tone="neutral">Déjà jugée par le tribunal</ToneBadge>
                 {match.certainty && <CertaintyBadge level={match.certainty} />}
               </CardHeader>
               <CardContent className="grid gap-3">
