@@ -44,6 +44,12 @@ export async function finishRun(input: RunInput): Promise<ActionResult<RunResult
   if (!parsed.success) return fail(ERRORS.VALIDATION_FAILED, parsed.error);
 
   const scenarios = new Map((await listScenarios()).map((scenario) => [scenario.id, scenario]));
+  // Une série = chaque information une fois. Sinon on gonflerait son score en renvoyant vingt fois
+  // la même bonne réponse.
+  const answered = new Set(parsed.data.answers.map((given) => given.scenarioId));
+  if (answered.size !== parsed.data.answers.length || answered.size !== scenarios.size) {
+    return fail(ERRORS.VALIDATION_FAILED);
+  }
   const answers: RunAnswer[] = [];
   for (const given of parsed.data.answers) {
     const scenario = scenarios.get(given.scenarioId);
