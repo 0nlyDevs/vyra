@@ -74,6 +74,8 @@ jobs:
         run: |
           npm run lint
           npm run typecheck
+      - name: Exécuter les tests web
+        run: npm test
       - name: Vérifier que chaque changement de schéma a sa migration
         run: |
           npm run db:generate
