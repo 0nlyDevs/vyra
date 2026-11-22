@@ -11,6 +11,8 @@ export const openCaseSchema = z.object({
     .union([z.literal(''), z.url({ protocol: /^https?$/, message: 'Ce lien n’est pas valide.' })])
     .optional()
     .transform((value) => value || null),
+  // Le nom de la source quand on part d'un lien ou d'une publication du fil (sinon déduit du lien).
+  sourceName: z.string().trim().max(200).optional(),
 });
 
 export type OpenCaseInput = z.infer<typeof openCaseSchema>;

@@ -2,6 +2,7 @@ import { Gavel } from 'lucide-react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { z } from 'zod';
+import { AiReading } from '@/components/common/AiReading';
 import {
   CaseStatusBadge,
   CertaintyBadge,
@@ -17,9 +18,15 @@ import { FactCheckPanel } from '@/features/investigation/FactCheckPanel';
 import { PropagationGraph } from '@/features/investigation/PropagationGraph';
 import { SourceKindBadge } from '@/features/investigation/SourceKindBadge';
 import { WebSearchPanel } from '@/features/investigation/WebSearchPanel';
+import { SealCard } from '@/features/seal/SealCard';
 import { WarningSigns } from '@/features/signals/WarningSigns';
 import { WhatIfPanel } from '@/features/whatif/WhatIfPanel';
-import { EVIDENCE_STRENGTH_LABELS, MATCH_KIND_LABELS, MATCH_KINDS } from '@/lib/domain';
+import {
+  CERTAINTY_CRITERIA,
+  EVIDENCE_STRENGTH_LABELS,
+  MATCH_KIND_LABELS,
+  MATCH_KINDS,
+} from '@/lib/domain';
 import { formatDateTime } from '@/lib/format';
 import { getCaseFile } from '@/server/dal/cases';
 import { getWebSearch, listExploredVersions } from '@/server/dal/investigation';
@@ -93,6 +100,36 @@ export default async function CaseFilePage({
             La plateforme cherche maintenant d’autres versions dans la presse.
           </AlertDescription>
         </Alert>
+      )}
+
+      {file.certainty && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex flex-wrap items-center gap-3 text-xl">
+              Conclusion
+              <CertaintyBadge level={file.certainty} />
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="grid gap-3">
+            <p className="text-muted-foreground text-sm">
+              Règle appliquée, calculée sur les pièces sans IA :{' '}
+              {CERTAINTY_CRITERIA[file.certainty]}
+            </p>
+            {file.conclusion && (
+              <AiReading label="Conclusion rédigée par l’IA">
+                <p className="text-pretty text-lg">{file.conclusion}</p>
+              </AiReading>
+            )}
+          </CardContent>
+        </Card>
+      )}
+      {file.certainty && file.conclusion && (
+        <SealCard
+          caseId={file.id}
+          claim={file.claim}
+          certainty={file.certainty}
+          conclusion={file.conclusion}
+        />
       )}
 
       <WarningSigns text={file.claim} />

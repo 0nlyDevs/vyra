@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { buildProposals, fallbackProposals, MAX_PROPOSALS } from './proposals';
+import { buildProposals, fallbackProposals, MAX_PROPOSALS, mobileProposals } from './proposals';
 
 const rows = [
   { id: 'aaa', title: 'La photo de l’inondation', status: 'concluded' },
@@ -89,5 +89,22 @@ describe('fallbackProposals', () => {
       (p) => p.type,
     );
     assert.deepEqual(types, ['start_investigation', 'report']);
+  });
+});
+
+describe('mobileProposals', () => {
+  it('mène au dossier au lieu du tribunal, et écarte le jeu', () => {
+    const id = '0f8d1c2e-1111-4222-8333-444455556666';
+    const kept = mobileProposals([
+      { type: 'open_court', label: 'Voir l’audience : La photo', href: `/court/${id}` },
+      { type: 'open_page', label: 'Ouvrir le tribunal', href: '/court' },
+      { type: 'open_page', label: 'Jouer à Vrai ou fake ?', href: '/game' },
+      { type: 'report', label: 'Signaler ce contenu', href: '/reports?text=abc' },
+    ]);
+    assert.deepEqual(
+      kept.map((proposal) => proposal.href),
+      [`/cases/${id}`, '/reports?text=abc'],
+    );
+    assert.equal(kept[0].label, 'Ouvrir l’affaire : La photo');
   });
 });

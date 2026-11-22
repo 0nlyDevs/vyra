@@ -9,26 +9,43 @@ import { type FactCheck, findFactChecks, type WikipediaArticle } from '@/server/
 import { getCurrentProfile } from '@/server/session';
 import { type ExploreResult, exploreLevel, exploreVersion } from './explore';
 import { type HarvestResult, refreshNewsIndex } from './news-index';
-import { openCaseFromClaim } from './open-case';
+import { type OpenCaseOutcome, openCaseFromClaim } from './open-case';
 import { addReferenceSchema, caseIdSchema, exploreSchema, openCaseSchema } from './schema';
 import { searchWebVersions, type WebSearchResult } from './web-versions';
 
-// Nouvelle analyse depuis /cases : ouvre l'affaire existante ou en crée une, puis y emmène.
+// Nouvelle analyse : ouvre l'affaire existante ou en crée une. Le site (`openCase`) et
+// l'application mobile (`POST /api/v1/cases`) passent par ici.
 // Ordre : connexion → validation Zod → droits (tout profil peut lancer une analyse) → DAL.
-export async function openCase(
-  _previous: ActionResult<null> | null,
-  formData: FormData,
-): Promise<ActionResult<null>> {
+export async function startInvestigation(input: {
+  claim: unknown;
+  sourceUrl?: unknown;
+  sourceName?: unknown;
+}): Promise<ActionResult<OpenCaseOutcome>> {
   const profile = await getCurrentProfile();
   if (!profile) return fail(ERRORS.UNAUTHORIZED);
   const parsed = openCaseSchema.safeParse({
-    claim: formData.get('claim'),
-    sourceUrl: formData.get('sourceUrl') ?? '',
+    claim: input.claim,
+    sourceUrl: input.sourceUrl ?? '',
+    sourceName: input.sourceName ?? undefined,
   });
   if (!parsed.success) return fail(ERRORS.VALIDATION_FAILED, parsed.error);
 
   const outcome = await openCaseFromClaim(parsed.data);
   revalidatePath('/cases');
+  return ok(outcome);
+}
+
+// Nouvelle analyse depuis /cases, puis on emmène sur le dossier.
+export async function openCase(
+  _previous: ActionResult<null> | null,
+  formData: FormData,
+): Promise<ActionResult<null>> {
+  const result = await startInvestigation({
+    claim: formData.get('claim'),
+    sourceUrl: formData.get('sourceUrl'),
+  });
+  if (!result.ok) return result;
+  const outcome = result.data;
   // Le bandeau de la page dit comment l'affaire a été retrouvée, et pourquoi selon l'IA.
   const query = new URLSearchParams(
     outcome.matchedBy
