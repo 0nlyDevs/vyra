@@ -11,6 +11,7 @@
     "vercel-build": "if [ \"$VERCEL_ENV\" = production ]; then drizzle-kit migrate; fi && next build",
     "start": "next start",
     "lint": "biome check .",
+    "test": "tsx --test \"src/**/*.test.ts\"",
     "lint:fix": "biome check --write .",
     "typecheck": "next typegen && tsc --noEmit",
     "ui:add": "shadcn add",
