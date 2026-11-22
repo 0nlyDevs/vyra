@@ -1,6 +1,6 @@
 import { PageHeader } from '@/components/common/PageHeader';
 import { EmptyState } from '@/components/states/States';
-import { GamePlay } from '@/features/game/GamePlay';
+import { PlayStage } from '@/features/game3d/PlayStage';
 import { listScenarios } from '@/server/dal/game';
 import { requireProfile } from '@/server/session';
 
@@ -18,7 +18,7 @@ export default async function GamePlayPage() {
           description="Le bouton « Réinitialiser la démo » recrée les informations du jeu."
         />
       ) : (
-        <GamePlay
+        <PlayStage
           scenarios={scenarios.map(
             ({
               id,
