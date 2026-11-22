@@ -1,5 +1,5 @@
 import { TriangleAlert } from 'lucide-react';
-import { ToneBadge } from '@/components/common/ToneBadge';
+import { SignalBadge } from '@/components/common/SignalBadge';
 import {
   DANGER_LEVEL_LABELS,
   DANGER_LEVEL_TONES,
@@ -30,14 +30,16 @@ export function WarningSigns({
     <section className="grid gap-3 surface p-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h3 className="flex items-center gap-2 font-semibold">
-          <TriangleAlert aria-hidden className="size-5 text-primary" />
+          <TriangleAlert aria-hidden className="size-5" />
           {title}
         </h3>
         <div className="flex flex-wrap gap-2">
-          <ToneBadge tone={TONE_LEVEL_TONES[tone.level]}>{TONE_LEVEL_LABELS[tone.level]}</ToneBadge>
-          <ToneBadge tone={DANGER_LEVEL_TONES[danger.level]}>
+          <SignalBadge tone={TONE_LEVEL_TONES[tone.level]}>
+            {TONE_LEVEL_LABELS[tone.level]}
+          </SignalBadge>
+          <SignalBadge tone={DANGER_LEVEL_TONES[danger.level]}>
             {DANGER_LEVEL_LABELS[danger.level]}
-          </ToneBadge>
+          </SignalBadge>
         </div>
       </div>
       {signs.length > 0 ? (
@@ -48,7 +50,7 @@ export function WarningSigns({
               className="rounded-lg bg-muted px-2.5 py-1 text-sm"
             >
               <span className="text-muted-foreground">{sign.label} :</span>{' '}
-              <span className="font-medium">« {sign.quote} »</span>
+              <span className="quote text-base">« {sign.quote} »</span>
             </li>
           ))}
         </ul>
