@@ -17,7 +17,11 @@ export async function POST(request: Request) {
     pathname: body?.pathname ?? '/',
     history: body?.history ?? [],
   });
-  return result.ok
-    ? apiOk({ ...result.data, proposals: mobileProposals(result.data.proposals) })
-    : apiFail(result.error.code, result.error.fieldErrors);
+  if (!result.ok) return apiFail(result.error.code, result.error.fieldErrors);
+  const proposals = mobileProposals(result.data.proposals);
+  return apiOk({
+    ...result.data,
+    proposals,
+    autorun: proposals.find((proposal) => proposal.now)?.href ?? null,
+  });
 }

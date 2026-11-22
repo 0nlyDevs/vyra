@@ -48,7 +48,7 @@ export const CLUE_ICONS = {
   other_media: Newspaper,
 } satisfies Record<ClueKind, LucideIcon>;
 
-// Un raccourci clavier, aussi cliquable à la souris (en pause, quand le curseur est libre).
+// Un raccourci clavier, aussi représenté par un bouton.
 function HintButton({
   keys,
   label,
@@ -83,6 +83,7 @@ export function Hud({
   target,
   selected,
   answered,
+  playing,
   muted,
   fullscreen,
   view,
@@ -101,6 +102,7 @@ export function Hud({
   target: Target | null;
   selected: GameAnswer;
   answered: boolean;
+  playing: boolean;
   muted: boolean;
   fullscreen: boolean;
   view: View;
@@ -113,14 +115,12 @@ export function Hud({
 }) {
   const stamp = STAMPS[selected];
   return (
-    // Pas de z-index ici : la barre du haut passe au-dessus du calque de pause (z-30), le reste dessous.
+    // Le haut reste accessible en pause ; les commandes disparaissent pendant la lecture d'un panneau.
     <div className="pointer-events-none absolute inset-0 select-none text-white">
       {/* Haut : avancement, indices, réglages. */}
-      <div className="relative z-40 flex items-start justify-between gap-3 p-4">
-        <div className="grid gap-2 rounded-2xl bg-black/35 px-4 py-3 backdrop-blur-md">
-          <p className="eyebrow whitespace-nowrap text-[0.68rem]!">
-            Vrai ou fake · la rue du marché
-          </p>
+      <div className="relative z-40 flex items-start justify-between gap-2 p-3">
+        <div className="grid min-w-0 gap-2 rounded-2xl bg-black/35 px-3 py-2 backdrop-blur-md">
+          <p className="eyebrow text-[0.68rem]!">Vrai ou fake · la rue du marché</p>
           <p className="font-semibold text-lg tabular-nums leading-none">
             Information {round + 1} <span className="text-white/75">/ {total}</span>
           </p>
@@ -216,7 +216,10 @@ export function Hud({
       </div>
 
       {/* Viseur. */}
-      <div className="absolute top-1/2 left-1/2 grid -translate-x-1/2 -translate-y-1/2 justify-items-center gap-3">
+      <div
+        hidden={!playing}
+        className="absolute top-1/2 left-1/2 grid -translate-x-1/2 -translate-y-1/2 justify-items-center gap-3"
+      >
         <div
           className={cn(
             'grid place-items-center rounded-full border-2 transition-all duration-200 ease-out',
@@ -235,7 +238,7 @@ export function Hud({
           <span className="size-1.5 rounded-full bg-white shadow-[0_0_6px_rgba(0,0,0,0.8)]" />
         </div>
       </div>
-      {target && (
+      {playing && target && (
         <p className="absolute top-[calc(50%+2.6rem)] left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-black/55 px-3 py-1.5 text-sm backdrop-blur-md">
           {target.kind === 'clue' ? (
             <>
@@ -253,56 +256,57 @@ export function Hud({
         </p>
       )}
 
-      {/* Bas : raccourcis et choix du tampon. Au-dessus du calque de pause : cliquables en pause. */}
-      <div className="absolute inset-x-0 bottom-0 z-40 flex flex-wrap items-end justify-between gap-3 p-4">
-        <div className="pointer-events-auto hidden max-w-sm flex-wrap items-center gap-1.5 rounded-2xl bg-black/50 p-2 text-white/90 text-xs backdrop-blur-md lg:flex">
-          <span className="px-1.5">
-            <span className={KEY}>Z Q S D</span> marcher · <span className={KEY}>Maj</span> courir
-          </span>
-          <HintButton keys="1 2 3" label="encre" onClick={onCycle} />
-          <HintButton keys="V" label="vue" onClick={onView} />
-          <HintButton keys="F" label="plein écran" onClick={onFullscreen} />
-          <HintButton keys="M" label={muted ? 'son coupé' : 'son'} onClick={onMute} />
-        </div>
-        <fieldset
-          aria-label="Encre du tampon"
-          className="pointer-events-auto mx-auto flex min-w-0 gap-2 rounded-[1.4rem] border-0 bg-black/55 p-2 backdrop-blur-md"
-        >
-          {GAME_ANSWERS.map((answer) => {
-            const active = answer === selected;
-            return (
-              <button
-                key={answer}
-                type="button"
-                onClick={() => onSelect(answer)}
-                aria-pressed={active}
-                className={cn(
-                  'flex min-h-11 items-center gap-2 rounded-2xl px-4 py-2.5 font-semibold transition-[transform,background-color,color] duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 focus-visible:ring-offset-2 focus-visible:ring-offset-black/60',
-                  active ? '-translate-y-1' : 'text-white/85 hover:bg-white/12 hover:text-white',
-                )}
-                style={
-                  active
-                    ? {
-                        background: STAMPS[answer].color,
-                        color: STAMP_ON,
-                        boxShadow: `0 10px 30px -8px ${STAMPS[answer].color}`,
-                      }
-                    : undefined
-                }
-              >
-                <span
-                  className={cn(KEY, active && 'border-black/30 bg-black/10')}
-                  style={active ? { color: STAMP_ON } : undefined}
+      {/* Bas : raccourcis et choix du tampon, uniquement pendant la partie. */}
+      {playing && (
+        <div className="absolute inset-x-0 bottom-0 z-10 grid grid-cols-1 items-end gap-3 p-3 2xl:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]">
+          <div className="pointer-events-auto hidden max-w-sm flex-wrap items-center gap-1.5 rounded-2xl bg-black/50 p-2 text-white/90 text-xs backdrop-blur-md 2xl:flex">
+            <span className="px-1.5">
+              <span className={KEY}>Z Q S D</span> marcher · <span className={KEY}>Maj</span> courir
+            </span>
+            <HintButton keys="1 2 3" label="encre" onClick={onCycle} />
+            <HintButton keys="V" label="vue" onClick={onView} />
+            <HintButton keys="F" label="plein écran" onClick={onFullscreen} />
+            <HintButton keys="M" label={muted ? 'son coupé' : 'son'} onClick={onMute} />
+          </div>
+          <fieldset
+            aria-label="Encre du tampon"
+            className="pointer-events-auto mx-auto flex min-w-0 gap-2 rounded-[1.4rem] border-0 bg-black/55 p-2 backdrop-blur-md"
+          >
+            {GAME_ANSWERS.map((answer) => {
+              const active = answer === selected;
+              return (
+                <button
+                  key={answer}
+                  type="button"
+                  onClick={() => onSelect(answer)}
+                  aria-pressed={active}
+                  className={cn(
+                    'flex min-h-11 items-center gap-2 rounded-2xl px-2 py-2.5 font-semibold transition-[transform,background-color,color] duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 focus-visible:ring-offset-2 focus-visible:ring-offset-black/60 sm:px-4',
+                    active ? '-translate-y-1' : 'text-white/85 hover:bg-white/12 hover:text-white',
+                  )}
+                  style={
+                    active
+                      ? {
+                          background: STAMPS[answer].color,
+                          color: STAMP_ON,
+                          boxShadow: `0 10px 30px -8px ${STAMPS[answer].color}`,
+                        }
+                      : undefined
+                  }
                 >
-                  {STAMPS[answer].key}
-                </span>
-                {GAME_ANSWER_LABELS[answer]}
-              </button>
-            );
-          })}
-        </fieldset>
-        <span className="hidden w-xs lg:block" />
-      </div>
+                  <span
+                    className={cn(KEY, active && 'border-black/30 bg-black/10')}
+                    style={active ? { color: STAMP_ON } : undefined}
+                  >
+                    {STAMPS[answer].key}
+                  </span>
+                  {GAME_ANSWER_LABELS[answer]}
+                </button>
+              );
+            })}
+          </fieldset>
+        </div>
+      )}
     </div>
   );
 }
@@ -328,8 +332,8 @@ export function CluePanel({
   }, []);
   const Icon = CLUE_ICONS[clue.kind];
   return (
-    <div className="absolute inset-0 z-20 grid place-items-center bg-black/45 p-4 backdrop-blur-[3px] animate-in fade-in-0 duration-200">
-      <div className="dark grid w-full max-w-md gap-4 rounded-3xl border border-white/10 bg-background/90 p-5 text-foreground shadow-2xl animate-in zoom-in-95 slide-in-from-bottom-4 duration-300">
+    <div className="absolute inset-x-0 top-28 bottom-0 z-50 grid place-items-center overflow-y-auto bg-black/45 p-3 backdrop-blur-[3px] animate-in fade-in-0 duration-200">
+      <div className="dark grid max-h-full w-full max-w-md gap-4 overflow-y-auto rounded-3xl border border-white/10 bg-background/90 p-5 text-foreground shadow-2xl animate-in zoom-in-95 slide-in-from-bottom-4 duration-300">
         <p className="flex items-center gap-2 font-semibold text-lg">
           <Icon aria-hidden className="size-5 text-primary" />
           {CLUE_KIND_LABELS[clue.kind]}
@@ -383,7 +387,7 @@ export function ResultPanel({
   return (
     <aside
       aria-live="polite"
-      className="dark absolute top-24 right-3 bottom-3 z-20 flex w-[min(28rem,calc(100%-1.5rem))] flex-col gap-4 overflow-y-auto rounded-3xl border border-white/10 bg-background/88 p-6 text-foreground shadow-2xl backdrop-blur-xl animate-in fade-in-0 slide-in-from-right-10 duration-500"
+      className="dark absolute top-28 right-3 bottom-3 z-50 flex w-[min(28rem,calc(100%-1.5rem))] flex-col gap-4 overflow-y-auto rounded-3xl border border-white/10 bg-background/88 p-6 text-foreground shadow-2xl backdrop-blur-xl animate-in fade-in-0 slide-in-from-right-10 duration-500"
     >
       <div
         className={cn(

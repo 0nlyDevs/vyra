@@ -599,7 +599,7 @@ export function Game3D({
 
       {/* Menu : choisir son avatar. */}
       {phase === 'menu' && (
-        <div className="pointer-events-none absolute inset-0 z-10 flex flex-col justify-between p-6 sm:p-8">
+        <div className="pointer-events-none absolute inset-0 z-10 flex flex-col justify-between gap-6 overflow-y-auto p-6 sm:p-8">
           {/* Voiles : le texte ne se pose jamais sur les guirlandes ni sur le ciel clair. */}
           <div
             aria-hidden
@@ -617,7 +617,7 @@ export function Game3D({
               publication : vrai, fake, ou impossible à dire.
             </p>
           </div>
-          <div className="pointer-events-auto grid gap-3 sm:self-end lg:w-[46rem]">
+          <div className="pointer-events-auto grid w-full max-w-[46rem] shrink-0 gap-3 sm:self-end">
             <div className="flex items-center justify-end gap-2.5 text-sm text-white">
               <span id="game3d-view-label" className="font-medium">
                 Vue
@@ -696,6 +696,7 @@ export function Game3D({
           target={target}
           selected={selected}
           answered={answer !== null}
+          playing={locked && !panelOpen}
           muted={muted}
           fullscreen={fullscreen}
           view={view}
@@ -723,13 +724,13 @@ export function Game3D({
         id="game3d-lock-layer"
         onClick={lock}
         className={cn(
-          'absolute inset-0 z-30 grid place-items-center bg-black/50 backdrop-blur-[2px] transition-opacity duration-300',
+          'absolute inset-x-0 top-28 bottom-0 z-30 grid place-items-center overflow-y-auto bg-black/50 p-3 backdrop-blur-[2px] transition-opacity duration-300',
           phase === 'play' && !locked && !panelOpen
             ? 'cursor-pointer opacity-100'
             : 'pointer-events-none opacity-0',
         )}
       >
-        <div className="grid max-w-sm gap-4 rounded-3xl border border-white/15 bg-black/75 p-6 text-center text-white backdrop-blur-xl">
+        <div className="grid max-h-full max-w-sm gap-4 overflow-y-auto rounded-3xl border border-white/15 bg-black/75 p-6 text-center text-white backdrop-blur-xl">
           <p className="eyebrow">{answers.length === 0 && !answer ? 'Prêt ?' : 'Pause'}</p>
           <p className="display text-3xl">
             {answers.length === 0 && !answer ? 'Entrer dans la rue' : 'Reprendre'}
