@@ -21,6 +21,9 @@ export const CLUE_SPOTS: Record<ClueKind, [number, number, number]> = {
   other_media: [0, 0, -25],
 };
 
+// Texte posé sur la couleur d'un tampon : l'encre sombre passe 4,5:1 sur les trois (le blanc non).
+export const STAMP_ON = '#0a0a0b';
+
 // Les trois tampons : une couleur et un symbole, jamais la couleur seule.
 export const STAMPS: Record<GameAnswer, { color: string; ink: string; mark: string; key: string }> =
   {
