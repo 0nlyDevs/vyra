@@ -157,7 +157,8 @@ Les clés n'apparaissent jamais dans les journaux. Après un changement :
 compte (DeepSeek), pas par clé. Plusieurs clés d'un même projet ne donnent pas plus de quota : il
 faut des clés de projets ou de comptes différents. DeepSeek n'a pas de palier gratuit. Groq et
 DeepSeek ne lisent pas les images ni le son : ces demandes vont à Gemini, qui fournit aussi les
-vecteurs de la recherche par le sens.
+vecteurs de la recherche par le sens. **La dictée** (« Dicter ») fait exception : elle passe par Groq
+Whisper, donc une clé Groq suffit.
 
 **Vérifier que l'IA répond**
 
@@ -183,6 +184,8 @@ changer quelque chose) :
 | `AI_TIMEOUT_SECONDS` | délai maximal d'une réponse (20) |
 | `AI_MODE` | `gemini` (défaut) : IA distantes seules ; `gemini-then-local` : puis Gemma 4 en local ; `local` : Gemma 4 seul |
 | `LOCAL_AI_URL`, `LOCAL_AI_MODEL`, `LOCAL_EMBEDDING_MODEL` | l'IA locale (Ollama : `ollama pull gemma4:e4b` et `ollama pull embeddinggemma`, environ 7 Go) |
+| `ELEVENLABS_API_KEYS` | la voix qui lit à voix haute (« Écouter »), une ou plusieurs clés ; sans clé, la voix du navigateur |
+| `STT_MODEL`, `ELEVENLABS_VOICE_ID`, `ELEVENLABS_MODEL` | le modèle de dictée (`whisper-large-v3`, Groq), la voix et le modèle ElevenLabs (`JBFqnCBsd6RMkjVDRZzb`, `eleven_flash_v2_5`) |
 | `DEMO_OFFLINE` | `true` : jamais d'appel à l'IA, toujours les réponses de secours (répéter le plan B) |
 | `PROCESSING_TOKEN` | en ligne seulement : secret partagé avec le web, même valeur des deux côtés |
 

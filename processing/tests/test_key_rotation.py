@@ -247,7 +247,7 @@ def test_api_addresses_come_from_the_settings() -> None:
     assert make_settings().base_url_for("deepseek") == "https://api.deepseek.com"
 
 
-def test_health_says_whether_an_ai_can_read_sound() -> None:
+def test_health_says_whether_the_voice_can_work() -> None:
     from fastapi.testclient import TestClient
 
     from app.main import create_app
@@ -257,7 +257,7 @@ def test_health_says_whether_an_ai_can_read_sound() -> None:
         return client.get("/health").json()["audio"]
 
     assert audio(deepseek_api_keys="d1") is False  # DeepSeek ne lit pas le son
-    assert audio(groq_api_keys="g1", deepseek_api_keys="d1") is False
+    assert audio(groq_api_keys="g1") is True  # Groq transcrit avec Whisper
     assert audio(gemini_api_keys="m1") is True
     assert audio(ai_mode="local") is True  # Gemma 4 en local lit le son
     assert audio(gemini_api_keys="m1", demo_offline=True) is False
