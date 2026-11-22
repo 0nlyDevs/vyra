@@ -10,7 +10,6 @@ import {
   hearings,
   institutionNotices,
   institutions,
-  notes,
   profiles,
   reportGroups,
   reports,
@@ -28,13 +27,6 @@ export const DEMO_PROFILES = [
   { id: 'rasoa', name: 'Rasoa', role: 'admin', headline: 'Vérifie les signalements' },
   { id: 'hery', name: 'Hery', role: 'member', headline: 'Lit, doute et signale' },
 ] as const;
-
-const DEMO_NOTES = [
-  { profileId: 'rasoa', content: 'Préparer les données de la démo avant la répétition.' },
-  { profileId: 'rasoa', content: 'Vérifier que la réponse de secours s’affiche sans wifi.' },
-  { profileId: 'rasoa', content: 'Répéter le pitch : 3 minutes de démo au maximum.' },
-  { profileId: 'hery', content: 'Finir l’écran principal pour le projecteur.' },
-];
 
 // Identifiants fixes : les liens entre versions y renvoient, et une URL de démo reste valable
 // après une réinitialisation.
@@ -807,12 +799,10 @@ export async function resetDemoData(database: Database) {
       .from(sessions)
       .where(inArray(sessions.profileId, demoIds));
     await tx.delete(cases);
-    await tx.delete(notes);
     await tx.delete(profiles);
     await tx.insert(profiles).values([...DEMO_PROFILES]);
     await tx.insert(accounts).values(await demoAccounts());
     if (keptSessions.length > 0) await tx.insert(sessions).values(keptSessions);
-    await tx.insert(notes).values(DEMO_NOTES);
     await tx.insert(cases).values(DEMO_CASES);
     await tx.insert(caseVersions).values(DEMO_VERSIONS);
     await tx.insert(versionLinks).values(DEMO_LINKS);

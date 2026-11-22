@@ -1,4 +1,3 @@
-import Link from 'next/link';
 import { AiNotice } from '@/components/common/AiNotice';
 import {
   AiSourceBadge,
@@ -68,11 +67,6 @@ export default function KitPage() {
         eyebrow="Base commune"
         title="Kit d’interface"
         description="Les couleurs et les composants partagés. On les réutilise tels quels, on n’en recrée pas."
-        actions={
-          <Button asChild variant="outline">
-            <Link href="/exemple">Voir l’exemple complet</Link>
-          </Button>
-        }
       />
 
       <div className="grid gap-6 lg:grid-cols-2">

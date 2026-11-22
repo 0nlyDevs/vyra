@@ -21,11 +21,12 @@ def test_health_reports_offline_mode(offline_client: TestClient) -> None:
 
 
 def test_prompt_uses_fallback_when_offline(offline_client: TestClient) -> None:
-    response = offline_client.post("/v1/prompts/summarize", json={"payload": {"notes": ["a"]}})
+    payload = {"claim": "a", "candidates": ["b"]}
+    response = offline_client.post("/v1/prompts/same-information", json={"payload": payload})
     assert response.status_code == 200
     body = response.json()
     assert body["source"] == "fallback"
-    assert body["result"]["summary"]
+    assert body["result"] == {"results": []}
 
 
 def test_unknown_prompt_is_404(offline_client: TestClient) -> None:
