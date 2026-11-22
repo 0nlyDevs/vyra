@@ -37,7 +37,7 @@ import {
 } from '@/lib/domain';
 import { cn } from '@/lib/utils';
 import type { ScenarioClue } from '@/server/db/schema';
-import { STAMPS } from './constants';
+import { STAMP_ON, STAMPS } from './constants';
 import type { Target, View } from './world';
 
 export const CLUE_ICONS = {
@@ -62,7 +62,7 @@ function HintButton({
     <button
       type="button"
       onClick={onClick}
-      className="flex items-center gap-1.5 rounded-xl px-1.5 py-1 transition-colors duration-150 hover:bg-white/15 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
+      className="flex min-h-8 items-center gap-1.5 rounded-xl px-1.5 py-1 transition-colors duration-150 hover:bg-white/15 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80"
     >
       <span className={KEY}>{keys}</span>
       {label}
@@ -70,8 +70,8 @@ function HintButton({
   );
 }
 
-const KEY =
-  'rounded-md border border-white/25 bg-white/10 px-1.5 py-0.5 font-mono text-[0.7rem] text-white';
+export const KEY =
+  'rounded-md border border-white/30 bg-white/12 px-1.5 py-0.5 font-mono text-[0.75rem] text-white';
 
 // Le cadre fixe du jeu : avancement, indices, réglages, viseur et choix du tampon.
 export function Hud({
@@ -122,7 +122,7 @@ export function Hud({
             Vrai ou fake · la rue du marché
           </p>
           <p className="font-semibold text-lg tabular-nums leading-none">
-            Information {round + 1} <span className="text-white/55">/ {total}</span>
+            Information {round + 1} <span className="text-white/75">/ {total}</span>
           </p>
           <div className="flex gap-1.5">
             {Array.from({ length: total }, (_, index) => (
@@ -152,7 +152,7 @@ export function Hud({
                 title={CLUE_KIND_LABELS[clue.kind]}
                 className={cn(
                   'flex items-center gap-1.5 rounded-xl px-2.5 py-1.5 text-xs transition-colors duration-300',
-                  !seen && 'bg-white/5 text-white/55',
+                  !seen && 'bg-white/8 text-white/75',
                   seen && !rating && 'bg-white/15',
                   rating === 'reliable' && 'bg-success/30 text-white',
                   rating === 'suspicious' && 'bg-warning/35 text-white',
@@ -255,7 +255,7 @@ export function Hud({
 
       {/* Bas : raccourcis et choix du tampon. Au-dessus du calque de pause : cliquables en pause. */}
       <div className="absolute inset-x-0 bottom-0 z-40 flex flex-wrap items-end justify-between gap-3 p-4">
-        <div className="pointer-events-auto hidden max-w-sm flex-wrap items-center gap-1.5 rounded-2xl bg-black/35 p-2 text-white/80 text-xs backdrop-blur-md lg:flex">
+        <div className="pointer-events-auto hidden max-w-sm flex-wrap items-center gap-1.5 rounded-2xl bg-black/50 p-2 text-white/90 text-xs backdrop-blur-md lg:flex">
           <span className="px-1.5">
             <span className={KEY}>Z Q S D</span> marcher · <span className={KEY}>Maj</span> courir
           </span>
@@ -264,7 +264,10 @@ export function Hud({
           <HintButton keys="F" label="plein écran" onClick={onFullscreen} />
           <HintButton keys="M" label={muted ? 'son coupé' : 'son'} onClick={onMute} />
         </div>
-        <div className="pointer-events-auto mx-auto flex gap-2 rounded-[1.4rem] bg-black/40 p-2 backdrop-blur-md">
+        <fieldset
+          aria-label="Encre du tampon"
+          className="pointer-events-auto mx-auto flex min-w-0 gap-2 rounded-[1.4rem] border-0 bg-black/55 p-2 backdrop-blur-md"
+        >
           {GAME_ANSWERS.map((answer) => {
             const active = answer === selected;
             return (
@@ -274,26 +277,30 @@ export function Hud({
                 onClick={() => onSelect(answer)}
                 aria-pressed={active}
                 className={cn(
-                  'flex items-center gap-2 rounded-2xl px-4 py-2.5 font-semibold transition-all duration-200 ease-out',
-                  active ? '-translate-y-1 text-white' : 'text-white/70 hover:bg-white/10',
+                  'flex min-h-11 items-center gap-2 rounded-2xl px-4 py-2.5 font-semibold transition-[transform,background-color,color] duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 focus-visible:ring-offset-2 focus-visible:ring-offset-black/60',
+                  active ? '-translate-y-1' : 'text-white/85 hover:bg-white/12 hover:text-white',
                 )}
                 style={
                   active
                     ? {
                         background: STAMPS[answer].color,
+                        color: STAMP_ON,
                         boxShadow: `0 10px 30px -8px ${STAMPS[answer].color}`,
                       }
                     : undefined
                 }
               >
-                <span className={cn(KEY, active && 'border-white/50 bg-black/20')}>
+                <span
+                  className={cn(KEY, active && 'border-black/30 bg-black/10')}
+                  style={active ? { color: STAMP_ON } : undefined}
+                >
                   {STAMPS[answer].key}
                 </span>
                 {GAME_ANSWER_LABELS[answer]}
               </button>
             );
           })}
-        </div>
+        </fieldset>
         <span className="hidden w-xs lg:block" />
       </div>
     </div>
