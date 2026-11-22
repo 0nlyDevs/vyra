@@ -6,7 +6,6 @@ import { LandingChrome } from '@/features/landing/rail/LandingChrome';
 import '@/features/landing/rail/rail.css';
 import '@/features/landing/landing.css';
 import { Parcours } from '@/features/landing/Parcours';
-import { SourcesMarquee } from '@/features/landing/SourcesMarquee';
 import { Tribunal } from '@/features/landing/Tribunal';
 import { Verdict } from '@/features/landing/Verdict';
 import { getCurrentProfile } from '@/server/session';
@@ -23,7 +22,6 @@ export default async function HomePage() {
       <main>
         <Hero signedIn={signedIn} />
         <Parcours />
-        <SourcesMarquee />
         <Tribunal />
         <Verdict />
         <Comparison />

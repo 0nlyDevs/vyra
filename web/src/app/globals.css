@@ -1570,26 +1570,6 @@ html:has([data-desk-bar]) {
   }
 }
 
-/* Bandeau défilant : une bande écrite deux fois, qui avance de moitié puis recommence. */
-@keyframes marquee {
-  to {
-    transform: translate3d(-50%, 0, 0);
-  }
-}
-.marquee-track {
-  animation: marquee 48s linear infinite;
-}
-.marquee-mask {
-  mask-image: linear-gradient(to right, transparent 0%, #000 8%, #000 92%, transparent 100%);
-  -webkit-mask-image: linear-gradient(
-    to right,
-    transparent 0%,
-    #000 8%,
-    #000 92%,
-    transparent 100%
-  );
-}
-
 /* Mode éco : pas d'animation, pas de flou ni de grain, pas d'illustration décorative. Moins de
    calcul pour les petits téléphones, et rien d'inutile à charger. Hors couche (@layer) : ces
    règles passent devant Tailwind sans !important. */

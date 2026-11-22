@@ -119,7 +119,6 @@ export function Parcours() {
       const section = root.current;
       const el = track.current;
       if (reduce || !section || !el) return;
-      const bar = section.querySelector<HTMLElement>('.parcours-bar i');
       const size = () => {
         section.style.height = `${el.scrollWidth - window.innerWidth + window.innerHeight}px`;
       };
@@ -134,9 +133,6 @@ export function Parcours() {
           end: 'bottom bottom',
           scrub: 0.8,
           invalidateOnRefresh: true,
-          onUpdate: (st) => {
-            if (bar) bar.style.transform = `scaleX(${st.progress})`;
-          },
         },
       });
       gsap.utils.toArray<HTMLElement>('.parcours .slide').forEach((slide, i) => {
@@ -210,9 +206,6 @@ export function Parcours() {
             </div>
           </article>
         ))}
-      </div>
-      <div className="parcours-bar" aria-hidden>
-        <i />
       </div>
     </section>
   );
