@@ -11,8 +11,14 @@ import {
   isNotNull,
   isNull,
   max,
+  sql,
 } from 'drizzle-orm';
-import type { CaseStatus, ReportReason, ReportState } from '@/lib/domain';
+import {
+  type CaseStatus,
+  REPORT_ANONYMOUS_CAP,
+  type ReportReason,
+  type ReportState,
+} from '@/lib/domain';
 import { db } from '@/server/db';
 import { cases, profiles, reportGroups, reports } from '@/server/db/schema';
 
@@ -230,9 +236,16 @@ export async function countReportsSince(reporterId: string, since: Date) {
   return row?.total ?? 0;
 }
 
+// Signaleurs différents du groupe : un par compte, et les signalements sans compte plafonnés (rien
+// ne distingue une personne qui en envoie dix de dix personnes).
 export async function countGroupReporters(groupId: string) {
   const [row] = await db
-    .select({ total: count() })
+    .select({
+      total: sql<number>`count(distinct ${reports.reporterId})
+        + least(count(*) filter (where ${reports.reporterId} is null), ${REPORT_ANONYMOUS_CAP})`.mapWith(
+        Number,
+      ),
+    })
     .from(reports)
     .where(eq(reports.groupId, groupId));
   return row?.total ?? 0;

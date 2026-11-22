@@ -2,10 +2,12 @@ import { ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { signInAs } from '@/features/demo/actions';
 import { PROFILE_ROLE_LABELS } from '@/lib/domain';
+import { demoMode } from '@/lib/env';
 import { DEMO_PROFILES } from '@/server/demo/seed-data';
 
 // Accès en un clic aux comptes de démo, pour la scène : pas de mot de passe à taper devant le jury.
 export function DemoAccounts() {
+  if (!demoMode) return null;
   return (
     <section id="demo" aria-labelledby="demo-title" className="grid gap-3">
       <h2 id="demo-title" className="font-bold text-foreground text-sm">
