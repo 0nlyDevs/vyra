@@ -61,4 +61,5 @@ Les fichiers de démo (image, vocal, vidéo) sont dans `web/public/demo/`. Le vo
   DeepSeek) ; plusieurs clés par fournisseur tournent.
 - **Le site en ligne est lent** : basculer sur la version locale (même données de démo).
 - **Le PC plante** : la vidéo de la démo, enregistrée à l'avance.
-- **Une donnée a été abîmée en répétition** : bouton « Réinitialiser la démo ».
+- **Une donnée a été abîmée en répétition** : bouton « Réinitialiser la démo », en local seulement
+  (il efface tous les comptes, il n'existe donc pas sur le site en ligne).

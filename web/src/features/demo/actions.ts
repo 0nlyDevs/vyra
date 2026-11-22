@@ -5,7 +5,7 @@ import { redirect } from 'next/navigation';
 import { z } from 'zod';
 import { type ActionResult, fail, ok } from '@/lib/action-result';
 import { isVerifier } from '@/lib/domain';
-import { demoMode } from '@/lib/env';
+import { demoMode, demoResetAllowed } from '@/lib/env';
 import { ERRORS } from '@/lib/errors';
 import { logger } from '@/lib/logger';
 import { AFTER_SIGN_IN_PATH } from '@/lib/navigation';
@@ -31,11 +31,12 @@ export async function signOut(): Promise<void> {
 
 // Remet les données de démo dans leur état de départ (avant de monter sur scène, ou entre deux
 // répétitions). Les profils gardent les mêmes identifiants : la personne reste connectée.
-// Efface aussi les comptes créés entre-temps : réservé à un admin, en mode démo.
+// Efface aussi les comptes créés entre-temps : réservé à un admin, en mode démo, et jamais en
+// production (voir `demoResetAllowed`).
 export async function resetDemo(): Promise<ActionResult<null>> {
   const profile = await getCurrentProfile();
   if (!profile) return fail(ERRORS.UNAUTHORIZED);
-  if (!demoMode || !isVerifier(profile.role)) return fail(ERRORS.FORBIDDEN);
+  if (!demoResetAllowed || !isVerifier(profile.role)) return fail(ERRORS.FORBIDDEN);
   try {
     await resetDemoData(db);
   } catch (error) {

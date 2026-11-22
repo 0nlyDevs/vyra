@@ -61,4 +61,8 @@ function parseEnv<T extends z.ZodType>(schema: T, source: Record<string, string 
 
 export const env = parseEnv(serverSchema, process.env);
 export const demoMode = env.DEMO_MODE ?? env.NODE_ENV !== 'production';
+// La remise à zéro efface TOUTES les affaires et TOUS les comptes, pas seulement ceux de la démo.
+// Jamais en production : avec DEMO_MODE=true en ligne, n'importe qui entre en un clic comme
+// vérificateur de démo, et pourrait effacer les comptes des vraies personnes. En local seulement.
+export const demoResetAllowed = demoMode && env.NODE_ENV !== 'production';
 export const publicEnv = parseEnv(publicSchema, publicSource);
