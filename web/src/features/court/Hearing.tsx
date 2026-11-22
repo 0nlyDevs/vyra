@@ -189,6 +189,7 @@ export function Hearing({
                   <AccordionTrigger>Partager la conclusion</AccordionTrigger>
                   <AccordionContent>
                     <ShareCard
+                      caseId={caseId}
                       claim={claim}
                       certainty={hearing.certainty}
                       conclusion={hearing.conclusion}
