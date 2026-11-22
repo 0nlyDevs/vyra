@@ -4,7 +4,7 @@
 
 .DEFAULT_GOAL := help
 
-.PHONY: help up down logs seed db-push studio check lint-fix restart-web web-local clean
+.PHONY: help up down logs seed db-push db-generate studio check lint-fix restart-web web-local clean
 
 help: ## Affiche cette aide
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-12s\033[0m %s\n", $$1, $$2}'
@@ -23,6 +23,9 @@ seed: ## Remet les données de démo à zéro
 
 db-push: ## Met les tables à jour après un changement de web/src/server/db/schema.ts
 	docker compose exec web npm run db:push
+
+db-generate: ## Écrit la migration (web/drizzle/) à committer après un changement de schema.ts
+	docker compose exec web npm run db:generate
 
 studio: ## Drizzle Studio pour voir les données : https://local.drizzle.studio
 	docker compose exec web npm run db:studio
