@@ -12,6 +12,7 @@ import {
 } from '@/lib/domain';
 import { findJudgedCase } from '@/server/dal/court';
 import { embedTexts, findFactChecks, readPages } from '@/server/processing';
+import { clientIp, withinLimit } from '@/server/rate-limit';
 
 // Vérification rapide pour l'extension du navigateur, sans compte : un texte sélectionné ou un
 // lien. Renvoie l'affaire déjà jugée qui lui ressemble, les signes d'alerte relevés sans IA et les
@@ -27,6 +28,10 @@ const checkSchema = z
   });
 
 export async function POST(request: Request) {
+  // Route publique qui appelle l'IA et lit des pages : limitée par adresse, comme les signalements.
+  if (!(await withinLimit(`check:ip:${await clientIp()}`, 60, 60 * 60))) {
+    return Response.json({ error: 'Trop de vérifications. Réessayez plus tard.' }, { status: 429 });
+  }
   const body = await request.json().catch(() => null);
   const parsed = checkSchema.safeParse(body);
   if (!parsed.success) {
