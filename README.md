@@ -29,8 +29,8 @@ Deux rôles : **Citoyen** (lit, signale, vote) et **Vérificateur** (ouvre une a
 tient l'annuaire officiel). Détails dans [docs/ROLES.md](docs/ROLES.md).
 Tout le détail technique : [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
-**Essayer en ligne :** https://vyra-mg.vercel.app (compte de démo `rasoa@mindstack.demo`, mot de
-passe `mindstack-demo`).
+**Essayer en ligne :** https://vyra-mg.vercel.app (compte de démo `rasoa@vyra.demo`, mot de
+passe `vyra-demo`).
 
 ## Démarrer : une seule commande, sur Mac, Linux et Windows
 
@@ -151,14 +151,14 @@ officielle toute prête : on prend celle compilée par la communauté
 
    ```powershell
    $psql = "C:\Program Files\PostgreSQL\14\bin\psql.exe"
-   & $psql -U postgres -h localhost -c "CREATE ROLE mindstack LOGIN PASSWORD 'mindstack'"
-   & $psql -U postgres -h localhost -c "CREATE DATABASE mindstack OWNER mindstack"
-   & $psql -U postgres -h localhost -d mindstack -c "CREATE EXTENSION vector"
+   & $psql -U postgres -h localhost -c "CREATE ROLE vyra LOGIN PASSWORD 'vyra'"
+   & $psql -U postgres -h localhost -c "CREATE DATABASE vyra OWNER vyra"
+   & $psql -U postgres -h localhost -d vyra -c "CREATE EXTENSION vector"
    ```
 
 4. À l'étape 4 ci-dessus, dans `web/.env.local`, garder la ligne `DATABASE_URL` mais avec le
    port **5432** (celui de Postgres sur le PC ; 5433 est celui de Docker) :
-   `DATABASE_URL=postgres://mindstack:mindstack@localhost:5432/mindstack`.
+   `DATABASE_URL=postgres://vyra:vyra@localhost:5432/vyra`.
 
 ### L'IA : les clés, et rien d'autre à régler
 
@@ -224,7 +224,7 @@ vecteurs des deux IA ne se comparent pas.
 ### Comptes, e-mails et connexion Google
 
 - **Comptes de démo** : boutons « Comptes de démo » sur la page de connexion, sans mot de passe à
-  taper sur scène. Leurs adresses (`rasoa@mindstack.demo`, `hery@mindstack.demo`) et leur mot de
+  taper sur scène. Leurs adresses (`rasoa@vyra.demo`, `hery@vyra.demo`) et leur mot de
   passe sont dans `web/src/server/demo/seed-data.ts`.
 - **E-mails** : envoyés avec Resend (confirmation d'adresse, mot de passe oublié). Mettre
   `RESEND_API_KEY` dans `web/.env.local` (ou dans l'environnement de Docker). `MAIL_FROM` doit être

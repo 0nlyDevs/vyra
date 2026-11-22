@@ -96,18 +96,18 @@ pas d'être sage, on vérifie ce qu'il fait.
 | Plaidoiries | Contrôle des plaidoiries du tribunal avant affichage | `features/court/pleading-guard.ts` |
 | Verdict | Aucune IA ne conclut seule : le tribunal et le vote concluent, l'IA propose en pointillés | voir « Ce qui est jugé par qui » |
 
-### L'agent : il propose, la personne confirme
+### L'agent : navigation immédiate, formulaires à confirmer
 
 L'assistant peut proposer jusqu'à trois **actions** (ouvrir une affaire ou son audience, ouvrir une
-enquête ou un signalement avec le texte pré-rempli, ouvrir un module). Il n'exécute **rien** :
-chaque proposition est un lien que la personne confirme d'un clic, et la page qui s'ouvre refait
-elle-même la connexion, la validation et les limites.
+enquête ou un signalement avec le texte pré-rempli, ouvrir un module). Une navigation s'exécute
+immédiatement seulement si la personne l'a explicitement demandée. Une enquête ou un signalement
+restent à confirmer d'un clic, et la page qui s'ouvre refait la connexion, la validation et les limites.
 
 Par construction : liste fermée de types d'actions (`features/assistant/proposals.ts`) ; les liens
 sont construits par le serveur, jamais repris du modèle ; une affaire n'est proposée que si elle
 fait partie de celles fournies au modèle ; trois propositions au plus ; texte pré-rempli nettoyé et
 borné. Tout ce qui sort de cette liste (`delete_case`, une page `admin`, une adresse externe) est
-écarté. 14 tests couvrent ces cas (plus 10 côté processing pour les règles communes), et des attaques ont été jouées contre le vrai modèle (consigne
+écarté. Les tests couvrent ces cas et l'autorisation de navigation immédiate (plus les tests côté processing pour les règles communes), et des attaques ont été jouées contre le vrai modèle (consigne
 « ignore tes règles », verdict forcé, lien piégé).
 
 ## Recherche par le sens (pgvector)
@@ -121,6 +121,10 @@ proches venues de sources différentes (`features/feed/topics.ts`).
 la base renvoie les affaires les plus proches (`listNearestCasesForAssistant`), complétées par les
 plus récentes (`pickAssistantCases`), et l'IA ne répond qu'à partir de ces affaires, qu'elle cite
 par numéro. Une citation qui ne correspond à aucune affaire fournie est écartée.
+
+Pour une question de contexte ou une recherche explicite, l'assistant consulte aussi Wikipédia
+et les vérifications publiées via `findFactChecks`. Les sources citées s'affichent avec des liens
+construits depuis les résultats reçus ; elles ne remplacent jamais la conclusion du tribunal.
 
 ## L'arborescence
 

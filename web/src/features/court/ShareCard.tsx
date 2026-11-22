@@ -230,7 +230,7 @@ export function ShareCard({
     if (!blob) return;
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
-    link.download = 'conclusion-mindstack.png';
+    link.download = 'conclusion-vyra.png';
     link.click();
     URL.revokeObjectURL(link.href);
   }
@@ -240,7 +240,7 @@ export function ShareCard({
     if (!blob) return;
     try {
       await navigator.share({
-        files: [new File([blob], 'conclusion-mindstack.png', { type: 'image/png' })],
+        files: [new File([blob], 'conclusion-vyra.png', { type: 'image/png' })],
         text,
       });
     } catch {

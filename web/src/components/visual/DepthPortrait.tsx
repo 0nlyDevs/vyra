@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils';
 // Un portrait en relief (repris du site Kovity). La photo est plate, mais une carte de
 // profondeur (clair = proche) dit à la carte graphique ce qui est devant : quand l'inclinaison
 // change, le casque bouge plus que les épaules. La photo d'origine est violette : le rendu la
-// repeint aux couleurs de MindStack (nuit, rouge, reflets rosés). Sans carte graphique
+// repeint aux couleurs de Vyra (nuit, rouge, reflets rosés). Sans carte graphique
 // utilisable, la photo reste à plat, teintée par un filtre CSS.
 
 type Props = {

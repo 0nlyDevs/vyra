@@ -70,7 +70,7 @@ export function Fin({ signedIn }: { signedIn: boolean }) {
         </div>
         <div className="fin-legal">
           <span>DevFest Antananarivo 2026</span>
-          <span>D’après le travail de l’équipe MindStack</span>
+          <span>Vérifier avant de croire</span>
         </div>
       </div>
       <div className="fin-wordmark" aria-hidden>

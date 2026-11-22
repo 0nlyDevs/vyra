@@ -2,7 +2,7 @@
 
 import { MessageCircleQuestion, Send, Volume2, VolumeX, X } from 'lucide-react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { type FormEvent, useEffect, useRef, useState, useTransition } from 'react';
 import { AiSourceBadge, CertaintyBadge } from '@/components/common/DomainBadges';
 import { SpeakButton } from '@/components/common/SpeakButton';
@@ -19,6 +19,7 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { appendText, DictateButton } from '@/features/dictation/DictateButton';
 import { type AssistantAnswer, askAssistant } from './actions';
+import { loadingLabel } from './intent';
 
 type Message =
   | { id: number; role: 'user'; text: string }
@@ -44,6 +45,8 @@ function speak(text: string) {
 // les affaires du dossier. En mode vocal, la réponse est lue à voix haute ; la question se dicte.
 export function Assistant() {
   const pathname = usePathname();
+  const router = useRouter();
+  const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [question, setQuestion] = useState('');
   const [voice, setVoice] = useState(false);
@@ -78,6 +81,10 @@ export function Assistant() {
         { id: nextId.current++, role: 'assistant', text: answer, ...rest },
       ]);
       if (voice) speak(answer);
+      if (result.data.autorun) {
+        setOpen(false);
+        router.push(result.data.autorun);
+      }
     });
   }
 
@@ -87,7 +94,7 @@ export function Assistant() {
   }
 
   return (
-    <Sheet>
+    <Sheet open={open} onOpenChange={setOpen}>
       {/* En bas à droite : une pilule d'encre de 60 px, son libellé sort
           vers la gauche au survol et au focus. */}
       <SheetTrigger className="assist-fab" aria-label="Ouvrir l’assistant">
@@ -103,6 +110,7 @@ export function Assistant() {
       {/* Le panneau sort du coin de l'assistant, au-dessus du bouton. */}
       <SheetContent
         showCloseButton={false}
+        overlayClassName="supports-backdrop-filter:backdrop-blur-none"
         className="gap-0 overflow-hidden rounded-[24px] border border-border p-0 data-[side=right]:top-auto data-[side=right]:right-(--corner-x) data-[side=right]:bottom-[calc(var(--corner-y)+72px)] data-[side=right]:h-[min(620px,calc(100dvh-var(--corner-y)-156px))] data-[side=right]:w-[min(420px,calc(100vw-2*var(--inset)))] data-[side=right]:border data-[side=right]:sm:max-w-none"
       >
         <SheetHeader className="gap-2 bg-live p-4 pr-3 text-live-foreground">
@@ -135,11 +143,15 @@ export function Assistant() {
             </SheetClose>
           </div>
           <SheetDescription className="text-live-muted">
-            Il répond à partir des affaires du dossier et les cite. Il ne rend jamais de verdict.
+            Il consulte les affaires et peut chercher sur Wikipédia et chez les vérificateurs. Il ne
+            rend jamais de verdict.
           </SheetDescription>
         </SheetHeader>
 
-        <div className="grid flex-1 content-start gap-3 overflow-y-auto p-4" aria-live="polite">
+        <div
+          className="grid min-h-0 flex-1 content-start gap-3 overflow-y-auto p-4"
+          aria-live="polite"
+        >
           {messages.length === 0 && (
             <div className="grid gap-2">
               <p className="text-muted-foreground text-sm">Par exemple :</p>
@@ -187,6 +199,22 @@ export function Assistant() {
                     ))}
                   </ul>
                 )}
+                {message.references.length > 0 && (
+                  <ul className="grid gap-1.5" aria-label="Sources extérieures">
+                    {message.references.map((reference) => (
+                      <li key={reference.number}>
+                        <a
+                          href={reference.href}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-sm underline underline-offset-4"
+                        >
+                          [S{reference.number}] {reference.label} : {reference.title}
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                )}
                 {message.proposals.length > 0 && (
                   <nav className="grid gap-1.5" aria-label="Actions proposées">
                     <p className="text-muted-foreground text-xs">À confirmer d’un clic :</p>
@@ -206,7 +234,11 @@ export function Assistant() {
               </div>
             ),
           )}
-          {pending && <p className="text-muted-foreground text-sm">Je cherche dans le dossier…</p>}
+          {pending && (
+            <p className="text-muted-foreground text-sm">
+              {loadingLabel(messages.findLast((message) => message.role === 'user')?.text ?? '')}
+            </p>
+          )}
           {error && <p className="text-destructive text-sm">{error}</p>}
           <div ref={endRef} />
         </div>

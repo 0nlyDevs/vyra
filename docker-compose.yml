@@ -9,9 +9,9 @@ services:
     image: pgvector/pgvector:pg17
     # Identifiants de développement, utilisés seulement sur ce PC (pas un secret).
     environment:
-      POSTGRES_USER: mindstack
-      POSTGRES_PASSWORD: mindstack
-      POSTGRES_DB: mindstack
+      POSTGRES_USER: vyra
+      POSTGRES_PASSWORD: vyra
+      POSTGRES_DB: vyra
     # 5433 côté PC : le port 5432 est souvent déjà pris par un Postgres installé à la main.
     ports:
       - "127.0.0.1:5433:5432"
@@ -19,7 +19,7 @@ services:
       - db-data:/var/lib/postgresql/data
       - ./docker/initdb:/docker-entrypoint-initdb.d:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U mindstack -d mindstack"]
+      test: ["CMD-SHELL", "pg_isready -U vyra -d vyra"]
       interval: 2s
       timeout: 3s
       retries: 30
@@ -45,7 +45,7 @@ services:
     # est vide, puis lance Next.js (voir web/scripts/docker-dev.sh).
     command: ["sh", "scripts/docker-dev.sh"]
     environment:
-      DATABASE_URL: postgres://mindstack:mindstack@db:5432/mindstack
+      DATABASE_URL: postgres://vyra:vyra@db:5432/vyra
       PROCESSING_URL: http://processing:8000
       APP_URL: http://localhost:3000
       RESEND_API_KEY: ${RESEND_API_KEY:-}

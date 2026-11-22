@@ -44,19 +44,19 @@ jobs:
       db:
         image: pgvector/pgvector:pg17
         env:
-          POSTGRES_USER: mindstack
-          POSTGRES_PASSWORD: mindstack
-          POSTGRES_DB: mindstack
+          POSTGRES_USER: vyra
+          POSTGRES_PASSWORD: vyra
+          POSTGRES_DB: vyra
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U mindstack -d mindstack"
+          --health-cmd "pg_isready -U vyra -d vyra"
           --health-interval 2s
           --health-timeout 3s
           --health-retries 30
     env:
       # Base éphémère du job, aucun accès aux données ni aux secrets de production.
-      DATABASE_URL: postgres://mindstack:mindstack@127.0.0.1:5432/mindstack
+      DATABASE_URL: postgres://vyra:vyra@127.0.0.1:5432/vyra
       NEXT_TELEMETRY_DISABLED: '1'
     defaults:
       run:

@@ -4,23 +4,24 @@ Un parcours de cinq minutes qui montre le principe de Vyra : **une rumeur devien
 l'affaire est jugée, la conclusion est signée**. Il marche à l'identique à chaque fois, avec ou sans
 réseau.
 
-Comptes de démo (mot de passe `mindstack-demo`) : `rasoa@mindstack.demo` (Vérificateur),
-`hery@mindstack.demo` (Citoyen). En ligne : https://vyra-mg.vercel.app. En local :
+Comptes de démo (mot de passe `vyra-demo`) : `rasoa@vyra.demo` (Vérificateur),
+`hery@vyra.demo` (Citoyen). En ligne : https://vyra-mg.vercel.app. En local :
 http://localhost:3000.
 
 ## Les données de démo
 
-`make seed` (ou le bouton « Réinitialiser la démo ») recrée un jeu cohérent, tout inventé :
+`make seed` (ou le bouton « Réinitialiser la démo ») recrée un jeu cohérent :
 
 | | Contenu |
 |---|---|
-| Affaires | 13 : 9 jugées (Établi, Probable, Incertain, Contredit ×5, Informations insuffisantes) et 4 ouvertes à juger en direct (*La photo de l'inondation*, *Le recrutement à 500 postes*, *Le réseau mobile coupé trois jours*, *La bourse d'études*) |
-| Dossiers | 34 versions, 21 liens (ton durci, chiffre changé, reprise à l'identique…), 38 pièces, 9 audiences avec plaidoiries, constats et conclusion |
+| Affaires | 22 : 18 jugées (Établi ×3, Probable, Incertain, Contredit ×11, Informations insuffisantes ×2) et 4 ouvertes à juger en direct (*La photo de l'inondation*, *Le recrutement à 500 postes*, *Le réseau mobile coupé trois jours*, *La bourse d'études*). 13 affaires sont inventées ; **9 sont réelles**, à Madagascar (Covid-Organics, la peste) et dans le monde (5G, micropuces, canular du pape, alunissages Apollo, eau de Javel, Ebola) |
+| Dossiers | 47 versions, 25 liens (ton durci, chiffre changé, reprise à l'identique…), 65 pièces, 18 audiences avec plaidoiries, constats et conclusion |
 | Autour | 8 signalements en 3 groupes, 5 scénarios du jeu, 3 institutions et leurs communiqués |
-| Comptes | `rasoa@mindstack.demo` (Vérificateur), `hery@mindstack.demo` (Citoyen) ; mot de passe `mindstack-demo` |
+| Comptes | `rasoa@vyra.demo` (Vérificateur), `hery@vyra.demo` (Citoyen) ; mot de passe `vyra-demo` |
 
-Les données sont dans `web/src/server/demo/` (`seed-data.ts` pour le socle et `seed-archive.ts` pour
-les dossiers instruits). Les vecteurs de la recherche par le sens sont calculés au premier besoin.
+Les données sont dans `web/src/server/demo/` : `seed-data.ts` (le socle), `seed-archive.ts` (les dossiers
+inventés) et `seed-world.ts` (les affaires réelles : positions publiques d'institutions résumées, sans
+citation ni lien, à relire avant toute diffusion). Les vecteurs de la recherche par le sens sont calculés au premier besoin.
 
 ## Le script
 

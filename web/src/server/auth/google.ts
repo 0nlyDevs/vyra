@@ -14,7 +14,7 @@ const USERINFO_URL = 'https://openidconnect.googleapis.com/v1/userinfo';
 
 export const GOOGLE_CALLBACK_PATH = '/api/auth/google/callback';
 // Cookie de courte durée : état et vérificateur PKCE, entre le départ et le retour de Google.
-export const OAUTH_COOKIE = 'mindstack_google_oauth';
+export const OAUTH_COOKIE = 'vyra_google_oauth';
 
 export function isGoogleEnabled() {
   return Boolean(env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET);

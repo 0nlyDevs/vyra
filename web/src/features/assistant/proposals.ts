@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-// L'agent de Vyra PROPOSE, il n'exécute jamais. Une proposition est un lien que la personne confirme
+// L'agent peut ouvrir une page demandée. Une enquête ou un signalement restent à confirmer
 // d'un clic : les pages qu'il ouvre (enquête, signalement, tribunal) refont elles-mêmes la connexion,
 // la validation et les limites. Garde-fous par construction :
 // - une liste fermée de types d'actions ; tout le reste est écarté ;
@@ -25,22 +25,33 @@ const PAGES = Object.keys(PAGE_TARGETS) as [
   ...(keyof typeof PAGE_TARGETS)[],
 ];
 
-export type Proposal = { type: string; label: string; href: string };
+// `now` : la personne a demandé d'y aller, la page peut s'ouvrir sans attendre un clic.
+export type Proposal = { type: string; label: string; href: string; now?: boolean };
+
+// Seule la navigation (ouvrir une page ou un dossier) peut s'exécuter tout de suite : elle ne change
+// rien. Signaler et ouvrir une enquête engagent la personne : ils attendent toujours son clic.
+const NAVIGATION = new Set(['open_case', 'open_court', 'open_page']);
 type CaseRef = { id: string; title: string; status: string };
 
 const rawProposalSchema = z.discriminatedUnion('type', [
-  z.object({ type: z.literal('open_case'), case: z.number().int() }),
-  z.object({ type: z.literal('open_court'), case: z.number().int() }),
+  z.object({ type: z.literal('open_case'), case: z.number().int(), now: z.boolean().optional() }),
+  z.object({ type: z.literal('open_court'), case: z.number().int(), now: z.boolean().optional() }),
   z.object({ type: z.literal('report'), text: z.string() }),
   z.object({ type: z.literal('start_investigation'), text: z.string() }),
-  z.object({ type: z.literal('open_page'), page: z.enum(PAGES) }),
+  z.object({ type: z.literal('open_page'), page: z.enum(PAGES), now: z.boolean().optional() }),
 ]);
 
 const clean = (text: string) => text.replace(/\s+/g, ' ').trim().slice(0, MAX_TEXT);
 
 // Les propositions du modèle (« raw », non fiable), filtrées et transformées en liens sûrs.
 // `rows` : les affaires fournies au modèle, dans l'ordre de leurs numéros (1, 2…).
-export function buildProposals(raw: readonly unknown[], rows: readonly CaseRef[]): Proposal[] {
+export function buildProposals(
+  raw: readonly unknown[],
+  rows: readonly CaseRef[],
+  // `allowNow` : la question était une demande d'aller quelque part (voir intent.ts). Sans cela, un
+  // texte piégé ne peut pas faire ouvrir une page tout seul.
+  options: { allowNow?: boolean } = {},
+): Proposal[] {
   const proposals: Proposal[] = [];
   const seen = new Set<string>();
   for (const item of raw) {
@@ -81,6 +92,8 @@ export function buildProposals(raw: readonly unknown[], rows: readonly CaseRef[]
     }
     if (proposal && !seen.has(proposal.href)) {
       seen.add(proposal.href);
+      const now = 'now' in action && action.now === true;
+      if (now && options.allowNow && NAVIGATION.has(proposal.type)) proposal.now = true;
       proposals.push(proposal);
     }
     if (proposals.length === MAX_PROPOSALS) break;
@@ -126,6 +139,7 @@ export function mobileProposals(proposals: readonly Proposal[]): Proposal[] {
     const next = court
       ? {
           type: 'open_case',
+          now: proposal.now,
           label: proposal.label.startsWith(COURT_LABEL)
             ? `Ouvrir l’affaire : ${proposal.label.slice(COURT_LABEL.length)}`
             : proposal.label,
@@ -140,4 +154,9 @@ export function mobileProposals(proposals: readonly Proposal[]): Proposal[] {
     kept.push(next);
   }
   return kept;
+}
+
+// Le lien à ouvrir tout de suite : la première proposition de navigation marquée `now`.
+export function autorunHref(proposals: readonly Proposal[]): string | null {
+  return proposals.find((proposal) => proposal.now && NAVIGATION.has(proposal.type))?.href ?? null;
 }

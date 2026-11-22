@@ -9,7 +9,7 @@
 | `admin` | Vérificateur | Tout ce qui précède, plus : voir les groupes d'alertes, ouvrir une affaire sans attendre le seuil de 5 signalements, tenir l'annuaire officiel, réinitialiser la démo |
 
 Les droits sont vérifiés côté serveur (`isVerifier` dans `web/src/lib/domain.ts`), jamais côté
-client. Comptes de démo : `rasoa@mindstack.demo` (Vérificateur), `hery@mindstack.demo` (Citoyen).
+client. Comptes de démo : `rasoa@vyra.demo` (Vérificateur), `hery@vyra.demo` (Citoyen).
 
 ## L'équipe
 

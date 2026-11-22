@@ -10,12 +10,20 @@ import {
   listCasesForAssistant,
   listNearestCasesForAssistant,
 } from '@/server/dal/court';
-import { type AiSource, embedTexts, runPrompt } from '@/server/processing';
+import { type AiSource, embedTexts, findFactChecks, runPrompt } from '@/server/processing';
 import { getCurrentProfile } from '@/server/session';
 import { pickAssistantCases } from './context';
 import { guardAnswer, NO_VERDICT_ANSWER } from './guard';
-import { buildProposals, fallbackProposals, type Proposal } from './proposals';
+import { isCommand, pageFromCommand, wantsOutsideSources } from './intent';
+import {
+  autorunHref,
+  buildProposals,
+  fallbackProposals,
+  PAGE_TARGETS,
+  type Proposal,
+} from './proposals';
 import { assistantAnswerSchema, assistantQuestionSchema } from './schema';
+import { buildExternal, buildReferences, externalForModel, type Reference } from './sources';
 
 // L'assistant : répond à partir des affaires du dossier, en les citant. Jamais de verdict nouveau.
 // Sans IA, une réponse écrite sans modèle (affaire déjà jugée qui ressemble, sinon aide de la page).
@@ -30,8 +38,12 @@ export type Citation = {
 export type AssistantAnswer = {
   answer: string;
   citations: Citation[];
-  // Actions que la personne peut confirmer d'un clic ; l'assistant n'exécute rien lui-même.
+  // Navigation demandée ou formulaires que la personne confirme d'un clic.
   proposals: Proposal[];
+  // Sources extérieures citées (Wikipédia, vérifications publiées) : des liens construits ici.
+  references: Reference[];
+  // Une page à ouvrir tout de suite : la personne l'a demandé et c'est de la navigation seulement.
+  autorun: string | null;
   source: AiSource;
 };
 
@@ -107,6 +119,21 @@ export async function askAssistant(input: {
   if (!parsed.success) return fail(ERRORS.VALIDATION_FAILED, parsed.error);
   const { question, pathname, history } = parsed.data;
 
+  // Une commande simple (« ouvre le tribunal ») n'attend pas l'IA : on ouvre tout de suite. Seule la
+  // navigation s'exécute ainsi ; le lien est construit ici, jamais repris d'un texte.
+  const commanded = pageFromCommand(question);
+  if (commanded) {
+    const target = PAGE_TARGETS[commanded];
+    return ok({
+      answer: 'Je vous y emmène.',
+      citations: [],
+      proposals: [{ type: 'open_page', label: target.label, href: target.href, now: true }],
+      references: [],
+      autorun: target.href,
+      source: 'fallback',
+    });
+  }
+
   // Recherche par le sens : les affaires les plus proches de la question, puis les plus récentes.
   await embedMissingCases();
   const vectors = await embedTexts([question]);
@@ -115,6 +142,12 @@ export async function askAssistant(input: {
     embedding ? await listNearestCasesForAssistant(embedding) : [],
     await listCasesForAssistant(),
   );
+
+  // Une question de contexte (« qui est… », « qu'est-ce que… », « cherche sur Wikipédia… ») : on lit
+  // aussi Wikipédia et les vérifications déjà publiées. Ce sont des sources, pas des conclusions.
+  const found = wantsOutsideSources(question) ? await findFactChecks(question.slice(0, 300)) : null;
+  const external = found?.ok ? buildExternal(found.data.wikipedia, found.data.fact_checks) : [];
+
   const result = await runPrompt(
     'assistant',
     {
@@ -128,13 +161,14 @@ export async function askAssistant(input: {
         certainty: row.certainty ? CERTAINTY_LABELS[row.certainty] : null,
         conclusion: row.conclusion,
       })),
+      external: externalForModel(external),
       history,
     },
     assistantAnswerSchema,
   );
 
   if (result.ok && result.data.source === 'gemini' && result.data.result.answer.trim()) {
-    // Seules les affaires fournies peuvent être citées.
+    // Seules les affaires et les sources fournies peuvent être citées.
     const citations = [...new Set(result.data.result.cited)]
       .map((number) => ({ number, row: rows[number - 1] }))
       .filter((entry): entry is { number: number; row: CaseRow } => entry.row !== undefined)
@@ -144,16 +178,28 @@ export async function askAssistant(input: {
         href: hrefOf(row),
         certainty: row.certainty,
       }));
+    const references = buildReferences(result.data.result.citedExternal, external);
     // L'IA peut mal faire : sa réponse est contrôlée avant d'être lue (pas de lien inventé, pas de
-    // verdict sans affaire jugée citée).
-    const guarded = guardAnswer(result.data.result.answer, citations.length);
-    // Un verdict sans affaire citée est remplacé : on propose alors d'enquêter ou de signaler. Sinon,
-    // seules comptent les propositions du modèle, validées une à une.
+    // verdict sans affaire jugée ni source citée).
+    const guarded = guardAnswer(
+      result.data.result.answer,
+      citations.filter((citation) => citation.certainty !== null).length,
+    );
+    // Un verdict sans source est remplacé : on propose alors d'enquêter ou de signaler. Sinon, seules
+    // comptent les propositions du modèle, validées une à une ; elles ne s'exécutent seules que si la
+    // personne l'a demandé et que c'est de la navigation.
     const proposals =
       guarded.answer === NO_VERDICT_ANSWER
         ? fallbackProposals(question, null)
-        : buildProposals(result.data.result.actions, rows);
-    return ok({ answer: guarded.answer, citations, proposals, source: 'gemini' });
+        : buildProposals(result.data.result.actions, rows, { allowNow: isCommand(question) });
+    return ok({
+      answer: guarded.answer,
+      citations,
+      proposals,
+      references,
+      autorun: autorunHref(proposals),
+      source: 'gemini',
+    });
   }
 
   const offline = await offlineAnswer(question, pathname, rows, embedding);
@@ -161,6 +207,8 @@ export async function askAssistant(input: {
     answer: offline.answer,
     citations: offline.citations,
     proposals: offline.proposals,
+    references: [],
+    autorun: null,
     source: 'fallback',
   });
 }

@@ -8,7 +8,7 @@ import { createSession, deleteSession, findSessionProfile } from '@/server/dal/a
 // La personne connectée. Le cookie garde un jeton tiré au hasard ; la session vit en base
 // (table `sessions`) et dure 30 jours. Les modules n'utilisent que getCurrentProfile() et
 // requireProfile() : la façon de se connecter (e-mail, Google, compte de démo) ne les concerne pas.
-const COOKIE_NAME = 'mindstack_session';
+const COOKIE_NAME = 'vyra_session';
 const SESSION_DAYS = 30;
 
 // Le jeton de session : le cookie du site, ou `Authorization: Bearer <jeton>` pour l'application

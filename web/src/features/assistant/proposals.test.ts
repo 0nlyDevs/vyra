@@ -1,6 +1,12 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { buildProposals, fallbackProposals, MAX_PROPOSALS, mobileProposals } from './proposals';
+import {
+  autorunHref,
+  buildProposals,
+  fallbackProposals,
+  MAX_PROPOSALS,
+  mobileProposals,
+} from './proposals';
 
 const rows = [
   { id: 'aaa', title: 'La photo de l’inondation', status: 'concluded' },
@@ -106,5 +112,33 @@ describe('mobileProposals', () => {
       [`/cases/${id}`, '/reports?text=abc'],
     );
     assert.equal(kept[0].label, 'Ouvrir l’affaire : La photo');
+  });
+});
+
+describe('exécution immédiate', () => {
+  const rows2 = [{ id: 'aaa', title: 'La photo de l’inondation', status: 'concluded' }];
+
+  it('n’exécute rien sans demande explicite, même si le modèle le réclame', () => {
+    const raw = [{ type: 'open_page', page: 'scan', now: true }];
+    assert.equal(buildProposals(raw, rows2)[0].now, undefined);
+    assert.equal(autorunHref(buildProposals(raw, rows2)), null);
+  });
+
+  it('exécute une navigation demandée', () => {
+    const raw = [{ type: 'open_court', case: 1, now: true }];
+    const proposals = buildProposals(raw, rows2, { allowNow: true });
+    assert.equal(proposals[0].now, true);
+    assert.equal(autorunHref(proposals), '/court/aaa');
+  });
+
+  it('n’exécute jamais un signalement ni une enquête, même demandés', () => {
+    const text = 'Une rumeur inquiétante sur la ville';
+    const raw = [
+      { type: 'report', text, now: true },
+      { type: 'start_investigation', text, now: true },
+    ];
+    const proposals = buildProposals(raw, rows2, { allowNow: true });
+    assert.equal(proposals.length, 2);
+    assert.equal(autorunHref(proposals), null);
   });
 });
