@@ -21,6 +21,17 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       {
+        // Aucune page dans le cadre d'un autre site (contre les clics piégés sur les boutons en un
+        // clic), pas de type de fichier deviné, et l'adresse complète jamais envoyée aux autres sites.
+        source: '/:path*',
+        headers: [
+          { key: 'Content-Security-Policy', value: "frame-ancestors 'none'" },
+          { key: 'X-Frame-Options', value: 'DENY' },
+          { key: 'X-Content-Type-Options', value: 'nosniff' },
+          { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+        ],
+      },
+      {
         source: '/api/v1/:path*',
         headers: [
           { key: 'Access-Control-Allow-Origin', value: apiCorsOrigin },

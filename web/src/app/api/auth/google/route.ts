@@ -16,6 +16,7 @@ export async function GET() {
   (await cookies()).set(OAUTH_COOKIE, JSON.stringify({ state, verifier }), {
     httpOnly: true,
     sameSite: 'lax',
+    secure: env.APP_URL.startsWith('https://'),
     path: '/api/auth/google',
     maxAge: 10 * 60,
   });
