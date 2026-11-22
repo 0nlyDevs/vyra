@@ -13,6 +13,7 @@ def test_health_reports_offline_mode(offline_client: TestClient) -> None:
         "service": "vyra-processing",
         "ai": "offline",
         "audio": False,
+        "voice": False,
     }
 
 

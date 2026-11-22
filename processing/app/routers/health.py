@@ -4,6 +4,7 @@ from fastapi import APIRouter
 from pydantic import BaseModel
 
 from app.core.config import SettingsDep
+from app.services import voice
 
 router = APIRouter(tags=["health"])
 
@@ -14,6 +15,8 @@ class HealthResponse(BaseModel):
     ai: str
     # Une IA peut-elle lire un son (dictée, scan vocal) ? Seul Gemini, ou l'IA locale, le lit.
     audio: bool
+    # La voix d'ElevenLabs lit-elle à voix haute ? Sinon, le site garde la voix du navigateur.
+    voice: bool
 
 
 @router.get("/health", operation_id="getHealth")
@@ -30,8 +33,12 @@ def get_health(settings: SettingsDep) -> HealthResponse:
         ai = "not-configured"
     else:
         ai = "+".join(configured)
-    # Groq et DeepSeek ne lisent pas le son : il faut une clé Gemini, ou l'IA locale (Gemma 4).
+    # La dictée : Groq Whisper (clés Groq) ; Gemini lit aussi le son, et l'IA locale (Gemma 4).
     audio = not settings.demo_offline and (
-        settings.ai_mode != "gemini" or bool(settings.keys_for("gemini"))
+        voice.can_transcribe(settings)
+        or settings.ai_mode != "gemini"
+        or bool(settings.keys_for("gemini"))
     )
-    return HealthResponse(status="ok", service="vyra-processing", ai=ai, audio=audio)
+    return HealthResponse(
+        status="ok", service="vyra-processing", ai=ai, audio=audio, voice=voice.can_speak(settings)
+    )

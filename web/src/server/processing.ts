@@ -221,19 +221,69 @@ export async function embedTexts(texts: string[]): Promise<ActionResult<number[]
     : fail(ERRORS.AI_UNAVAILABLE);
 }
 
-// Ce que l'IA sait faire en ce moment, lu sur /health : `audio` dit si une IA peut lire un son
-// (dictée). Panne ou réponse inattendue : `false`, la dictée est alors proposée comme indisponible.
-const healthSchema = z.object({ audio: z.boolean().default(false) });
+// Ce que la voix sait faire en ce moment, lu sur /health : `audio` dit si un enregistrement peut être
+// transcrit (Groq Whisper, Gemini ou l'IA locale), `voice` si ElevenLabs lit à voix haute. Panne ou
+// réponse inattendue : tout est « indisponible ».
+const healthSchema = z.object({
+  audio: z.boolean().default(false),
+  voice: z.boolean().default(false),
+});
 
-export async function aiCanReadAudio(): Promise<boolean> {
+export type VoiceCapabilities = { audio: boolean; voice: boolean };
+
+export async function voiceCapabilities(): Promise<VoiceCapabilities> {
   try {
     const response = await fetch(`${env.PROCESSING_URL}/health`, {
       signal: AbortSignal.timeout(3_000),
       cache: 'no-store',
     });
     const parsed = healthSchema.safeParse(await response.json());
-    return parsed.success ? parsed.data.audio : false;
+    return parsed.success ? parsed.data : { audio: false, voice: false };
   } catch {
-    return false;
+    return { audio: false, voice: false };
+  }
+}
+
+const VOICE_TIMEOUT_MS = 40_000;
+
+function processingHeaders(contentType: string): Record<string, string> {
+  return {
+    'Content-Type': contentType,
+    ...(env.PROCESSING_TOKEN ? { 'X-Processing-Token': env.PROCESSING_TOKEN } : {}),
+  };
+}
+
+// Dictée : le texte dit dans l'enregistrement (Groq Whisper). `null` : indisponible, l'appelant peut
+// essayer une autre voie.
+export async function transcribeAudio(bytes: Buffer, mimeType: string): Promise<string | null> {
+  try {
+    const response = await fetch(`${env.PROCESSING_URL}/v1/transcribe`, {
+      method: 'POST',
+      headers: processingHeaders(mimeType),
+      body: new Uint8Array(bytes),
+      signal: AbortSignal.timeout(VOICE_TIMEOUT_MS),
+      cache: 'no-store',
+    });
+    if (!response.ok) return null;
+    const parsed = z.object({ text: z.string() }).safeParse(await response.json());
+    return parsed.success ? parsed.data.text : null;
+  } catch {
+    return null;
+  }
+}
+
+// Lecture à voix haute : un MP3 (ElevenLabs), ou `null` si la voix n'est pas disponible.
+export async function speakText(text: string): Promise<Buffer | null> {
+  try {
+    const response = await fetch(`${env.PROCESSING_URL}/v1/speech`, {
+      method: 'POST',
+      headers: processingHeaders('application/json'),
+      body: JSON.stringify({ text }),
+      signal: AbortSignal.timeout(VOICE_TIMEOUT_MS),
+      cache: 'no-store',
+    });
+    return response.ok ? Buffer.from(await response.arrayBuffer()) : null;
+  } catch {
+    return null;
   }
 }
