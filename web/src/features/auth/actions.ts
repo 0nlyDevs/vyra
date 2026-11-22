@@ -11,6 +11,7 @@ import {
   deleteOtherSessions,
   findAccountByEmail,
   getAccount,
+  normalizeEmail,
   setPassword,
 } from '@/server/dal/accounts';
 import { isUniqueViolation } from '@/server/db';
@@ -96,7 +97,7 @@ export async function requestPasswordReset(
   // Contre l'envoi de dizaines d'e-mails à une même boîte.
   const allowed =
     (await withinLimit(`reset:ip:${await clientIp()}`, 10, 60 * 60)) &&
-    (await withinLimit(`reset:email:${parsed.data.email}`, 3, 60 * 60));
+    (await withinLimit(`reset:email:${normalizeEmail(parsed.data.email)}`, 3, 60 * 60));
   if (!allowed) return fail(ERRORS.RATE_LIMITED);
 
   const found = await findAccountByEmail(parsed.data.email);
