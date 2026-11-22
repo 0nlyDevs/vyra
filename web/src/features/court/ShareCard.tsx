@@ -1,9 +1,12 @@
 'use client';
 
-import { Copy, Download, MessageCircle, Share2 } from 'lucide-react';
+import { Copy, Download, MessageCircle, Share2, ShieldCheck } from 'lucide-react';
+import QRCode from 'qrcode';
 import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
+import { getConclusionSeal } from '@/features/seal/actions';
+import type { Seal } from '@/features/seal/check';
 import { CERTAINTY_LABELS, type CertaintyLevel } from '@/lib/domain';
 import { formatDate } from '@/lib/format';
 
@@ -13,6 +16,10 @@ import { formatDate } from '@/lib/format';
 
 const SIZE = 1080;
 const PAD = 84;
+// Le QR du sceau, en bas à droite, sur un carré clair (les lecteurs lisent mal un QR inversé).
+const QR = 232;
+const QR_X = SIZE - PAD - QR;
+const QR_Y = SIZE - PAD - QR;
 const COLORS = {
   background: '#140c0d',
   panel: '#1f1415',
@@ -57,13 +64,14 @@ function wrap(context: CanvasRenderingContext2D, text: string, width: number, ma
   return lines;
 }
 
-function draw(
+async function draw(
   canvas: HTMLCanvasElement,
   {
     claim,
     certainty,
     conclusion,
-  }: { claim: string; certainty: CertaintyLevel; conclusion: string },
+    seal,
+  }: { claim: string; certainty: CertaintyLevel; conclusion: string; seal: Seal | null },
 ) {
   const context = canvas.getContext('2d');
   if (!context) return;
@@ -101,51 +109,117 @@ function draw(
 
   y += 150;
   context.fillStyle = COLORS.text;
-  context.font = `400 38px ${font}`;
-  for (const line of wrap(context, conclusion, SIZE - PAD * 2, 6)) {
+  // La conclusion tient en entier avant le pied de la carte (le QR et ses lignes) : le texte
+  // rapetisse s'il le faut, et ne se coupe qu'en dernier recours.
+  const footerTop = (seal ? QR_Y : SIZE - PAD - 80) - 28;
+  let fitted: { size: number; lines: string[] } | null = null;
+  for (const size of [38, 34, 30, 27]) {
+    context.font = `400 ${size}px ${font}`;
+    const room = Math.max(1, Math.floor((footerTop - y) / (size * 1.37)));
+    const lines = wrap(context, conclusion, SIZE - PAD * 2, room);
+    fitted = { size, lines };
+    if (!lines.at(-1)?.endsWith('…')) break;
+  }
+  for (const line of fitted?.lines ?? []) {
     context.fillText(line, PAD, y);
-    y += 52;
+    y += (fitted?.size ?? 38) * 1.37;
   }
 
+  const footerWidth = seal ? QR_X - PAD - 32 : SIZE - PAD * 2;
+  if (seal) {
+    context.fillStyle = COLORS.text;
+    context.font = `700 40px ${font}`;
+    context.fillText(`Sceau ${seal.code}`, PAD, QR_Y + 4, footerWidth);
+    context.fillStyle = COLORS.muted;
+    context.font = `400 28px ${font}`;
+    context.fillText('Scannez le QR pour vérifier que', PAD, QR_Y + 62, footerWidth);
+    context.fillText('cette carte n’a pas été modifiée.', PAD, QR_Y + 98, footerWidth);
+
+    const qr = document.createElement('canvas');
+    await QRCode.toCanvas(qr, seal.url, {
+      errorCorrectionLevel: 'M',
+      margin: 2,
+      width: QR,
+      color: { dark: '#0a0a0b', light: '#ffffff' },
+    });
+    context.fillStyle = '#ffffff';
+    context.beginPath();
+    context.roundRect(QR_X - 8, QR_Y - 8, QR + 16, QR + 16, 16);
+    context.fill();
+    context.drawImage(qr, QR_X, QR_Y, QR, QR);
+  } else {
+    context.fillStyle = COLORS.muted;
+    context.font = `400 28px ${font}`;
+    context.fillText(
+      'Analyse assistée par IA, à partir des pièces du dossier.',
+      PAD,
+      SIZE - PAD - 80,
+      footerWidth,
+    );
+  }
   context.fillStyle = COLORS.muted;
   context.font = `400 28px ${font}`;
-  context.fillText(
-    'Analyse assistée par IA, à partir des pièces du dossier.',
-    PAD,
-    SIZE - PAD - 80,
-  );
-  context.fillText(`Vyra · ${formatDate(new Date())}`, PAD, SIZE - PAD - 36);
+  context.fillText(`Vyra · ${formatDate(new Date())}`, PAD, SIZE - PAD - 36, footerWidth);
 }
 
-export function shareText(claim: string, certainty: CertaintyLevel, conclusion: string) {
+export function shareText(
+  claim: string,
+  certainty: CertaintyLevel,
+  conclusion: string,
+  seal: Seal | null = null,
+) {
   return [
     `Information vérifiée : « ${claim} »`,
     `Conclusion : ${CERTAINTY_LABELS[certainty]}.`,
     conclusion,
     'Analyse assistée par IA, à partir des pièces du dossier. Vérifiez avant de partager.',
+    ...(seal ? [`Sceau ${seal.code} · vérifier l’authenticité : ${seal.url}`] : []),
   ].join('\n\n');
 }
 
 export function ShareCard({
+  caseId,
   claim,
   certainty,
   conclusion,
 }: {
+  caseId: string;
   claim: string;
   certainty: CertaintyLevel;
   conclusion: string;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [canShareFile, setCanShareFile] = useState(false);
-  const text = shareText(claim, certainty, conclusion);
+  // undefined : sceau en cours de calcul (on n'offre pas encore l'image) ; null : pas de sceau.
+  const [seal, setSeal] = useState<Seal | null | undefined>(undefined);
+  const text = shareText(claim, certainty, conclusion, seal ?? null);
 
   useEffect(() => {
-    if (canvasRef.current) draw(canvasRef.current, { claim, certainty, conclusion });
+    let cancelled = false;
+    setSeal(undefined);
+    getConclusionSeal(caseId)
+      .then((result) => {
+        if (!cancelled) setSeal(result.ok ? result.data : null);
+      })
+      .catch(() => {
+        if (!cancelled) setSeal(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [caseId]);
+
+  useEffect(() => {
+    if (canvasRef.current && seal !== undefined) {
+      draw(canvasRef.current, { claim, certainty, conclusion, seal }).catch(() => {
+        // QR impossible à dessiner : la carte reste lisible, sans QR.
+      });
+    }
     const probe = new File([''], 'carte.png', { type: 'image/png' });
     setCanShareFile(
       typeof navigator.canShare === 'function' && navigator.canShare({ files: [probe] }),
     );
-  }, [claim, certainty, conclusion]);
+  }, [claim, certainty, conclusion, seal]);
 
   function toBlob() {
     return new Promise<Blob | null>((resolve) => canvasRef.current?.toBlob(resolve, 'image/png'));
@@ -197,13 +271,22 @@ export function ShareCard({
           Renvoyez la conclusion par le même chemin que la rumeur : dans le groupe familial, sur la
           page du quartier. L’image dit le niveau de certitude en toutes lettres.
         </p>
+        {seal && (
+          <p className="flex items-start gap-2 text-pretty text-sm">
+            <ShieldCheck aria-hidden className="mt-0.5 size-4 shrink-0" />
+            <span>
+              Carte scellée <span className="font-semibold tabular">{seal.code}</span> : son QR
+              prouve qu’elle vient de Vyra et que son texte n’a pas été modifié.
+            </span>
+          </p>
+        )}
         <div className="flex flex-wrap gap-2">
-          <Button onClick={download}>
+          <Button onClick={download} disabled={seal === undefined}>
             <Download aria-hidden />
             Télécharger l’image
           </Button>
           {canShareFile && (
-            <Button variant="outline" onClick={share}>
+            <Button variant="outline" onClick={share} disabled={seal === undefined}>
               <Share2 aria-hidden />
               Partager
             </Button>

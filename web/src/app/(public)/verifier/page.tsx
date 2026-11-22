@@ -80,6 +80,14 @@ export default async function VerifyPage({
         </section>
       )}
 
+      <p className="text-muted-foreground text-sm">
+        Vous avez reçu une carte de conclusion Vyra ?{' '}
+        <Link href="/verifier/sceau" className="text-foreground underline underline-offset-4">
+          Vérifiez son sceau
+        </Link>{' '}
+        : vous saurez si elle a été retouchée.
+      </p>
+
       <section className="grid gap-4">
         <h2 className="font-semibold text-xl">Affaires déjà jugées</h2>
         {concluded.length === 0 ? (

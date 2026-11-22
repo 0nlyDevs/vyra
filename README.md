@@ -209,6 +209,19 @@ vecteurs des deux IA ne se comparent pas.
   Sans ces deux valeurs, le bouton « Continuer avec Google » n'apparaît pas.
 - « Réinitialiser la démo » supprime les comptes créés pendant la démo ; les comptes de démo restent.
 
+### Les conclusions scellées
+
+Chaque carte de conclusion porte un **sceau** : un QR et un code `VY-XXXX-XXXX`. Le QR contient une
+signature Ed25519 du texte exact de la conclusion. `/verifier/sceau` dit si une carte est authentique
+(QR scanné ou code tapé) et montre la vraie conclusion ; la clé publique est sur `/api/v1/seal`.
+
+- En local, une clé de développement est utilisée : rien à régler.
+- **En ligne (Vercel)** : définir `SEAL_SECRET` (au moins 32 caractères, par exemple
+  `openssl rand -base64 48`), puis redéployer. Sans elle, les cartes sortent sans sceau. La changer
+  invalide tous les sceaux déjà partagés : la garder une fois pour toutes.
+- Rejuger une affaire change son sceau : l'ancienne carte s'affiche alors « ne correspond pas », avec
+  la conclusion actuelle.
+
 ### Le fil d'actualité : uniquement du réel
 
 Le fil (`/feed`) ne contient aucune publication inventée. Il lit des sources publiques, sans compte,
