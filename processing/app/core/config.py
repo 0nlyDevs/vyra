@@ -10,9 +10,23 @@ from typing import Annotated, Literal
 
 from fastapi import Depends
 from pydantic import SecretStr, field_validator
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 PROCESSING_DIR = Path(__file__).resolve().parents[2]
+
+# Les IA distantes que le service sait appeler, dans l'ordre par défaut. Un fournisseur sans clé est
+# sauté ; le suivant prend le relais (voir `services/providers.py`).
+REMOTE_PROVIDERS = ("groq", "gemini", "deepseek")
+
+# Une liste donnée en une seule variable, séparée par des virgules : `GROQ_API_KEYS=cle1,cle2`.
+CsvStrings = Annotated[list[str], NoDecode]
+CsvSecrets = Annotated[list[SecretStr], NoDecode]
+
+
+def _split_csv(value: object) -> object:
+    if isinstance(value, str):
+        return [part.strip() for part in value.split(",") if part.strip()]
+    return value
 
 
 class Settings(BaseSettings):
@@ -30,7 +44,32 @@ class Settings(BaseSettings):
     # - « local » : Gemma 4 en local seul, sans wifi.
     ai_mode: Literal["gemini", "gemini-then-local", "local"] = "gemini"
 
+    # Quelles IA distantes interroger, et dans quel ordre : `AI_PROVIDERS=groq,gemini,deepseek`
+    # (l'ordre par défaut). La première répond ; si elle est hors quota, sans clé ou en panne, la
+    # suivante prend le relais. Le mode local (ci-dessus) passe toujours après.
+    ai_providers: CsvStrings = list(REMOTE_PROVIDERS)
+
+    # Clés des fournisseurs, une ou plusieurs séparées par des virgules : `GROQ_API_KEYS=cle1,cle2`.
+    # Quand une clé atteint son quota (erreur 429), la suivante prend le relais toute seule ; la clé
+    # épuisée est mise de côté le temps de se rétablir (`key_cooldown_seconds`).
+    # Limites par projet (Gemini), par organisation (Groq) ou par compte (DeepSeek), pas par clé :
+    # plusieurs clés d'un même projet ne donnent pas plus de quota.
+    groq_api_keys: CsvSecrets = []
+    gemini_api_keys: CsvSecrets = []
+    deepseek_api_keys: CsvSecrets = []
+    # Adresses des API (changer de région, passer par un proxy ou un serveur compatible).
+    gemini_base_url: str = "https://generativelanguage.googleapis.com/v1beta/models"
+    groq_base_url: str = "https://api.groq.com/openai/v1"
+    deepseek_base_url: str = "https://api.deepseek.com"
+    groq_model: str = "openai/gpt-oss-120b"
+    deepseek_model: str = "deepseek-flash"
+    # Mise de côté d'une clé : limite de débit (429 sans autre précision), puis quota du jour,
+    # solde épuisé ou clé refusée (rétablissement long).
+    key_cooldown_seconds: float = 60.0
+    key_quota_cooldown_seconds: float = 3600.0
+
     # Clé de l'API Gemini (https://aistudio.google.com/apikey). Absente : réponses de secours.
+    # Une seule clé (ancien réglage, toujours lu) ; plusieurs : `gemini_api_keys` ci-dessus.
     gemini_api_key: SecretStr | None = None
     # Modèle principal. Mesuré le 21/11 : réponse en 2 à 3 secondes, quand « gemini-flash-latest »
     # (le dernier Flash) était saturé.
@@ -70,6 +109,30 @@ class Settings(BaseSettings):
     processing_token: SecretStr | None = None
 
     @field_validator(
+        "ai_providers", "groq_api_keys", "gemini_api_keys", "deepseek_api_keys", mode="before"
+    )
+    @classmethod
+    def _csv(cls, value: object) -> object:
+        return _split_csv(value)
+
+    @field_validator("gemini_base_url", "groq_base_url", "deepseek_base_url")
+    @classmethod
+    def _no_trailing_slash(cls, value: str) -> str:
+        return value.strip().rstrip("/")
+
+    @field_validator("ai_providers")
+    @classmethod
+    def _known_providers(cls, value: list[str]) -> list[str]:
+        names = [name.lower() for name in value]
+        unknown = [name for name in names if name not in REMOTE_PROVIDERS]
+        if unknown:
+            raise ValueError(
+                f"fournisseur inconnu : {', '.join(unknown)} "
+                f"(choix : {', '.join(REMOTE_PROVIDERS)})"
+            )
+        return list(dict.fromkeys(names))
+
+    @field_validator(
         "gemini_api_key",
         "tavily_api_key",
         "google_factcheck_api_key",
@@ -80,6 +143,26 @@ class Settings(BaseSettings):
     def _empty_as_missing(cls, value: object) -> object:
         # Une variable déclarée mais vide vaut « non configurée ».
         return None if value == "" else value
+
+    def base_url_for(self, provider: str) -> str:
+        """L'adresse de l'API d'un fournisseur (sans « / » final)."""
+        return {
+            "groq": self.groq_base_url,
+            "gemini": self.gemini_base_url,
+            "deepseek": self.deepseek_base_url,
+        }[provider]
+
+    def keys_for(self, provider: str) -> list[str]:
+        """Les clés d'un fournisseur, dans l'ordre, sans doublon (clé unique de Gemini à la fin)."""
+        secrets: list[SecretStr] = {
+            "groq": self.groq_api_keys,
+            "gemini": [
+                *self.gemini_api_keys,
+                *([self.gemini_api_key] if self.gemini_api_key else []),
+            ],
+            "deepseek": self.deepseek_api_keys,
+        }[provider]
+        return list(dict.fromkeys(secret.get_secret_value() for secret in secrets))
 
 
 @cache

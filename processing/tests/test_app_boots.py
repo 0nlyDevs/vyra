@@ -8,7 +8,7 @@ from app.services.news_feeds import parse_feed
 def test_health_reports_offline_mode(offline_client: TestClient) -> None:
     response = offline_client.get("/health")
     assert response.status_code == 200
-    assert response.json() == {"status": "ok", "service": "mindstack-processing", "ai": "offline"}
+    assert response.json() == {"status": "ok", "service": "vyra-processing", "ai": "offline"}
 
 
 def test_prompt_uses_fallback_when_offline(offline_client: TestClient) -> None:
