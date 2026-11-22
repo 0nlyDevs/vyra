@@ -13,6 +13,7 @@ import {
   getAccount,
   setPassword,
 } from '@/server/dal/accounts';
+import { clientIp, signInAllowed, withinLimit } from '@/server/rate-limit';
 import { getCurrentProfile, startSession } from '@/server/session';
 import { sendPasswordResetEmail, sendVerificationEmail } from './links';
 import { forgotPasswordSchema, resetPasswordSchema, signInSchema, signUpSchema } from './schema';
@@ -30,6 +31,9 @@ export async function signUp(
     password: formData.get('password'),
   });
   if (!parsed.success) return fail(ERRORS.VALIDATION_FAILED, parsed.error);
+  if (!(await withinLimit(`signup:ip:${await clientIp()}`, 10, 60 * 60))) {
+    return fail(ERRORS.RATE_LIMITED);
+  }
   if (await findAccountByEmail(parsed.data.email)) return fail(ERRORS.EMAIL_TAKEN);
 
   const profile = await createAccount({
@@ -52,6 +56,7 @@ export async function signIn(
     password: formData.get('password'),
   });
   if (!parsed.success) return fail(ERRORS.VALIDATION_FAILED, parsed.error);
+  if (!(await signInAllowed(parsed.data.email))) return fail(ERRORS.RATE_LIMITED);
 
   const found = await findAccountByEmail(parsed.data.email);
   if (found && !found.account.passwordHash) return fail(ERRORS.GOOGLE_ONLY_ACCOUNT);
@@ -72,6 +77,11 @@ export async function requestPasswordReset(
 ): Promise<ActionResult<{ sent: true }>> {
   const parsed = forgotPasswordSchema.safeParse({ email: formData.get('email') });
   if (!parsed.success) return fail(ERRORS.VALIDATION_FAILED, parsed.error);
+  // Contre l'envoi de dizaines d'e-mails à une même boîte.
+  const allowed =
+    (await withinLimit(`reset:ip:${await clientIp()}`, 10, 60 * 60)) &&
+    (await withinLimit(`reset:email:${parsed.data.email}`, 3, 60 * 60));
+  if (!allowed) return fail(ERRORS.RATE_LIMITED);
 
   const found = await findAccountByEmail(parsed.data.email);
   if (found) await sendPasswordResetEmail(found.profile, found.account.email);
@@ -103,5 +113,8 @@ export async function resendVerification(): Promise<ActionResult<{ sent: boolean
   if (!profile) return fail(ERRORS.UNAUTHORIZED);
   const account = await getAccount(profile.id);
   if (!account || account.emailVerifiedAt) return ok({ sent: false });
+  if (!(await withinLimit(`verify:profile:${profile.id}`, 3, 60 * 60))) {
+    return fail(ERRORS.RATE_LIMITED);
+  }
   return ok({ sent: await sendVerificationEmail(profile, account.email) });
 }

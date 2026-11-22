@@ -12,6 +12,7 @@ const STATUS: Partial<Record<ErrorCode, number>> = {
   VALIDATION_FAILED: 400,
   INVALID_CREDENTIALS: 401,
   AI_UNAVAILABLE: 503,
+  RATE_LIMITED: 429,
 };
 
 export function apiOk<T>(data: T, status = 200) {

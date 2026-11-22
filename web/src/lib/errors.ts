@@ -68,6 +68,10 @@ export const ERRORS = defineErrors({
     code: 'LINK_INVALID',
     message: 'Ce lien n’est plus valable. Demandez-en un nouveau.',
   },
+  RATE_LIMITED: {
+    code: 'RATE_LIMITED',
+    message: 'Trop d’essais en peu de temps. Patientez quelques minutes, puis réessayez.',
+  },
   INTERNAL: {
     code: 'INTERNAL',
     message: 'Une erreur inattendue est survenue. Réessayez.',
