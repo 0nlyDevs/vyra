@@ -1803,14 +1803,6 @@ html[data-eco="on"] .doodle path {
   font-weight: 600;
   line-height: 1.3;
 }
-html[data-eco="on"] .vreels {
-  display: none;
-}
-@media (prefers-reduced-motion: reduce) {
-  .vreels {
-    display: none;
-  }
-}
 
 /* Un module en carte : l'icône et son numéro, le nom, la phrase, puis « Ouvrir » et sa flèche
    ronde. Au survol, la carte monte de 3 px et la flèche se remplit d'encre et file en diagonale. */
