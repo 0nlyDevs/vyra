@@ -10,7 +10,6 @@ import { signOut } from '@/features/demo/actions';
 import { ResetDemoButton } from '@/features/demo/ResetDemoButton';
 import { isVerifier, PROFILE_ROLE_LABELS } from '@/lib/domain';
 import { demoResetAllowed, publicEnv } from '@/lib/env';
-import { KIT_ITEM } from '@/lib/navigation';
 import { getAccount } from '@/server/dal/accounts';
 import { requireProfile } from '@/server/session';
 
@@ -45,7 +44,6 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
           <UserMenu
             name={profile.name}
             role={PROFILE_ROLE_LABELS[profile.role]}
-            kitHref={KIT_ITEM.href}
             signOutAction={signOut}
           />
         </div>
@@ -62,7 +60,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
         </div>
       </main>
 
-      <PreferenceDock kitHref={KIT_ITEM.href} />
+      <PreferenceDock />
       <TabBar />
       <Assistant />
     </div>

@@ -24,7 +24,7 @@ export default async function CourtPage() {
 
       <section aria-labelledby="court-cases" className="grid gap-4">
         <h2 id="court-cases" className="font-semibold text-xl">
-          Affaires à juger
+          Toutes les affaires du tribunal
         </h2>
         {caseList.length === 0 ? (
           <EmptyState title="Aucune affaire pour l’instant." />

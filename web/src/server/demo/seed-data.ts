@@ -22,7 +22,8 @@ import { WORLD } from './seed-world';
 
 // Données de démo : ce que le jury voit au début de la démo. Elles sont recréées à l'identique par
 // `make seed` et par le bouton « Réinitialiser la démo ».
-// Tous les lieux, médias et organismes cités ici sont INVENTÉS : aucun nom réel.
+// Le socle d’Ambohitsoa et les institutions sont inventés ; WORLD ajoute neuf affaires réelles
+// résumées à des fins pédagogiques (voir docs/DEMO.md).
 // Chaque module ajoute ses propres données dans `resetDemoData`, dans sa section.
 
 export const DEMO_PROFILES = [

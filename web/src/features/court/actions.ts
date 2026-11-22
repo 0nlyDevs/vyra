@@ -15,9 +15,9 @@ import { getCaseFile } from '@/server/dal/cases';
 import {
   concludeHearing,
   createHearing,
-  findJudgedCase,
   getHearing,
   getLatestHearing,
+  searchJudgedCasesByMeaning,
 } from '@/server/dal/court';
 import type { Hearing } from '@/server/db/schema';
 import { demoVariantForCase } from '@/server/demo/variants';
@@ -33,6 +33,7 @@ import {
   verdictSchema,
   voteSchema,
 } from './schema';
+import { caseSearchText, courtSearchQueries } from './search';
 
 // Le tribunal : deux plaidoiries (accusation, défense), le vote du juré, la conclusion du juge.
 // Toujours dans cet ordre : connexion → validation Zod → droits → action via la DAL.
@@ -149,7 +150,7 @@ export async function voteAndJudge(
   };
   const [verdict, vectors] = await Promise.all([
     runPrompt('judge', payload, verdictSchema, { fallbackVariant: demoVariantForCase(file.id) }),
-    embedTexts([file.claim]),
+    embedTexts([caseSearchText(file)]),
   ]);
   if (!verdict.ok) return verdict;
 
@@ -173,13 +174,12 @@ export async function voteAndJudge(
 }
 
 export type JudgedMatch = {
-  mode: 'meaning' | 'words';
-  item: {
+  items: {
     id: string;
     title: string;
     certainty: CertaintyLevel | null;
     conclusion: string | null;
-  } | null;
+  }[];
 };
 
 // « Déjà jugé » : cette information ressemble-t-elle à une affaire déjà conclue ?
@@ -192,19 +192,16 @@ export async function checkAlreadyJudged(
   const parsed = judgedSearchSchema.safeParse({ query: formData.get('query') });
   if (!parsed.success) return fail(ERRORS.VALIDATION_FAILED, parsed.error);
 
-  await embedMissingCases();
-  const vectors = await embedTexts([parsed.data.query]);
-  const embedding = vectors.ok ? (vectors.data[0] ?? null) : null;
-  const found = await findJudgedCase(parsed.data.query, embedding);
+  if (!(await embedMissingCases())) return fail(ERRORS.AI_UNAVAILABLE);
+  const vectors = await embedTexts(courtSearchQueries(parsed.data.query));
+  if (!vectors.ok) return fail(ERRORS.AI_UNAVAILABLE);
+  const found = await searchJudgedCasesByMeaning(vectors.data);
   return ok({
-    mode: found?.mode ?? (embedding ? 'meaning' : 'words'),
-    item: found
-      ? {
-          id: found.id,
-          title: found.title,
-          certainty: found.certainty,
-          conclusion: found.conclusion,
-        }
-      : null,
+    items: found.map((item) => ({
+      id: item.id,
+      title: item.title,
+      certainty: item.certainty,
+      conclusion: item.conclusion,
+    })),
   });
 }

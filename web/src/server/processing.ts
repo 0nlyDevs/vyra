@@ -77,7 +77,7 @@ export type PromptOptions = {
 
 // Lance le prompt `processing/app/prompts/<name>.md`. `resultSchema` vérifie la forme du JSON
 // renvoyé (par l'IA ou par la réponse de secours `fallbacks/<name>.json`).
-// `source` vaut « gemini » quand un modèle a répondu (Gemini ou le modèle local).
+// `source` vaut « gemini » quand un modèle a répondu (Groq, Gemini, DeepSeek ou modèle local).
 export async function runPrompt<T>(
   name: string,
   payload: Record<string, unknown>,
@@ -112,12 +112,13 @@ export type WebArticle = z.infer<typeof webArticleSchema>;
 export async function findWebSources(
   claim: string,
   queries: string[] = [],
+  timeoutMs = WEB_SEARCH_TIMEOUT_MS,
 ): Promise<ActionResult<{ articles: WebArticle[]; source: 'tavily' | 'gdelt' | 'fallback' }>> {
   const schema = z.object({
     articles: z.array(webArticleSchema),
     source: z.enum(['tavily', 'gdelt', 'fallback']),
   });
-  const data = await post('/v1/web-sources', { claim, queries }, schema, WEB_SEARCH_TIMEOUT_MS);
+  const data = await post('/v1/web-sources', { claim, queries }, schema, timeoutMs);
   return data ? ok(data) : fail(ERRORS.AI_UNAVAILABLE);
 }
 
@@ -151,6 +152,7 @@ export type WikipediaArticle = z.infer<typeof wikipediaArticleSchema>;
 // Wikipédia. `searched: false` : aucune recherche n'a pu se faire (hors ligne).
 export async function findFactChecks(
   claim: string,
+  timeoutMs = WEB_SEARCH_TIMEOUT_MS,
 ): Promise<
   ActionResult<{ fact_checks: FactCheck[]; wikipedia: WikipediaArticle[]; searched: boolean }>
 > {
@@ -159,7 +161,7 @@ export async function findFactChecks(
     wikipedia: z.array(wikipediaArticleSchema),
     searched: z.boolean(),
   });
-  const data = await post('/v1/fact-checks', { claim }, schema, WEB_SEARCH_TIMEOUT_MS);
+  const data = await post('/v1/fact-checks', { claim }, schema, timeoutMs);
   return data ? ok(data) : fail(ERRORS.WEB_SEARCH_UNAVAILABLE);
 }
 

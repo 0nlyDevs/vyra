@@ -6,7 +6,7 @@ misinformation*, pour Madagascar : fausses alertes et rumeurs partagées sur Fac
 fausses photos d'inondation, faux communiqués, vocaux et vidéos trafiqués.
 
 Vyra ne donne **jamais de verdict d'IA seule**. Une information devient une *affaire* ; un
-**tribunal** l'examine (deux IA plaident, les pièces témoignent, le public vote, un juge conclut) et
+**tribunal** l'examine (deux IA plaident, les pièces témoignent, le public vote, une règle fixe calcule le niveau de certitude et l’IA rédige son explication) et
 rend une conclusion avec un **niveau de certitude** : Établi, Probable, Incertain, Contredit,
 Informations insuffisantes. « Insuffisant » est une réponse honnête, pas un échec.
 
@@ -22,15 +22,27 @@ Informations insuffisantes. « Insuffisant » est une réponse honnête, pas un 
 | **Faire confiance à une conclusion** | Un **sceau** signé (QR + code) sur la carte de conclusion : n'importe qui peut en vérifier l'authenticité sans compte. |
 | **Informer** | Le flash radio du jour, un texte prêt à lire à l'antenne, écrit sans IA à partir des affaires conclues. |
 | **S'entraîner** | *Vrai ou fake ?*, une série d'informations, avec un bonus « groupe famille ». |
-| **Poser une question** | L'assistant, qui ne répond qu'avec des affaires jugées (et qui écoute et parle). |
+| **Poser une question** | L’assistant cite les affaires et les sources du web, de Wikipédia et des vérificateurs. Il ouvre les pages demandées et propose une conversation vocale continue. |
 | **Vérifier là où on lit** | Une **extension** de navigateur ([`extension/`](extension/README.md)) et une **application mobile** (dépôt [`vyra-mobile`](https://github.com/0nlyDevs/vyra-mobile)). |
 
 Deux rôles : **Citoyen** (lit, signale, vote) et **Vérificateur** (ouvre une affaire sans attendre,
 tient l'annuaire officiel). Détails dans [docs/ROLES.md](docs/ROLES.md).
 Tout le détail technique : [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
-**Essayer en ligne :** https://vyra-mg.vercel.app (compte de démo `rasoa@vyra.demo`, mot de
+Cette documentation décrit le code du dépôt ; la version en ligne dépend du dernier déploiement.
+Le mobile dispose de son propre [README](https://github.com/0nlyDevs/vyra-mobile/blob/main/README.md) : les routes API disponibles ne sont pas toutes des écrans mobiles.
+
+**Adresse de démonstration :** https://vyra-mg.vercel.app (compte de démo `rasoa@vyra.demo`, mot de
 passe `vyra-demo`).
+
+## Ce qui dépend du réseau et des clés
+
+- **Sans IA** : les dossiers déjà préparés, les règles de certitude et les réponses de secours restent utilisables si le site, processing et la base sont joignables. Le bouton « Sans IA » masque les lectures IA ; il ne coupe pas à lui seul les appels réseau.
+- **Sans internet** : préparer et utiliser la version Docker locale, avec ses images, dépendances et données déjà présentes. Le site hébergé et la base Neon ne deviennent pas accessibles hors ligne. Les nouvelles recherches web, la dictée distante et les voix distantes sont indisponibles.
+- **Recherche web** : Tavily (`TAVILY_API_KEYS` ou `TAVILY_API_KEY`), sinon GDELT ; Wikipédia sans clé, Google Fact Check facultatif. L’assistant affiche les sources trouvées et signale une recherche indisponible.
+- **Mode voix du site** : autoriser le micro une fois, puis parler et marquer une pause ; l’écoute reprend après la réponse. Désactiver Voix ou fermer l’assistant coupe la session. La lecture utilise ElevenLabs, sinon la voix du navigateur. Ce mode n’est pas encore l’interface vocale du client mobile.
+- **Tribunal** : une recherche de sujets ou de noms utilise pgvector et peut retourner plusieurs affaires voisines. Elle exige les embeddings ; elle ne remplace pas discrètement cette recherche par des mots-clés. Une affaire proche ne prouve pas que votre message est la même information.
+- **Kit d’interface** : `/kit` reste une galerie de composants en développement local. Aucun lien dans le parcours utilisateur ; la route répond 404 en production.
 
 ## Démarrer : une seule commande, sur Mac, Linux et Windows
 
@@ -88,7 +100,7 @@ Copy-Item .env.example .env
 .venv\Scripts\python -m uvicorn app.main:app --reload --port 8000
 ```
 
-Mettre sa clé Gemini dans `processing/.env` (voir [L'IA](#lia--trois-modes-gemini-par-défaut)),
+Mettre les clés des fournisseurs utilisés dans `processing/.env` (voir [L’IA](#lia--les-clés-et-rien-dautre-à-régler)),
 puis vérifier http://127.0.0.1:8000/health.
 
 **4. Le web**, dans un second terminal :
@@ -102,7 +114,7 @@ Dans `web/.env.local`, remplacer la ligne `DATABASE_URL=…` par l'adresse Neon.
 
 ```powershell
 npm install
-npm run db:push
+npm run db:migrate
 npm run db:seed
 npm run dev
 ```
@@ -110,7 +122,7 @@ npm run dev
 Ouvrir **http://localhost:3000**.
 
 **Les jours suivants** : seulement la dernière commande de chaque terminal (`uvicorn …` et
-`npm run dev`). Après un `git pull` qui change les tables : `npm run db:push`. Remettre les
+`npm run dev`). Après un `git pull` qui ajoute des migrations : `npm run db:migrate`. Remettre les
 données de démo : `npm run db:seed`.
 
 **Ce qui change sans Docker** :
@@ -118,7 +130,7 @@ données de démo : `npm run db:seed`.
 - **E-mails** : sans `RESEND_API_KEY`, aucun e-mail ne part (l'inscription marche quand même ; les
   comptes de démo suffisent). Le message d'erreur s'écrit dans les journaux du serveur.
 - **Vérifications** : `make` n'existe pas sous Windows. À la place de `make check` :
-  `npm run lint` et `npm run typecheck` dans `web`, puis
+  `npm run lint`, `npm run typecheck` et `npm test` dans `web`, puis
   `.venv\Scripts\python -m ruff check .`, `.venv\Scripts\python -m ruff format --check .` et
   `.venv\Scripts\python -m pytest` dans `processing`.
 - **Base sur le PC plutôt que chez Neon** : voir
@@ -211,15 +223,14 @@ changer quelque chose) :
 | `KEY_COOLDOWN_SECONDS`, `KEY_QUOTA_COOLDOWN_SECONDS` | mise de côté d'une clé (60, 3600) |
 | `AI_TIMEOUT_SECONDS` | délai maximal d'une réponse (20) |
 | `AI_MODE` | `gemini` (défaut) : IA distantes seules ; `gemini-then-local` : puis Gemma 4 en local ; `local` : Gemma 4 seul |
-| `LOCAL_AI_URL`, `LOCAL_AI_MODEL`, `LOCAL_EMBEDDING_MODEL` | l'IA locale (Ollama : `ollama pull gemma4:e4b` et `ollama pull embeddinggemma`, environ 7 Go) |
+| `LOCAL_AI_URL`, `LOCAL_AI_MODEL`, `LOCAL_EMBEDDING_MODEL` | l'IA locale (réservée au Mac de Mahery ; valeurs dans `processing/app/core/config.py`) |
 | `ELEVENLABS_API_KEYS` | la voix qui lit à voix haute (« Écouter »), une ou plusieurs clés ; sans clé, la voix du navigateur |
-| `STT_MODEL`, `ELEVENLABS_VOICE_ID`, `ELEVENLABS_MODEL` | le modèle de dictée (`whisper-large-v3`, Groq), la voix et le modèle ElevenLabs (`JBFqnCBsd6RMkjVDRZzb`, `eleven_flash_v2_5`) |
-| `DEMO_OFFLINE` | `true` : jamais d'appel à l'IA, toujours les réponses de secours (répéter le plan B) |
+| `STT_MODEL`, `ELEVENLABS_VOICE_ID`, `ELEVENLABS_MODEL` | le modèle de dictée (`whisper-large-v3`, Groq), la voix et le modèle ElevenLabs (valeurs dans `processing/app/core/config.py`) |
+| `DEMO_OFFLINE` | `true` : jamais d'appel à l'IA, réponses préparées ; désactive les IA et les moteurs de recherche, pas toutes les lectures de pages ou de flux |
 | `PROCESSING_TOKEN` | en ligne seulement : secret partagé avec le web, même valeur des deux côtés |
 
 Dans l'équipe, seul le Mac de Mahery a Gemma 4 (`AI_MODE=local` ou `gemini-then-local`) : les autres
-postes restent sur les IA distantes. En passant vers ou depuis `local`, lancer `make seed` : les
-vecteurs des deux IA ne se comparent pas.
+postes restent sur les IA distantes. Les vecteurs doivent venir du même modèle pour être comparables. Sur une base locale de répétition seulement, `make seed` les efface pour les recalculer ; cette commande supprime aussi les comptes et les affaires de la base. Ne pas la lancer sur une base à conserver.
 
 ### Comptes, e-mails et connexion Google
 
@@ -227,7 +238,7 @@ vecteurs des deux IA ne se comparent pas.
   taper sur scène. Leurs adresses (`rasoa@vyra.demo`, `hery@vyra.demo`) et leur mot de
   passe sont dans `web/src/server/demo/seed-data.ts`.
 - **E-mails** : envoyés avec Resend (confirmation d'adresse, mot de passe oublié). Mettre
-  `RESEND_API_KEY` dans `web/.env.local` (ou dans l'environnement de Docker). `MAIL_FROM` doit être
+  `RESEND_API_KEY` dans `web/.env.local` hors Docker, ou dans `.env` à la racine pour Docker Compose. Docker transmet explicitement cette variable ; une valeur vide dans Compose ne se remplace pas par celle de `web/.env.local`. `MAIL_FROM` doit être
   une adresse d'un domaine vérifié dans Resend ; sans cela, seul le compte Resend reçoit les e-mails.
 - **Connexion avec Google** (facultative, demande le wifi) :
   1. Sur https://console.cloud.google.com : « API et services », « Identifiants », « Créer des
@@ -239,6 +250,19 @@ vecteurs des deux IA ne se comparent pas.
 
   Sans ces deux valeurs, le bouton « Continuer avec Google » n'apparaît pas.
 - « Réinitialiser la démo » supprime les comptes créés pendant la démo ; les comptes de démo restent.
+
+### Règles des comptes et des mots de passe
+
+L’inscription demande un nom de 2 à 60 caractères et une adresse e-mail valide. Les nouveaux
+mots de passe font 8 à 128 caractères et ne doivent pas figurer dans la courte liste de mots
+courants du projet ; à l’inscription, ceux qui reprennent le nom ou l’adresse e-mail sont refusés.
+La réinitialisation applique la longueur, la liste de mots courants et la confirmation identique.
+Les détails exécutables sont dans `web/src/features/auth/schema.ts` et `common-passwords.ts`.
+
+Les empreintes sont dérivées avec scrypt (`N=2^17`, `r=8`, `p=1`) ; une empreinte plus ancienne
+reste vérifiable et est renforcée après une connexion réussie sur le site ou l’API mobile.
+Les limites de connexion et de réinitialisation normalisent l’adresse e-mail en minuscules.
+Les identifiants de démonstration existants restent utilisables pour se connecter.
 
 ### Les conclusions scellées
 
@@ -278,9 +302,8 @@ fichier, image déjà vue, niveau de certitude calculé par une règle fixe sur 
 transcription d'un vocal, phrases relevées dans une page). Le composant `AiReading` pose les
 pointillés.
 
-Le bouton « Sans IA » (dock des préférences, menu du compte, barre publique) masque toutes ces
-lectures : il ne reste que les faits, et une ligne signale chaque bloc masqué. Réglage gardé sur
-l'appareil, comme le mode éco.
+Le bouton « Sans IA » (dock des préférences, menu du compte, barre publique) masque les blocs encapsulés par `AiReading` (scan, plaidoiries, rédaction de la conclusion, What If) : il ne reste que les faits, et une ligne signale chaque bloc masqué. Réglage gardé sur
+l’appareil, comme le mode éco. L’assistant reste un outil distinct ; cette préférence n’est pas un arrêt des appels IA ni du réseau.
 
 ### La copie protégée des images
 
@@ -341,19 +364,19 @@ Avec `make` (Mac, Linux) ou la commande complète (partout, y compris Windows) :
 | Après un changement de `web/src/server/db/schema.ts` | `make db-push` | `docker compose exec web npm run db:push` |
 | Puis, avant de pousser : écrire la migration (à committer) | `cd web && npm run db:generate` | idem |
 | Voir les données | `make studio` | `docker compose exec web npm run db:studio` |
-| Tout vérifier avant de pousser | `make check` | voir le `Makefile` (cible `check`) |
-| Lancer les tests du site (24) | `cd web && npm test` | idem, ou `docker compose exec web npm test` |
+| Contrôles de style, types et tests Python | `make check` | voir le `Makefile` (cible `check`) |
+| Lancer les tests du site | `cd web && npm test` | idem, ou `docker compose exec web npm test` |
 | Lancer les tests de processing | `cd processing && python -m pytest` | idem |
 | Corriger le style | `make lint-fix` | voir le `Makefile` (cible `lint-fix`) |
 | Ajouter un paquet npm | — | `docker compose exec web npm install <paquet>` |
-| Ajouter un composant shadcn | — | `docker compose exec web npm run ui:add <nom>` |
+| Ajouter un composant shadcn | — | `docker compose exec web npm run ui:add -- <nom>` |
+| Après un changement de `processing/requirements*.txt` | `make up` | `docker compose up --build` |
+| Repartir de zéro (efface les données) | `make clean` | `docker compose down -v` |
 
 **Base en ligne : migrations automatiques.** Chaque déploiement de production sur Vercel applique
 les fichiers de `web/drizzle/` avant le build (`vercel-build`). Si une migration échoue, le
 déploiement s'arrête et l'ancienne version reste en ligne. La CI refuse une PR qui change
-`schema.ts` sans sa migration.
-| Après un changement de `processing/requirements*.txt` | `make up` | `docker compose up --build` |
-| Repartir de zéro (efface les données) | `make clean` | `docker compose down -v` |
+`schema.ts` sans sa migration. Le script installe pgvector avant les migrations ; `db:push` reste réservé au développement local.
 
 Les commandes `exec` demandent que `docker compose up` tourne dans un autre terminal.
 
@@ -374,13 +397,14 @@ Valable pour tout le monde, humain ou assistant. Avant **chaque** PR :
 1. Récupérer `main` et le fusionner dans sa branche : `git fetch origin`, puis
    `git merge origin/main`.
 2. Régler les conflits, s'il y en a.
-3. Relancer `make check` (Windows : les commandes de la cible `check` du `Makefile`).
+3. Relancer `make check` et `docker compose exec web npm test` (Windows : mêmes commandes Docker, sans `make`). La CI vérifie aussi le build et les migrations sur une base neuve.
 4. Pousser la branche et ouvrir la PR.
 
 Pas de `rebase` sur une branche déjà poussée.
 
 ## Où lire quoi
 
+- [`docs/README.md`](docs/README.md) : index, périmètre et contrôles de la documentation.
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) : l'architecture, la sécurité, comment ajouter une fonctionnalité.
 - [`docs/ROLES.md`](docs/ROLES.md) : les rôles dans l'application et dans l'équipe.
 - [`docs/API-MOBILE.md`](docs/API-MOBILE.md) : l'API utilisée par l'application mobile.

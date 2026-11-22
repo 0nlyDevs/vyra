@@ -10,7 +10,13 @@ import {
   listCasesForAssistant,
   listNearestCasesForAssistant,
 } from '@/server/dal/court';
-import { type AiSource, embedTexts, findFactChecks, runPrompt } from '@/server/processing';
+import {
+  type AiSource,
+  embedTexts,
+  findFactChecks,
+  findWebSources,
+  runPrompt,
+} from '@/server/processing';
 import { getCurrentProfile } from '@/server/session';
 import { pickAssistantCases } from './context';
 import { guardAnswer, NO_VERDICT_ANSWER } from './guard';
@@ -42,12 +48,14 @@ export type AssistantAnswer = {
   proposals: Proposal[];
   // Sources extérieures citées (Wikipédia, vérifications publiées) : des liens construits ici.
   references: Reference[];
+  searchNotice?: string | null;
   // Une page à ouvrir tout de suite : la personne l'a demandé et c'est de la navigation seulement.
   autorun: string | null;
   source: AiSource;
 };
 
 type CaseRow = Awaited<ReturnType<typeof listCasesForAssistant>>[number];
+const SEARCH_TIMEOUT_MS = 15_000;
 
 function pageHelp(pathname: string) {
   const item = [...MODULE_ITEMS, KIT_ITEM, HOME_ITEM].find((entry) =>
@@ -134,6 +142,17 @@ export async function askAssistant(input: {
     });
   }
 
+  // La recherche extérieure commence pendant la récupération du dossier, avec un délai adapté
+  // à une conversation (le moteur des enquêtes peut continuer beaucoup plus longtemps).
+  const requested = wantsOutsideSources(question);
+  const query = question.length >= 10 ? question : `Informations sur ${question}`;
+  const sourceSearch = requested
+    ? Promise.all([
+        findFactChecks(query.slice(0, 300), SEARCH_TIMEOUT_MS),
+        findWebSources(query, [], SEARCH_TIMEOUT_MS),
+      ])
+    : Promise.resolve([null, null] as const);
+
   // Recherche par le sens : les affaires les plus proches de la question, puis les plus récentes.
   await embedMissingCases();
   const vectors = await embedTexts([question]);
@@ -143,10 +162,25 @@ export async function askAssistant(input: {
     await listCasesForAssistant(),
   );
 
-  // Une question de contexte (« qui est… », « qu'est-ce que… », « cherche sur Wikipédia… ») : on lit
-  // aussi Wikipédia et les vérifications déjà publiées. Ce sont des sources, pas des conclusions.
-  const found = wantsOutsideSources(question) ? await findFactChecks(question.slice(0, 300)) : null;
-  const external = found?.ok ? buildExternal(found.data.wikipedia, found.data.fact_checks) : [];
+  // Les moteurs indépendants tournent ensemble. Une panne du web ne retire pas les résultats
+  // de Wikipédia ou des vérificateurs, et aucune de ces sources n'est un verdict de Vyra.
+  const [found, web] = await sourceSearch;
+  const webAvailable = Boolean(web?.ok && web.data.source !== 'fallback');
+  const checksAvailable = Boolean(found?.ok && found.data.searched);
+  const external = buildExternal(
+    found?.ok ? found.data.wikipedia : [],
+    found?.ok ? found.data.fact_checks : [],
+    web?.ok && web.data.source !== 'fallback' ? web.data.articles : [],
+  );
+  const searchNotice = !requested
+    ? null
+    : !webAvailable && !checksAvailable
+      ? 'La recherche en ligne est indisponible. La réponse s’appuie sur les affaires du dossier.'
+      : !webAvailable
+        ? 'La recherche web générale est indisponible. Seules Wikipédia et les vérifications publiées ont pu être consultées.'
+        : external.length === 0
+          ? 'Aucune source extérieure exploitable n’a été trouvée pour cette recherche.'
+          : null;
 
   const result = await runPrompt(
     'assistant',
@@ -162,6 +196,12 @@ export async function askAssistant(input: {
         conclusion: row.conclusion,
       })),
       external: externalForModel(external),
+      search: {
+        requested,
+        webAvailable,
+        checksAvailable,
+        searchedAt: requested ? new Date().toISOString() : null,
+      },
       history,
     },
     assistantAnswerSchema,
@@ -197,18 +237,39 @@ export async function askAssistant(input: {
       citations,
       proposals,
       references,
+      searchNotice,
       autorun: autorunHref(proposals),
       source: 'gemini',
     });
   }
 
+  if (external.length > 0) {
+    return ok({
+      answer:
+        'Je ne peux pas rédiger la synthèse avec l’IA pour le moment. Voici les sources retrouvées : consultez leurs textes et leurs dates. Elles ne constituent pas une conclusion du tribunal.',
+      citations: [],
+      proposals: fallbackProposals(question, null),
+      references: buildReferences(
+        external.map((item) => item.number),
+        external,
+      ),
+      searchNotice,
+      autorun: null,
+      source: 'fallback',
+    });
+  }
+
   const offline = await offlineAnswer(question, pathname, rows, embedding);
+  const autorun = autorunHref(offline.proposals, isCommand(question));
   return ok({
     answer: offline.answer,
     citations: offline.citations,
-    proposals: offline.proposals,
+    proposals: offline.proposals.map((proposal) =>
+      proposal.href === autorun ? { ...proposal, now: true } : proposal,
+    ),
     references: [],
-    autorun: null,
+    searchNotice,
+    autorun,
     source: 'fallback',
   });
 }

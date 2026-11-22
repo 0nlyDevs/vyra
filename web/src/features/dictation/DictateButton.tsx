@@ -6,15 +6,8 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { dictate, voiceStatus } from './actions';
+import { recordSpeech } from './recording';
 import { toWav } from './wav';
-
-// Seuil de volume au-dessus duquel on considère que la personne parle (0 à 1).
-const SPEECH_LEVEL = 0.04;
-// Après avoir parlé, ce silence arrête l'écoute tout seul.
-const SILENCE_MS = 1_200;
-// Sans aucune parole pendant ce temps, on abandonne.
-const NO_SPEECH_MS = 8_000;
-const MAX_MS = 60_000;
 
 const UNAVAILABLE =
   'Dictée indisponible : il faut une clé Groq (ou Gemini) pour transcrire la voix.';
@@ -32,10 +25,15 @@ export function DictateButton({
 }) {
   const [phase, setPhase] = useState<Phase>('idle');
   const stopRef = useRef<(() => void) | null>(null);
+  const session = useRef<AbortController | null>(null);
+  const onTextRef = useRef(onText);
   // `null` : on ne sait pas encore. `false` : aucune IA ne peut lire le son (pas de clé Gemini).
   const [available, setAvailable] = useState<boolean | null>(null);
 
-  useEffect(() => () => stopRef.current?.(), []);
+  useEffect(() => () => session.current?.abort(), []);
+  useEffect(() => {
+    onTextRef.current = onText;
+  }, [onText]);
   useEffect(() => {
     let alive = true;
     voiceStatus().then((status) => alive && setAvailable(status.dictate));
@@ -45,73 +43,39 @@ export function DictateButton({
   }, []);
 
   async function start() {
-    let stream: MediaStream;
+    if (session.current) return;
+    const controller = new AbortController();
+    session.current = controller;
+    setPhase('listening');
     try {
-      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    } catch {
-      toast.error('Micro inaccessible : autorisez-le dans le navigateur.');
-      return;
-    }
-    const recorder = new MediaRecorder(stream);
-    const chunks: Blob[] = [];
-    const context = new AudioContext();
-    const analyser = context.createAnalyser();
-    context.createMediaStreamSource(stream).connect(analyser);
-    const samples = new Float32Array(analyser.fftSize);
-    const startedAt = Date.now();
-    let spokeAt = 0;
-    let frame = 0;
-
-    const stop = () => {
-      cancelAnimationFrame(frame);
+      const recording = await recordSpeech(controller.signal, (stop) => {
+        stopRef.current = stop;
+      });
       stopRef.current = null;
-      if (recorder.state !== 'inactive') recorder.stop();
-    };
-    stopRef.current = stop;
-
-    const watch = () => {
-      analyser.getFloatTimeDomainData(samples);
-      const level = Math.sqrt(
-        samples.reduce((sum, value) => sum + value * value, 0) / samples.length,
-      );
-      const now = Date.now();
-      if (level > SPEECH_LEVEL) spokeAt = now;
-      const silentAfterSpeech = spokeAt > 0 && now - spokeAt > SILENCE_MS;
-      const neverSpoke = spokeAt === 0 && now - startedAt > NO_SPEECH_MS;
-      if (silentAfterSpeech || neverSpoke || now - startedAt > MAX_MS) {
-        stop();
-        return;
-      }
-      frame = requestAnimationFrame(watch);
-    };
-
-    recorder.ondataavailable = (event) => chunks.push(event.data);
-    recorder.onstop = async () => {
-      for (const track of stream.getTracks()) track.stop();
-      void context.close();
-      if (spokeAt === 0) {
-        setPhase('idle');
+      if (controller.signal.aborted) return;
+      if (!recording) {
         toast.info('Rien entendu. Réessayez en parlant près du micro.');
         return;
       }
       setPhase('transcribing');
-      try {
-        const wav = await toWav(new Blob(chunks, { type: recorder.mimeType }));
-        const formData = new FormData();
-        formData.set('audio', new File([wav], 'dictee.wav', { type: 'audio/wav' }));
-        const result = await dictate(formData);
-        if (result.ok) onText(result.data.text);
-        else toast.error(`Dictée impossible : ${result.error.message}`);
-      } catch {
-        toast.error('Dictée impossible : l’enregistrement n’a pas pu être lu.');
-      } finally {
-        setPhase('idle');
+      const wav = await toWav(recording);
+      if (controller.signal.aborted) return;
+      const formData = new FormData();
+      formData.set('audio', new File([wav], 'dictee.wav', { type: 'audio/wav' }));
+      const result = await dictate(formData);
+      if (controller.signal.aborted) return;
+      if (result.ok) onTextRef.current(result.data.text);
+      else toast.error(`Dictée impossible : ${result.error.message}`);
+    } catch (cause) {
+      if (!controller.signal.aborted)
+        toast.error(cause instanceof Error ? cause.message : 'Dictée impossible.');
+    } finally {
+      if (session.current === controller) {
+        session.current = null;
+        stopRef.current = null;
+        if (!controller.signal.aborted) setPhase('idle');
       }
-    };
-
-    recorder.start();
-    setPhase('listening');
-    frame = requestAnimationFrame(watch);
+    }
   }
 
   const label =
@@ -135,8 +99,14 @@ export function DictateButton({
           toast.info(UNAVAILABLE);
           return;
         }
-        if (phase === 'listening') stopRef.current?.();
-        else void start();
+        if (phase === 'listening') {
+          if (stopRef.current) stopRef.current();
+          else {
+            session.current?.abort();
+            session.current = null;
+            setPhase('idle');
+          }
+        } else void start();
       }}
       aria-label={label}
     >

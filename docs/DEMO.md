@@ -1,8 +1,6 @@
 # La démo en direct
 
-Un parcours de cinq minutes qui montre le principe de Vyra : **une rumeur devient une affaire,
-l'affaire est jugée, la conclusion est signée**. Il marche à l'identique à chaque fois, avec ou sans
-réseau.
+Le pitch dure cinq minutes au total. Son parcours principal ci-dessous occupe **2 min 30** : une rumeur devient une affaire, elle est jugée, la conclusion est signée. Les autres séquences sont des variantes pour la répétition ou les questions. Sans internet, utiliser Docker local déjà préparé ; le fil neuf, les recherches web et la recherche sémantique ne sont pas garantis.
 
 Comptes de démo (mot de passe `vyra-demo`) : `rasoa@vyra.demo` (Vérificateur),
 `hery@vyra.demo` (Citoyen). En ligne : https://vyra-mg.vercel.app. En local :
@@ -23,20 +21,36 @@ Les données sont dans `web/src/server/demo/` : `seed-data.ts` (le socle), `seed
 inventés) et `seed-world.ts` (les affaires réelles : positions publiques d'institutions résumées, sans
 citation ni lien, à relire avant toute diffusion). Les vecteurs de la recherche par le sens sont calculés au premier besoin.
 
-## Le script
+## Le parcours principal : 2 min 30
 
-| # | Écran | Ce qu'on fait | Ce que ça montre |
+| Durée cible | Écran | Ce qu’on fait | Ce que ça montre |
 |---|---|---|---|
-| 1 | Fil d'actualité `/feed` | Ouvrir le fil : la une, les histoires, « sujets qui reviennent » | Ce qui circule, avec l'état de chaque publication. « Non vérifié ne veut pas dire faux » |
-| 2 | Enquêtes → *La photo de l'inondation* | Ouvrir l'affaire, montrer l'arbre des versions | La même image a changé de légende de version en version |
-| 3 | Scan `/scan` | Déposer `web/public/demo/inondation-virale.jpg`, puis `image-generee.png` | La photo virale n'a plus d'informations cachées (« rien à en conclure ») ; l'image générée déclare son outil. Jamais de verdict |
-| 4 | Tribunal `/court/…` | Lancer l'audience, voter | Deux IA plaident, les pièces témoignent, le public vote, le juge conclut : **Contredit** |
-| 5 | Carte de conclusion → `/verifier/sceau` | Scanner le QR ou taper le code | La carte est authentique : la conclusion est signée |
+| 10 s | Fil d'actualité `/feed` | Ouvrir le fil : la une, les histoires, « sujets qui reviennent » | Ce qui circule, avec l'état de chaque publication. « Non vérifié ne veut pas dire faux » |
+| 25 s | Enquêtes → *La photo de l'inondation* | Ouvrir l'affaire, montrer l'arbre des versions | La même image a changé de légende de version en version |
+| 25 s | Scan `/scan` | Déposer `web/public/demo/inondation-virale.jpg`, puis `image-generee.png` | La photo virale n'a plus d'informations cachées (« rien à en conclure ») ; l'image générée déclare son outil. Jamais de verdict |
+| 70 s | Tribunal `/court/…` | Lancer l'audience, voter | Deux IA plaident, le juré vote, les pièces déterminent **Contredit** et l’IA en explique la raison |
+| 20 s | Carte de conclusion → `/verifier/sceau` | Scanner le QR ou taper le code | La carte est authentique : la conclusion est signée |
+
+## Séquences optionnelles
+
+| # | Écran | Ce qu’on fait | Ce que ça montre |
+|---|---|---|---|
 | 6 | *What If ?* | « Voir la version calme » | La même information dite sans alarme |
 | 7 | Assistant | « Que sais-tu sur la photo de l'inondation ? » | Il cite l'affaire jugée au lieu d'inventer |
 | 8 | Extension (panneau latéral) | Sélectionner un texte sur une page, clic droit → *Vérifier ce texte* | La vérification là où on lit, sans compte |
-| 9 | Application mobile | Fil, Enquêtes, Scan, puis le bouton Assistant | Le même service dans la poche, avec les mêmes noms que le site |
+| 9 | Application mobile | Fil, Enquêtes, Scan, Alertes, Compte, puis assistant flottant | Le même serveur et les mêmes dossiers ; les nouvelles fonctions vocales et sources web de l’assistant restent à intégrer au client mobile |
 | 10 | Flash radio `/verifier/flash` | Ouvrir la page | De la conclusion au texte lu à l'antenne |
+
+Autres variantes à répéter si elles sont présentées :
+
+- Assistant : « Redirige-moi vers la page enquête » ouvre directement `/cases`. Activer Voix,
+  autoriser le micro, poser une question puis attendre la reprise automatique de l’écoute.
+- Assistant : « Cherche des sources sur la peste à Madagascar » montre les liens et les dates
+  disponibles. Sans recherche réelle, montrer le message d’indisponibilité.
+- Tribunal : « Poutine et Donald Trump », ou « Trump », peut retrouver le dossier du pape et de
+  Trump par les vecteurs. Le résultat est un sujet proche, pas un verdict sur Poutine.
+- Jeu : les cartes 2D sont la solution de secours sans WebGL ou sur téléphone ; la rue 3D et ses
+  panneaux se vérifient aussi à la résolution du projecteur.
 
 Les fichiers de démo (image, vocal, vidéo) sont dans `web/public/demo/`. Le vocal
 (`vocal-coupure-eau.wav`) et la vidéo (`video-coupure-eau.mp4`) se déposent dans le même écran Scan.
@@ -47,16 +61,18 @@ Les fichiers de démo (image, vocal, vidéo) sont dans `web/public/demo/`. Le vo
    pour **réveiller** les services (le premier appel peut prendre quelques secondes).
 2. En local : `docker compose up --build`, puis `make seed` (ou le bouton « Réinitialiser la démo »
    du Vérificateur) pour des données propres.
-3. `/health` de processing doit afficher `"ai"` avec au moins un fournisseur, et `"audio": true`.
+3. Vérifier `/health` de processing : la liste `ai` décrit les fournisseurs configurés, elle ne prouve pas que les clés fonctionnent. Essayer réellement une question, un embedding et la dictée ; vérifier `audio` pour la dictée et `video` avant de montrer une vidéo. Ne pas afficher les clés.
 4. Jouer le script une fois en entier. Le tribunal ne doit pas déjà être conclu : la démo se
    réinitialise avec le bouton du Vérificateur.
 5. Navigateur en plein écran, zoom vérifié au projecteur, notifications coupées, chargeur branché.
-6. Avoir la vidéo de secours de la démo prête à lancer.
+6. Enregistrer réellement une vidéo de secours puis vérifier sa lecture : ce fichier n’est pas fourni par le dépôt.
+7. Réserver le seed à une base de démonstration : il efface les comptes, sessions et affaires avant de les recréer. Ne pas le lancer sur des données à conserver.
+8. Le kit `/kit` n’est pas une étape de la démo et n’est pas disponible en production.
 
 ## Les plans de secours
 
-- **Le wifi tombe** : les réponses de l'IA viennent de `processing/app/fallbacks/`. À répéter avant
-  avec `DEMO_OFFLINE=true` dans `processing/.env`, puis `docker compose restart processing`.
+- **Le wifi tombe** : basculer d’abord sur le serveur Docker local déjà préparé. Les réponses de l'IA viennent de `processing/app/fallbacks/`. À répéter avant
+  avec `DEMO_OFFLINE=true` dans `processing/.env`, puis `docker compose restart processing`. Ce réglage désactive les IA et les moteurs de recherche ; il ne simule pas à lui seul la coupure de toutes les routes réseau. Si le fil est vide hors ligne, commencer par le dossier déjà préparé.
 - **Un fournisseur d'IA atteint son quota** : la chaîne passe au suivant toute seule (Groq, Gemini,
   DeepSeek) ; plusieurs clés par fournisseur tournent.
 - **Le site en ligne est lent** : basculer sur la version locale (même données de démo).

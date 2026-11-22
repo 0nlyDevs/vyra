@@ -1,3 +1,4 @@
+import { notFound } from 'next/navigation';
 import { AiNotice } from '@/components/common/AiNotice';
 import {
   AiSourceBadge,
@@ -25,6 +26,7 @@ import {
   EVIDENCE_STANCES,
   TONES,
 } from '@/lib/domain';
+import { env } from '@/lib/env';
 
 // Le kit : tout ce qui existe déjà. Avant de créer un composant, vérifier qu'il n'est pas ici.
 // Chaque bloc donne le fichier à importer.
@@ -61,6 +63,7 @@ function KitBlock({
 }
 
 export default function KitPage() {
+  if (env.NODE_ENV !== 'development') notFound();
   return (
     <div className="grid gap-8">
       <PageHeader
