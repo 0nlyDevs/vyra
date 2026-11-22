@@ -12,7 +12,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { appendText, DictateButton } from '@/features/dictation/DictateButton';
 import { checkAlreadyJudged } from './actions';
 
-// « Déjà jugé » : on colle une information, on retrouve l'affaire conclue qui lui ressemble.
+// Recherche thématique dans les affaires jugées, par le sens et sur plusieurs sujets à la fois.
 export function AlreadyJudgedForm() {
   const [state, action, pending] = useActionState(checkAlreadyJudged, null);
   const fieldError = state && !state.ok ? state.error.fieldErrors?.query?.[0] : undefined;
@@ -24,14 +24,16 @@ export function AlreadyJudgedForm() {
     <div className="grid gap-4">
       <form action={action} className="grid gap-3">
         <Label htmlFor="judged-query" className="text-base">
-          Cette information a-t-elle déjà été jugée ?
+          Rechercher dans les affaires jugées
         </Label>
         <Textarea
           ref={queryRef}
           id="judged-query"
           name="query"
           rows={3}
-          placeholder="Collez le message reçu, même reformulé."
+          placeholder="Un nom, un sujet ou un message, par exemple « Poutine et Donald Trump »."
+          minLength={2}
+          maxLength={1000}
           aria-invalid={fieldError ? true : undefined}
           aria-describedby={fieldError ? 'judged-query-error' : undefined}
         />
@@ -57,30 +59,38 @@ export function AlreadyJudgedForm() {
 
       {result && (
         <div aria-live="polite">
-          {result.item ? (
-            <div className="grid gap-3 rounded-xl border border-foreground bg-raised p-4">
-              <div className="flex flex-wrap items-center gap-2">
-                <ToneBadge tone="info">Déjà jugé</ToneBadge>
-                <span className="font-medium">{result.item.title}</span>
-                {result.item.certainty && <CertaintyBadge level={result.item.certainty} />}
-              </div>
-              {result.item.conclusion && <p className="text-pretty">{result.item.conclusion}</p>}
-              <div className="flex flex-wrap items-center gap-3">
-                <Button asChild size="sm">
-                  <Link href={`/court/${result.item.id}`}>
-                    Voir l’audience
-                    <ArrowRight aria-hidden data-icon="inline-end" />
-                  </Link>
-                </Button>
-                <span className="text-muted-foreground text-xs">
-                  {result.mode === 'meaning' ? 'Trouvé par le sens' : 'Trouvé par les mots'}
-                </span>
-              </div>
+          {result.items.length > 0 ? (
+            <div className="grid gap-3">
+              <p className="text-muted-foreground text-sm">
+                Affaires sur des sujets proches. Chaque conclusion concerne l’affaire citée.
+              </p>
+              {result.items.map((item) => (
+                <div
+                  key={item.id}
+                  className="grid gap-3 rounded-xl border border-foreground bg-raised p-4"
+                >
+                  <div className="flex flex-wrap items-center gap-2">
+                    <ToneBadge tone="info">Déjà jugé</ToneBadge>
+                    <span className="font-medium">{item.title}</span>
+                    {item.certainty && <CertaintyBadge level={item.certainty} />}
+                  </div>
+                  {item.conclusion && <p className="text-pretty">{item.conclusion}</p>}
+                  <div className="flex flex-wrap items-center gap-3">
+                    <Button asChild size="sm">
+                      <Link href={`/court/${item.id}`}>
+                        Voir l’audience
+                        <ArrowRight aria-hidden data-icon="inline-end" />
+                      </Link>
+                    </Button>
+                    <span className="text-muted-foreground text-xs">Trouvé par le sens</span>
+                  </div>
+                </div>
+              ))}
             </div>
           ) : (
             <p className="rounded-xl border border-dashed p-4 text-muted-foreground">
-              Aucune affaire jugée ne ressemble à cette information. Ouvrez une enquête pour la
-              vérifier.
+              Aucune affaire jugée assez proche de cette recherche n’a été trouvée. Essayez une
+              autre formulation ou ouvrez une enquête.
             </p>
           )}
         </div>

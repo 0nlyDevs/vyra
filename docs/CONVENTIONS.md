@@ -26,7 +26,9 @@
 ## Git
 
 - Une branche par fonctionnalité (`feat/<nom>`), fusionnée vite dans `main`.
-- `git pull origin main` souvent : 5 personnes travaillent en même temps.
+- `git pull origin main` souvent : plusieurs personnes travaillent sur le dépôt.
 - Messages de commit en français, courts : `feat: ajoute la carte des trajets`.
-- `make check` avant de pousser.
+- `make check` et `docker compose exec web npm test` avant de pousser. La CI ajoute le build, les migrations et une vérification HTTP.
+- Avant chaque PR : `git fetch origin`, puis `git merge origin/main` ; pas de rebase d’une branche déjà poussée. Les PR récentes utilisent un commit de merge.
+- Mettre à jour les documents concernés dans la même modification (README, architecture, API, démo). Ne pas annoncer un contrôle non exécuté ou une capacité non présente dans le client livré.
 - Fins de ligne Unix (LF) partout : `.gitattributes` s'en charge, ne pas le modifier.

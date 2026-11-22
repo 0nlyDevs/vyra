@@ -78,3 +78,16 @@ plateforme arrêtée, chacun avec le résultat attendu. Pour l'ouvrir depuis le 
 - Le contenu en attente reste en mémoire de session. Seule l'adresse de la plateforme est gardée.
 - Une adresse autre que `vyra-mg.vercel.app` et `localhost` se règle dans **Réglages** et demande
   votre accord.
+
+## Périmètre de la recherche
+
+La vérification rapide publique de l’extension cherche une affaire déjà conclue par le sens,
+avec un repli par mots si les embeddings sont indisponibles. Elle n’est pas la nouvelle recherche
+thématique du tribunal, qui classe plusieurs affaires via pgvector sans repli textuel.
+Les vérifications publiées renvoient des liens consultables ; un résultat absent ne prouve rien.
+
+L’extension nécessite un serveur joignable : le site hébergé n’est pas accessible hors ligne.
+Pour répéter sans internet, utiliser le serveur Docker local déjà préparé et sélectionner son
+adresse dans Réglages. Les nouvelles recherches web ne fonctionnent pas sans réseau.
+Voir [la documentation du projet](../docs/README.md) et [le contrat API mobile](../docs/API-MOBILE.md)
+pour le périmètre des autres clients ; l’extension utilise ses routes publiques `/api/check*`.

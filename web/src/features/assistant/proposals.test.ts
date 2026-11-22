@@ -131,6 +131,19 @@ describe('exécution immédiate', () => {
     assert.equal(autorunHref(proposals), '/court/aaa');
   });
 
+  it('ouvre une page demandée même si le modèle oublie now', () => {
+    const proposals = buildProposals([{ type: 'open_page', page: 'cases' }], rows2, {
+      allowNow: true,
+    });
+    assert.equal(autorunHref(proposals), '/cases');
+  });
+
+  it('ouvre aussi une affaire demandée sans IA, sans exécuter les formulaires', () => {
+    const judged = { id: 'aaa', title: 'La photo' };
+    assert.equal(autorunHref(fallbackProposals('Ouvre cette affaire', judged), true), '/court/aaa');
+    assert.equal(autorunHref(fallbackProposals('Signale cette rumeur', null), true), null);
+  });
+
   it('n’exécute jamais un signalement ni une enquête, même demandés', () => {
     const text = 'Une rumeur inquiétante sur la ville';
     const raw = [

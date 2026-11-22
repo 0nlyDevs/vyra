@@ -21,7 +21,7 @@ cas limites qu'on ne montrera pas. Des données simulées sont acceptées.
 2. `docs/CONVENTIONS.md` : les règles de code.
 3. `web/AGENTS.md` pour du code Next.js (version récente : lire la doc de `web/node_modules/next/dist/docs/`).
 4. L'exemple complet `web/src/features/whatif/` : une fonctionnalité se calque dessus.
-5. `docs/FRONT.md` et la page `/kit` : la base de l'interface, à réutiliser avant de créer un composant.
+5. `docs/FRONT.md` et la page locale `/kit` (développement uniquement, hors navigation utilisateur) : la base de l'interface, à réutiliser avant de créer un composant.
 
 ## Commandes
 
@@ -51,7 +51,7 @@ L'équipe travaille sur Mac, Linux et Windows : pas de commande ni de chemin pro
 - Un prompt d'IA = `processing/app/prompts/<nom>.md` + sa réponse de secours `processing/app/fallbacks/<nom>.json`.
 - Un prompt doit marcher avec Gemini **et** avec le modèle local (Gemma 4) : pas de fonction propre
   à un seul fournisseur. Gemma 4 n'est installé que sur le Mac de Mahery (`AI_MODE=local` ou
-  `gemini-then-local`) ; tous les autres postes restent sur Gemini (`AI_MODE=gemini`, par défaut)
+  `gemini-then-local`) ; tous les autres postes restent sur la chaîne distante Groq/Gemini/DeepSeek (`AI_MODE=gemini`, nom historique du mode distant par défaut)
   et n'installent ni Ollama ni Gemma. Ne pas proposer de l'installer ailleurs.
 - Modifications ciblées : ne pas reformater ce qui n'est pas lié à la tâche.
 - **Avant chaque PR, se mettre à jour avec `main`** : `git fetch origin && git merge origin/main`

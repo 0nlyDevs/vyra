@@ -39,8 +39,8 @@ class Settings(BaseSettings):
     )
 
     # Mode de l'IA. Dans tous les modes, si aucune IA ne répond, la réponse préparée s'affiche.
-    # - « gemini » (par défaut) : Gemini seul. Rien à installer.
-    # - « gemini-then-local » : Gemini, puis Gemma 4 en local (Ollama) si Gemini ne répond pas.
+    # - « gemini » (nom historique, par défaut) : fournisseurs distants de ai_providers.
+    # - « gemini-then-local » : fournisseurs distants, puis modèle local déjà configuré.
     # - « local » : Gemma 4 en local seul, sans wifi.
     ai_mode: Literal["gemini", "gemini-then-local", "local"] = "gemini"
 
