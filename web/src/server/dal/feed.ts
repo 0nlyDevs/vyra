@@ -1,9 +1,22 @@
 import 'server-only';
-import { and, desc, eq, gte, inArray, isNull, lt, max, or, sql } from 'drizzle-orm';
+import {
+  and,
+  desc,
+  eq,
+  gte,
+  inArray,
+  isNotNull,
+  isNull,
+  lt,
+  max,
+  notInArray,
+  or,
+  sql,
+} from 'drizzle-orm';
 import type { CaseStatus, CertaintyLevel, FeedKind, FeedRegion, ReportState } from '@/lib/domain';
 import { getReportStatsByFeedPost } from '@/server/dal/reports';
 import { db } from '@/server/db';
-import { cases, feedPosts } from '@/server/db/schema';
+import { cases, feedPosts, reportGroups } from '@/server/db/schema';
 
 // Lecture et récolte du fil : chaque publication réelle avec son affaire et ses signalements.
 
@@ -140,9 +153,20 @@ export async function upsertFeedPosts(rows: NewFeedPost[]) {
 
 // Oublie les publications que plus aucune source ne montre, sauf celles qui ont une affaire.
 export async function pruneFeedPosts(notSeenSince: Date) {
+  // Une publication signalée reste, même sans affaire : ses signalements la retrouvent par son id.
+  const reported = db
+    .select({ id: reportGroups.feedPostId })
+    .from(reportGroups)
+    .where(isNotNull(reportGroups.feedPostId));
   await db
     .delete(feedPosts)
-    .where(and(lt(feedPosts.seenAt, notSeenSince), isNull(feedPosts.caseId)));
+    .where(
+      and(
+        lt(feedPosts.seenAt, notSeenSince),
+        isNull(feedPosts.caseId),
+        notInArray(feedPosts.id, reported),
+      ),
+    );
 }
 
 // Publications récentes dont le sens reste à calculer, les plus récentes d'abord.
