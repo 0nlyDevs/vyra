@@ -35,7 +35,7 @@ citation ni lien, à relire avant toute diffusion). Les vecteurs de la recherche
 | 6 | *What If ?* | « Voir la version calme » | La même information dite sans alarme |
 | 7 | Assistant | « Que sais-tu sur la photo de l'inondation ? » | Il cite l'affaire jugée au lieu d'inventer |
 | 8 | Extension (panneau latéral) | Sélectionner un texte sur une page, clic droit → *Vérifier ce texte* | La vérification là où on lit, sans compte |
-| 9 | Application mobile | Fil, Affaires, Assistant | Le même service dans la poche |
+| 9 | Application mobile | Fil, Enquêtes, Scan, puis le bouton Assistant | Le même service dans la poche, avec les mêmes noms que le site |
 | 10 | Flash radio `/verifier/flash` | Ouvrir la page | De la conclusion au texte lu à l'antenne |
 
 Les fichiers de démo (image, vocal, vidéo) sont dans `web/public/demo/`. Le vocal
