@@ -225,6 +225,18 @@ signature Ed25519 du texte exact de la conclusion. `/verifier/sceau` dit si une 
 - Rejuger une affaire change son sceau : l'ancienne carte s'affiche alors « ne correspond pas », avec
   la conclusion actuelle.
 
+### La copie protégée des images
+
+Avant qu'une image importée dans le Scan parte où que ce soit, `processing` en fait une copie
+(`POST /v1/media/safe-copy`, OpenCV et Pillow, sans IA) : redressée, réduite à 2 048 px, **visages
+floutés** (détecteurs de face et de profil), réencodée en JPEG **sans aucune information cachée**
+(appareil, date, GPS…), première image seulement pour un GIF animé.
+
+- L'IA (Gemini ou Gemma) ne lit que cette copie. Si la copie échoue, l'image n'est pas envoyée.
+- Les informations cachées sont lues sur l'original, sur place : la signature IA reste détectée.
+- L'étape « Déjà vue ? » montre la copie et la propose au téléchargement pour Google Lens, TinEye…
+- Le détecteur peut rater un visage petit, flou ou de trois quarts : la copie réduit le risque.
+
 ### « Est-ce bien eux ? » et l'annuaire officiel
 
 Onglet du module Scan. On colle un message qui se réclame d'une institution (et, si on l'a, son
