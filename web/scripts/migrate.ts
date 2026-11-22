@@ -3,9 +3,9 @@
 //
 // Remplace `drizzle-kit migrate` : son indicateur de progression efface le message d'erreur dans
 // les journaux Vercel, on ne voyait pas pourquoi un déploiement s'arrêtait. Ici l'erreur est écrite
-// en clair. Il installe aussi pgvector sur une base neuve (sans lui, « le type vector n'existe pas »)
-// et rattache une base déjà remplie, mais sans journal de migrations (créée avec `db:push`), à la
-// première migration au lieu de la rejouer, ce qui échouerait avec « la table existe déjà ».
+// en clair. Il installe aussi pgvector sur une base neuve (sans lui : « le type vector n'existe
+// pas ») et rattache une base déjà remplie, mais sans journal de migrations (créée avec `db:push`),
+// à la première migration au lieu de la rejouer, ce qui échouerait avec « la table existe déjà ».
 import { readMigrationFiles } from 'drizzle-orm/migrator';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import { migrate } from 'drizzle-orm/postgres-js/migrator';
