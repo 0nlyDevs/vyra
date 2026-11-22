@@ -1651,11 +1651,14 @@ html[data-eco="on"] .auth-video {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  /* Les transitions aussi (pilule des onglets, tiroirs, survols) : l'état final arrive
+     d'un coup, et les événements de fin de transition partent toujours. */
   *,
   *::before,
   *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
   .auth-video {
