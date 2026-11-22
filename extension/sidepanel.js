@@ -18,7 +18,10 @@ let pageUrl = '';
 function setMode(next) {
   mode = next;
   for (const tab of document.querySelectorAll('.tab')) {
-    tab.setAttribute('aria-selected', String(tab.dataset.mode === next));
+    const selected = tab.dataset.mode === next;
+    tab.setAttribute('aria-selected', String(selected));
+    // Un seul onglet dans l'ordre de tabulation : les flèches passent d'un onglet à l'autre.
+    tab.tabIndex = selected ? 0 : -1;
   }
   $('panel-text').hidden = next !== 'text';
   $('panel-link').hidden = next !== 'link';
@@ -175,6 +178,22 @@ chrome.storage.session.onChanged.addListener((changes) => {
 });
 
 for (const tab of document.querySelectorAll('.tab')) tab.addEventListener('click', () => setMode(tab.dataset.mode));
+// Clavier des onglets : flèches gauche et droite (en boucle), Début et Fin. L'onglet atteint est choisi.
+document.querySelector('.tabs').addEventListener('keydown', (event) => {
+  const tabs = [...document.querySelectorAll('.tab')];
+  const current = tabs.indexOf(document.activeElement);
+  if (current < 0) return;
+  const target = {
+    ArrowRight: (current + 1) % tabs.length,
+    ArrowLeft: (current - 1 + tabs.length) % tabs.length,
+    Home: 0,
+    End: tabs.length - 1,
+  }[event.key];
+  if (target === undefined) return;
+  event.preventDefault();
+  setMode(tabs[target].dataset.mode);
+  tabs[target].focus();
+});
 $('check').addEventListener('click', check);
 $('clear').addEventListener('click', clearAll);
 
