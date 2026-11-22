@@ -3,8 +3,7 @@
 Une base concrète pour partir tous du même point. Ce ne sont pas des règles figées : elle peut
 être refondue. Son seul but est qu'on ne recrée pas ce qui existe déjà.
 
-Pour tout voir d'un coup : lancer l'application, entrer avec un profil, ouvrir **Kit d'interface**
-(`/kit`) dans la barre latérale.
+Pour tout voir d’un coup : lancer `next dev` (`make up` en local), se connecter et saisir **`/kit`** dans l’adresse du navigateur. C’est un catalogue pour l’équipe, retiré des menus utilisateur et indisponible en production ; il est conservé pour réutiliser les composants.
 
 ## Les principes
 
@@ -14,8 +13,7 @@ Pour tout voir d'un coup : lancer l'application, entrer avec un profil, ouvrir *
   un mot. Tout le reste est à l'encre sur du papier.
 - **Une page lisible d'un coup d'œil** : une chose en grand, le reste en second ; peu de défilement
   sur téléphone (rangées qui défilent de côté plutôt qu'une longue pile).
-- **Accessible** : contrastes mesurés (tests de jetons côté mobile), cibles de 44 px, jamais la
-  couleur seule.
+- **Accessibilité à vérifier** : tests de contrastes des jetons côté mobile, objectif de cibles de 44 px et jamais la couleur seule. Ces tests ne certifient pas toutes les pages du site.
 
 ## Ce qui existe
 
@@ -26,7 +24,7 @@ Pour tout voir d'un coup : lancer l'application, entrer avec un profil, ouvrir *
 | En-tête de page, badges d'état, étapes, bulle de parole, import de fichier, lecture à voix haute | `web/src/components/common/` |
 | États d'une page : vide, erreur, chargement | `web/src/components/states/States.tsx` |
 | Champ de formulaire avec aide et erreur | `web/src/components/form/FormField.tsx` |
-| Barre latérale et en-tête de l'espace connecté | `web/src/components/shell/` et `web/src/app/(app)/layout.tsx` |
+| Barre d’onglets, en-tête et préférences de l’espace connecté | `web/src/components/shell/` et `web/src/app/(app)/layout.tsx` |
 | Entrées du menu | `web/src/lib/navigation.ts` |
 | Valeurs du domaine et leurs libellés (certitude, états, tons…) | `web/src/lib/domain.ts` |
 | Dates en français | `web/src/lib/format.ts` |
@@ -63,13 +61,13 @@ endroit : les jetons de `globals.css`.
 
 ## Ajouter un écran
 
-1. Créer `web/src/app/(app)/<nom>/page.tsx` : la barre latérale et l'en-tête arrivent seuls.
+1. Créer `web/src/app/(app)/<nom>/page.tsx` : l’en-tête, les onglets et les préférences arrivent seuls.
 2. Commencer la page par `PageHeader`.
 3. Ajouter l'entrée du menu dans `web/src/lib/navigation.ts` si c'est un écran principal.
 4. Mettre la logique dans `web/src/features/<nom>/`, comme `whatif`.
 
 Les pages des modules : `/feed` (fil d'actualité, ouvert après la connexion), `/cases`,
-`/court`, `/reports`, `/game`, et `/scan`.
+`/court`, `/reports`, `/game`, et `/scan`. Le jeu propose une version 3D sur ordinateur compatible et les mêmes exercices en cartes 2D. Le niveau de certitude se calcule sur les pièces ; il n’est pas décidé par la couleur ni par le vote.
 
 ## Le dossier commun : l'affaire
 
@@ -83,14 +81,13 @@ Quatre tables partagées par tous les modules (`web/src/server/db/schema.ts`) :
 | `evidence` | Une pièce du dossier, citée par son numéro |
 
 Lecture : `listCases()` et `getCaseFile(id)` dans `web/src/server/dal/cases.ts`. La page
-`/cases/<id>` affiche un dossier en lecture seule.
+`/cases/<id>` affiche le dossier, ses versions, ses pièces et les actions d’enquête disponibles pour le profil.
 
 Chaque module ajoute **ses** tables dans la section prévue en bas de `schema.ts`, et ses données
 de démo dans la section prévue de `web/src/server/demo/seed-data.ts`. Après un changement de
 tables : `make db-push`, puis `make seed`.
 
-Trois affaires de démo sont en base (deux réelles, une fictive pour les exercices). Tous les
-lieux, médias et organismes y sont inventés.
+Le seed contient 22 affaires : 13 scénarios inventés et 9 affaires réelles utilisées comme dossiers pédagogiques. Les comptes et les institutions de démonstration sont fictifs. Le détail et les fichiers sources sont dans [DEMO.md](DEMO.md).
 
 ## Ajouter un composant de base
 

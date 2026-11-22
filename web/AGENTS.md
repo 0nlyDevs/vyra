@@ -2,6 +2,10 @@
 
 Règles de l'équipe : voir [`../AGENTS.md`](../AGENTS.md) et [`../docs/CONVENTIONS.md`](../docs/CONVENTIONS.md). Le bloc ci-dessous est géré automatiquement par Next.js.
 
+La documentation partagée est indexée dans `../docs/README.md`. Mettre à jour les contrats API
+et la démo dans la même modification que le comportement concerné. `/kit` est un catalogue local
+accessible en développement uniquement ; aucun raccourci dans le parcours utilisateur.
+
 <!-- BEGIN:nextjs-agent-rules -->
 
 # This is NOT the Next.js you know

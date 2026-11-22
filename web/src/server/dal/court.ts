@@ -102,6 +102,20 @@ const judgedColumns = {
 // Seuil à ajuster après essai avec le modèle de vecteurs réellement utilisé.
 const MAX_MEANING_DISTANCE = 0.25;
 
+// Recherche thématique plus large que « est-ce la même affirmation ? ». Le minimum des
+// distances laisse chaque sujet retrouver ses propres affaires, sans correspondance textuelle.
+export function searchJudgedCasesByMeaning(embeddings: number[][], limit = 8) {
+  if (embeddings.length === 0) return Promise.resolve([]);
+  const distances = embeddings.map((embedding) => cosineDistance(cases.embedding, embedding));
+  const distance = sql<number>`least(${sql.join(distances, sql`, `)})`;
+  return db
+    .select({ ...judgedColumns, distance })
+    .from(cases)
+    .where(and(eq(cases.status, 'concluded'), isNotNull(cases.embedding), sql`${distance} <= 0.5`))
+    .orderBy(asc(distance), desc(cases.createdAt))
+    .limit(limit);
+}
+
 // Mots ignorés par la recherche de secours, sans IA.
 const STOP_WORDS = new Set(
   'alors aussi avec avant cette dans depuis elle elles entre être leur leurs mais même nous pour sans sont tous tout toute toutes très vous partagez urgent'.split(
@@ -180,9 +194,9 @@ export async function listOpenRealCases() {
 
 // Les affaires que l'assistant peut citer : les plus récentes, conclues ou non.
 // Les affaires qui n'ont pas encore de vecteur (affaires de démo, ou IA coupée à la conclusion).
-export function listCasesWithoutEmbedding(limit = 12) {
+export function listCasesWithoutEmbedding(limit = 100) {
   return db
-    .select({ id: cases.id, claim: cases.claim })
+    .select({ id: cases.id, title: cases.title, claim: cases.claim })
     .from(cases)
     .where(isNull(cases.embedding))
     .limit(limit);

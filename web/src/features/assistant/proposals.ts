@@ -25,7 +25,7 @@ const PAGES = Object.keys(PAGE_TARGETS) as [
   ...(keyof typeof PAGE_TARGETS)[],
 ];
 
-// `now` : la personne a demandé d'y aller, la page peut s'ouvrir sans attendre un clic.
+// `now` : le serveur a reconnu une navigation demandée, sans attendre un clic.
 export type Proposal = { type: string; label: string; href: string; now?: boolean };
 
 // Seule la navigation (ouvrir une page ou un dossier) peut s'exécuter tout de suite : elle ne change
@@ -92,8 +92,8 @@ export function buildProposals(
     }
     if (proposal && !seen.has(proposal.href)) {
       seen.add(proposal.href);
-      const now = 'now' in action && action.now === true;
-      if (now && options.allowNow && NAVIGATION.has(proposal.type)) proposal.now = true;
+      // La demande explicite autorise la navigation, même si le modèle a oublié `now`.
+      if (options.allowNow && NAVIGATION.has(proposal.type)) proposal.now = true;
       proposals.push(proposal);
     }
     if (proposals.length === MAX_PROPOSALS) break;
@@ -156,7 +156,10 @@ export function mobileProposals(proposals: readonly Proposal[]): Proposal[] {
   return kept;
 }
 
-// Le lien à ouvrir tout de suite : la première proposition de navigation marquée `now`.
-export function autorunHref(proposals: readonly Proposal[]): string | null {
-  return proposals.find((proposal) => proposal.now && NAVIGATION.has(proposal.type))?.href ?? null;
+// Le lien à ouvrir tout de suite : la première proposition de navigation autorisée par le serveur.
+export function autorunHref(proposals: readonly Proposal[], requested = false): string | null {
+  return (
+    proposals.find((proposal) => (requested || proposal.now) && NAVIGATION.has(proposal.type))
+      ?.href ?? null
+  );
 }

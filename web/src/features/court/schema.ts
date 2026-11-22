@@ -24,6 +24,6 @@ export const judgedSearchSchema = z.object({
   query: z
     .string()
     .trim()
-    .min(10, 'Écrivez au moins 10 caractères.')
+    .min(2, 'Écrivez au moins 2 caractères.')
     .max(1000, '1 000 caractères au maximum.'),
 });

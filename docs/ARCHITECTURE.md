@@ -1,31 +1,27 @@
 # Architecture
 
-Vyra tient en quatre morceaux : le **site** (Next.js), le service d'**IA et de calcul**
-(`processing/`, FastAPI), la **base** (Postgres + pgvector) et deux **clients** légers, l'extension
-du navigateur et l'application mobile, qui parlent au même site.
+Vyra repose sur trois services : le **site** (`web/`, Next.js), les **traitements IA et médias**
+(`processing/`, FastAPI) et la **base Postgres + pgvector**. L’extension et l’application mobile
+sont deux clients supplémentaires du même serveur web.
 
-## Vue d'ensemble
+## Vue d’ensemble
 
+```text
+Navigateur du site ── cookie de session ───┐
+Mobile Expo ───────── Bearer, /api/v1 ─────┼── web/ Next.js ── Drizzle ── Postgres + pgvector
+Extension ────────── /api/check*, public ──┘         │                    (Neon ou Docker)
+                                                    │ HTTP + PROCESSING_TOKEN
+                                                    │ src/server/processing.ts
+                                             processing/ FastAPI
+                                                    ├── Groq → Gemini → DeepSeek (texte)
+                                                    ├── Gemini (médias et embeddings distants)
+                                                    ├── Groq Whisper / ElevenLabs (voix)
+                                                    ├── Tavily / GDELT / Wikipédia / Fact Check
+                                                    └── réponses de secours
 ```
- Navigateur ──────┐
- Application      │  HTTPS            ┌────────────────────────────────────────────┐
- mobile (Expo) ───┼─ Bearer ────────▶ │ web/  Next.js 16 (Vercel, ou Docker en local)│
- Extension ───────┘  /api/v1, /api/check│  • pages, server actions, routes /api       │
- (panneau latéral)                      │  • sessions, rôles, limites de débit       │
-                                        │  • SEUL accès à la base ───────────────────┼─▶ Postgres + pgvector
-                                        └───────────────┬────────────────────────────┘    (Neon en ligne,
-                                                        │ HTTP + PROCESSING_TOKEN          Docker en local)
-                                                        │ (src/server/processing.ts seul)
-                                        ┌───────────────▼────────────────────────────┐
-                                        │ processing/  FastAPI (Render, ou Docker)   │
-                                        │  • prompts d'IA (app/prompts/*.md)         │──▶ Groq → Gemini → DeepSeek
-                                        │  • vecteurs (recherche par le sens)        │    (rotation de clés)
-                                        │  • examen de médias : métadonnées, copie   │──▶ ElevenLabs (voix),
-                                        │    protégée, vidéo (ffmpeg), voix           │    Groq Whisper (dictée)
-                                        │  • lecture de pages, fil, vérifications    │──▶ Tavily, Google Fact Check
-                                        │  • réponses de secours sans IA             │
-                                        └────────────────────────────────────────────┘
-```
+
+Le mode local facultatif est réservé au Mac déjà équipé de l’équipe ; il ne fait pas partie de
+l’installation standard. Le navigateur n’appelle jamais directement un fournisseur d’IA.
 
 ## Qui possède quoi
 
@@ -35,7 +31,7 @@ du navigateur et l'application mobile, qui parlent au même site.
 | Appelé par | Navigateur, mobile, extension | Uniquement `web/src/server/processing.ts` |
 | Base de données | **Seul propriétaire** (Drizzle, migrations versionnées) | Aucun accès |
 | Utilisateurs | Comptes e-mail ou Google, sessions, rôles | Ne les connaît pas |
-| Secrets | `web/.env` : base, `PROCESSING_TOKEN`, `SEAL_SECRET`, SMTP, Google | `processing/.env` : clés des IA, `PROCESSING_TOKEN` |
+| Secrets | `web/.env` : base, `PROCESSING_TOKEN`, `SEAL_SECRET`, Resend, Google | `processing/.env` : clés des IA, `PROCESSING_TOKEN` |
 | Hébergement | Vercel (`vercel-build` applique les migrations) | Render (`render.yaml`) |
 
 ## Les trois façons d'entrer
@@ -58,11 +54,10 @@ C'est le cœur de la confiance : **aucune IA ne conclut seule.**
 2. **L'IA propose** : lecture d'une image, plaidoiries du tribunal, version « calme » de What If.
    Ses lectures s'affichent en **pointillés** à côté des faits ; le mode *Sans IA* ne garde que les
    faits.
-3. **Le tribunal conclut** avec un niveau de certitude, après le vote du public.
-4. **Un sceau signé** (HMAC, `SEAL_SECRET`) prouve qu'une carte de conclusion est authentique.
+3. **Le tribunal conclut** après le vote. Le niveau de certitude est calculé par la règle `features/court/certainty.ts` à partir des pièces solides ; l’IA rédige l’explication. Le vote est enregistré, il ne choisit pas le niveau.
+4. **Un sceau Ed25519** (`server/seal.ts`, graine `SEAL_SECRET`) authentifie le contenu signé de la carte, pas la vérité du fait rapporté.
 
-Sans IA ni réseau, tout continue : réponses de secours (`processing/app/fallbacks/`), recherche par
-mots, flash radio écrit sans IA.
+Sans IA, les réponses de secours, les dossiers préparés et le flash radio restent utilisables si les services et la base répondent. Sans internet, il faut la version Docker locale déjà prête : les moteurs externes ne répondent plus. La recherche thématique du tribunal signale l’indisponibilité des embeddings ; la vérification rapide publique garde son repli par mots.
 
 ## Sécurité
 
@@ -71,8 +66,8 @@ mots, flash radio écrit sans IA.
 | Accès aux données d'autrui | Rôles vérifiés côté serveur à chaque action (`isVerifier`), jamais côté client |
 | Abus des routes publiques | Limites par adresse en base (`server/rate-limit.ts`) : connexion, signalements (10/jour), vérifications (60/h), examens d'image (30/h) |
 | Lecture de pages vers une adresse interne (SSRF) | `processing/app/services/safe_url.py` refuse les adresses privées |
-| Image personnelle envoyée à une IA | Copie protégée : visages floutés, informations cachées retirées ; l'original ne part nulle part |
-| Appels directs à processing | `PROCESSING_TOKEN` partagé (sans lui : 401) |
+| Image personnelle envoyée à une IA | Copie protégée : visages floutés, informations cachées retirées ; l’original n’est pas envoyé au modèle d’IA |
+| Appels directs à processing | `PROCESSING_TOKEN` partagé : 401 pour un appel sans jeton correct si le secret est configuré ; facultatif en local |
 | Fausse conclusion | Sceau signé, vérifiable sans compte (`/verifier/sceau`) |
 | Manipulation d'une IA (injection de prompt) | Garde-fous communs et contrôle de la sortie : voir « Les garde-fous de l'IA » |
 | Navigateur | `X-Frame-Options`, `nosniff`, `Referrer-Policy`, CORS limité à `/api/v1` |
@@ -92,9 +87,9 @@ pas d'être sage, on vérifie ce qu'il fait.
 | Coût | Limite d'appels par adresse (240 par 10 minutes), limites sur les routes publiques, clés d'IA en rotation | `server/processing.ts`, `server/rate-limit.ts` |
 | Sortie | Réponse validée par un schéma Zod ; une réponse invalide devient la réponse de secours | `runPrompt` |
 | Contrôle | Pas de lien dans le texte (un lien inventé serait un faux) ; une réponse qui tranche « c'est vrai / faux » sans citer une affaire jugée est remplacée ; longueur bornée | `features/assistant/guard.ts` |
-| Sources | Seules les affaires fournies au modèle peuvent être citées ; une citation hors liste est écartée | `features/assistant/actions.ts` |
+| Sources | Seules les affaires et les sources extérieures fournies au modèle peuvent être citées ; une citation hors liste est écartée | `features/assistant/actions.ts` |
 | Plaidoiries | Contrôle des plaidoiries du tribunal avant affichage | `features/court/pleading-guard.ts` |
-| Verdict | Aucune IA ne conclut seule : le tribunal et le vote concluent, l'IA propose en pointillés | voir « Ce qui est jugé par qui » |
+| Verdict | La règle des pièces calcule le niveau ; le vote est conservé, l’IA rédige l’explication | voir « Ce qui est jugé par qui » |
 
 ### L'agent : navigation immédiate, formulaires à confirmer
 
@@ -102,6 +97,11 @@ L'assistant peut proposer jusqu'à trois **actions** (ouvrir une affaire ou son 
 enquête ou un signalement avec le texte pré-rempli, ouvrir un module). Une navigation s'exécute
 immédiatement seulement si la personne l'a explicitement demandée. Une enquête ou un signalement
 restent à confirmer d'un clic, et la page qui s'ouvre refait la connexion, la validation et les limites.
+
+Le mode voix ouvre le micro dès son activation : une pause termine la question, la dictée la
+transcrit, l'assistant répond puis l'écoute reprend après la lecture. Le micro reste éteint pendant
+la réponse. Désactiver le mode ou fermer le panneau annule la session et toute lecture en cours.
+La dictée ponctuelle et cette boucle partagent `features/dictation/recording.ts`.
 
 Par construction : liste fermée de types d'actions (`features/assistant/proposals.ts`) ; les liens
 sont construits par le serveur, jamais repris du modèle ; une affaire n'est proposée que si elle
@@ -113,18 +113,37 @@ borné. Tout ce qui sort de cette liste (`delete_case`, une page `admin`, une ad
 ## Recherche par le sens (pgvector)
 
 Les affaires, les publications du fil et les infos retrouvées sont transformées en vecteurs par
-`processing/` (pour une affaire sans vecteur, comme celles de la démo, il est calculé au premier besoin : `features/court/embeddings.ts`). La base cherche le plus proche (`cosineDistance`) ; si rien n'est assez proche, ou sans
-IA, la recherche repasse par les mots. Les « sujets qui reviennent » sont des paires de publications
+`processing/` (pour une affaire sans vecteur, comme celles de la démo, il est calculé au premier besoin : `features/court/embeddings.ts`). La base classe par distance cosinus (`cosineDistance`). La vérification rapide garde un repli par mots ; la recherche thématique du tribunal, décrite ci-dessous, exige les vecteurs et n’a pas ce repli. Les « sujets qui reviennent » sont des paires de publications
 proches venues de sources différentes (`features/feed/topics.ts`).
 
 **L'assistant fonctionne en RAG** (`features/assistant`) : la question est transformée en vecteur,
 la base renvoie les affaires les plus proches (`listNearestCasesForAssistant`), complétées par les
-plus récentes (`pickAssistantCases`), et l'IA ne répond qu'à partir de ces affaires, qu'elle cite
-par numéro. Une citation qui ne correspond à aucune affaire fournie est écartée.
+plus récentes (`pickAssistantCases`), et les conclusions du tribunal sont citées par numéro. Le contexte extérieur est cité séparément ([S1], [S2]…). Une citation qui ne correspond à aucune affaire fournie est écartée.
 
-Pour une question de contexte ou une recherche explicite, l'assistant consulte aussi Wikipédia
-et les vérifications publiées via `findFactChecks`. Les sources citées s'affichent avec des liens
-construits depuis les résultats reçus ; elles ne remplacent jamais la conclusion du tribunal.
+Pour une question de contexte, d'actualité, de vérification ou une recherche explicite, l'assistant
+consulte en parallèle les articles web via `findWebSources` (Tavily, sinon GDELT), Wikipédia et les
+vérifications publiées via `findFactChecks`. Les recherches commencent pendant la récupération du
+dossier, avec un délai de 15 secondes chacune. Les sources citées s'affichent avec leur date connue
+et des liens construits depuis les résultats reçus ; elles ne remplacent jamais la conclusion du
+tribunal. Une recherche indisponible est signalée ; sans IA, les liens retrouvés restent consultables.
+
+### Recherche du tribunal : sujets proches et vérification précise
+
+`checkAlreadyJudged` accepte un nom ou une demande d’au moins deux caractères. `courtSearchQueries`
+vectorise la demande entière et jusqu’à quatre sujets séparés par « et », « ou », « avec », une
+virgule ou un point-virgule. La DAL classe jusqu’à huit affaires conclues par le minimum de leurs
+distances cosinus pgvector (seuil thématique 0,5). Ainsi « Poutine et Donald Trump » peut retrouver
+le dossier du pape et de Trump même sans mention de Poutine. Aucune recherche `contains`, `LIKE`
+ou par sous-chaîne n’intervient dans ce parcours. Sans embeddings, il renvoie une indisponibilité.
+
+C’est distinct de `findJudgedCase`, utilisé pour la vérification rapide publique et l’extension :
+un seul rapprochement d’affirmation, seuil plus strict 0,25, puis repli par mots si nécessaire.
+Les conclusions ne s’appliquent qu’aux dossiers cités. Les seuils sont des réglages de prototype,
+pas des probabilités de vérité ni une garantie de rappel sur tous les noms.
+
+Les affaires sans vecteur sont rattrapées par lots d’au plus 100. Les nouveaux vecteurs incluent
+le titre et l’affirmation ; ceux déjà présents restent conservés. Une nouvelle conclusion calcule
+aussi ce vecteur. Changer de modèle d’embeddings exige de reconstruire les vecteurs correspondants.
 
 ## L'arborescence
 
@@ -156,15 +175,30 @@ Un prompt dans `processing/app/prompts/<nom>.md`, sa réponse de secours dans
 (`runPrompt`). L'ordre des fournisseurs et la rotation des clés sont réglés par variables
 (`processing/.env.example`) : un fournisseur à bout de quota passe la main au suivant.
 
-## Choix techniques
+## Choix techniques et limites
 
-| Choix | Raison |
-|---|---|
-| Next.js + FastAPI | Interface et logique en TypeScript ; l'IA et le traitement de médias en Python |
-| Un seul propriétaire de la base | Les droits se vérifient à un seul endroit |
-| Postgres + pgvector | Recherche par le sens, sans service de plus |
-| Chaîne de fournisseurs avec rotation de clés | Les quotas gratuits sont l'obstacle réel ; une panne ne coupe pas le service |
-| Réponses de secours | Le réseau de la salle est le plus grand risque d'une démo |
-| Migrations Drizzle appliquées au déploiement | Une base en ligne ne se met pas à jour à la main |
-| Extension en JS sans build | Rien à installer pour la relire |
-| Docker Compose | Une commande sur Mac, Linux et Windows |
+Les versions exécutables sont déclarées dans [`web/package.json`](../web/package.json),
+[`processing/requirements.txt`](../processing/requirements.txt), `docker-compose.yml` et le
+`package.json` du dépôt mobile. Elles priment sur les noms généraux ci-dessous.
+
+| Choix | Pourquoi ce choix dans Vyra | Limite ou compromis |
+|---|---|---|
+| Next.js 16, React 19, TypeScript, Node 22 | Pages et server actions du site, API partagée avec les deux clients ; types communs | Le serveur web est nécessaire, ce n’est pas une application hors ligne |
+| FastAPI, Pydantic, Python 3.12 | Contrats JSON et outils de traitement de médias en Python, isolés du métier | Un service réseau supplémentaire ; délais et réponses de secours indispensables |
+| Postgres 17 + pgvector | Données relationnelles, transactions, sessions et recherche par le sens dans une seule base | Les embeddings doivent provenir du même modèle ; une proximité ne démontre pas une vérité |
+| Drizzle + postgres.js | Schéma TypeScript, requêtes SQL explicites, migrations versionnées | `db:push` sert au développement ; la production applique les migrations via `db:migrate` |
+| Tailwind CSS 4, Radix/shadcn, Lucide | Jetons de thème, composants et interactions partagés | L’usage des composants ne constitue pas une certification d’accessibilité ; vérifier le parcours au projecteur |
+| Motion, GSAP, Lenis | Transitions et accueil animé | Coût de rendu : mode éco et mouvement réduit ; ne pas faire dépendre le parcours d’une animation |
+| Three.js, React Three Fiber, Drei, postprocessing | Jeu dans une rue 3D, interactions et viseur | WebGL, souris et puissance graphique nécessaires ; cartes 2D en secours |
+| HTTPX + fournisseurs IA via HTTP | Groq/Gemini/DeepSeek, rotation des clés et validation des réponses ; prompts portables | Quotas, réseau, hallucinations ; la certitude reste une règle fondée sur les pièces |
+| Tavily, GDELT, Wikipédia, Google Fact Check | Sources web, presse, contexte et vérifications publiées, avec des liens | Couverture incomplète, données parfois anciennes ; rien dans les groupes privés ou WhatsApp |
+| OpenCV, Pillow, NumPy, ffmpeg | Métadonnées, visages floutés, images clés et son extrait | Aucun détecteur universel de faux ; visages manqués possibles ; vidéo seulement si ffmpeg est installé |
+| MediaRecorder, Web Audio, Whisper, ElevenLabs | Dictée, arrêt sur silence et conversation vocale ; voix du navigateur en secours | Autorisation du micro, navigateur compatible et réseau pour les services distants |
+| Signature Ed25519 et QR | Vérification publique d’une carte sans divulguer la clé de signature | Prouve l’authenticité du contenu signé, pas la véracité de l’information |
+| Expo / React Native, Expo Router | Client mobile séparé qui réutilise `/api/v1`, sans seconde base ni IA embarquée | Les écrans du client et les capacités de l’API n’ont pas exactement le même périmètre |
+| Extension Manifest V3, JS/HTML/CSS sans build | Vérifier dans le navigateur, sans script injecté ni compte | Installation manuelle, Chrome/Edge/Brave compatibles ; aucune lecture des conversations privées |
+| Docker Compose, Vercel, Render, Neon | Installation locale reproductible et services hébergés séparés | Réveiller les services avant la démo ; le runtime Render Python ne garantit pas ffmpeg |
+| Biome, TypeScript, tests Node, Ruff, pytest, GitHub Actions | Contrôles du code, du build et des migrations sur une base éphémère | Les tests automatiques ne remplacent pas un essai du micro, du navigateur et des clés en ligne |
+
+`/kit` est conservé comme catalogue de composants de développement. Il n’est pas proposé dans la
+navigation ; la route est indisponible en production. Voir [FRONT.md](FRONT.md).

@@ -14,20 +14,22 @@ export function SpeakButton({ text, label = 'Écouter' }: { text: string; label?
   const [browser, setBrowser] = useState(false);
   const [state, setState] = useState<'idle' | 'loading' | 'speaking'>('idle');
   const audio = useRef<HTMLAudioElement | null>(null);
+  const playback = useRef(0);
 
   useEffect(() => {
     let alive = true;
     voiceStatus().then((status) => alive && setServer(status.speak));
-    if (!('speechSynthesis' in window)) return () => undefined;
-    const synth = window.speechSynthesis;
+    const synth = 'speechSynthesis' in window ? window.speechSynthesis : null;
     // La liste des voix se charge après coup dans certains navigateurs : on l'écoute.
-    const check = () => setBrowser(synth.getVoices().some((voice) => voice.lang.startsWith('fr')));
+    const check = () =>
+      setBrowser(synth?.getVoices().some((voice) => voice.lang.startsWith('fr')) ?? false);
     check();
-    synth.addEventListener('voiceschanged', check);
+    synth?.addEventListener('voiceschanged', check);
     return () => {
       alive = false;
-      synth.removeEventListener('voiceschanged', check);
-      synth.cancel();
+      playback.current += 1;
+      synth?.removeEventListener('voiceschanged', check);
+      synth?.cancel();
       audio.current?.pause();
     };
   }, []);
@@ -35,6 +37,7 @@ export function SpeakButton({ text, label = 'Écouter' }: { text: string; label?
   if (!server && !browser) return null;
 
   function stop() {
+    playback.current += 1;
     audio.current?.pause();
     audio.current = null;
     if ('speechSynthesis' in window) window.speechSynthesis.cancel();
@@ -58,9 +61,12 @@ export function SpeakButton({ text, label = 'Écouter' }: { text: string; label?
       stop();
       return;
     }
+    const request = ++playback.current;
     if (server) {
       setState('loading');
-      const mp3 = await speak(text);
+      const mp3 = await speak(text).catch(() => null);
+      // Un passage au mode conversation démonte ce bouton : aucune lecture tardive dans le micro.
+      if (request !== playback.current) return;
       if (mp3) {
         const player = new Audio(`data:audio/mpeg;base64,${mp3}`);
         audio.current = player;
