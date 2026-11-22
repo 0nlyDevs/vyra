@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 
-// En-tête de page : un sur-titre facultatif, le titre, une phrase, et les actions à droite.
+// En-tête de page, comme sur le bureau de Checky : le titre (Bricolage très gras), une ligne de
+// précision dessous (`eyebrow`), une phrase, les actions à droite, puis un seul filet d'encre.
 export function PageHeader({
   eyebrow,
   title,
@@ -13,12 +14,12 @@ export function PageHeader({
   actions?: ReactNode;
 }) {
   return (
-    <header className="flex flex-wrap items-end justify-between gap-x-6 gap-y-4">
-      <div className="grid min-w-0 gap-3">
-        {eyebrow && <p className="eyebrow">{eyebrow}</p>}
-        <h1 className="display text-[clamp(2.1rem,4.2vw,3.1rem)]">{title}</h1>
+    <header className="flex flex-wrap items-end justify-between gap-x-6 gap-y-4 border-foreground border-b pb-5">
+      <div className="grid min-w-0 gap-2">
+        <h1 className="page-title">{title}</h1>
+        {eyebrow && <p className="font-semibold text-foreground text-sm">{eyebrow}</p>}
         {description && (
-          <p className="max-w-[60ch] text-[1.02rem] text-muted-foreground leading-relaxed">
+          <p className="max-w-[62ch] text-pretty text-muted-foreground leading-relaxed">
             {description}
           </p>
         )}

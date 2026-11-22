@@ -86,7 +86,7 @@ export function FeedLive({
             type="button"
             size="sm"
             onClick={reveal}
-            className="pointer-events-auto rounded-full shadow-lg transition-transform duration-150 ease-out active:scale-[0.97] motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-top-2"
+            className="pointer-events-auto rounded-full shadow-(--shadow-float) transition-transform duration-150 ease-out active:scale-[0.97] motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-top-2"
           >
             <ArrowUp aria-hidden />
             {waiting === 1 ? '1 nouvelle publication' : `${waiting} nouvelles publications`}

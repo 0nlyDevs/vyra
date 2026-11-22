@@ -20,7 +20,9 @@ export default async function VerifyEmailPage({
       {profileId ? (
         <>
           <CircleCheck aria-hidden className="size-10 text-success" />
-          <h1 className="font-semibold text-3xl">Adresse confirmée</h1>
+          <h1 className="pub-h2 text-foreground">
+            Adresse <em>confirmée</em>
+          </h1>
           <p className="text-muted-foreground">
             Vous recevrez les résultats de vos signalements à cette adresse.
           </p>
@@ -31,7 +33,7 @@ export default async function VerifyEmailPage({
           description="Il a expiré ou a déjà servi. Depuis l’application, le bandeau jaune permet d’en recevoir un nouveau."
         />
       )}
-      <Button asChild className="justify-self-start">
+      <Button asChild size="xl" className="justify-self-start">
         <Link href={AFTER_SIGN_IN_PATH}>Ouvrir Vyra</Link>
       </Button>
     </div>

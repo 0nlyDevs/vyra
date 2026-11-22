@@ -52,7 +52,7 @@ export default async function VerifyPage({
       {query.length >= 10 && (
         <section aria-live="polite">
           {match ? (
-            <Card className="border-primary/40">
+            <Card className="border-foreground">
               <CardHeader className="flex flex-wrap items-center gap-2">
                 <ToneBadge tone="info">Déjà vérifié</ToneBadge>
                 {match.certainty && <CertaintyBadge level={match.certainty} />}

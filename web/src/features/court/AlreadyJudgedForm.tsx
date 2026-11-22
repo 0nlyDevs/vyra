@@ -58,7 +58,7 @@ export function AlreadyJudgedForm() {
       {result && (
         <div aria-live="polite">
           {result.item ? (
-            <div className="grid gap-3 rounded-xl border border-primary/30 bg-accent/50 p-4">
+            <div className="grid gap-3 rounded-xl border border-foreground bg-raised p-4">
               <div className="flex flex-wrap items-center gap-2">
                 <ToneBadge tone="info">Déjà jugé</ToneBadge>
                 <span className="font-medium">{result.item.title}</span>

@@ -4,16 +4,23 @@ import { ForgotPasswordForm } from '@/features/auth/ForgotPasswordForm';
 export default function ForgotPasswordPage() {
   return (
     <div className="grid gap-8">
-      <header className="grid gap-2">
-        <h1 className="font-semibold text-3xl">Mot de passe oublié</h1>
-        <p className="text-muted-foreground">
+      <header>
+        <h1 className="pub-h2 text-foreground">
+          Mot de passe <em>oublié</em>
+        </h1>
+        <p className="mt-3 text-muted-foreground">
           Indiquez votre adresse : vous recevrez un lien pour en choisir un nouveau.
         </p>
       </header>
       <ForgotPasswordForm />
-      <Link href="/login" className="text-primary text-sm underline-offset-4 hover:underline">
-        Retour à la connexion
-      </Link>
+      <p className="text-sm">
+        <Link
+          href="/login"
+          className="font-medium text-foreground underline decoration-border underline-offset-4 hover:decoration-foreground"
+        >
+          Retour à la connexion
+        </Link>
+      </p>
     </div>
   );
 }

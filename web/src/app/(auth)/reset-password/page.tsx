@@ -14,9 +14,11 @@ export default async function ResetPasswordPage({
 
   return (
     <div className="grid gap-8">
-      <header className="grid gap-2">
-        <h1 className="font-semibold text-3xl">Nouveau mot de passe</h1>
-        {valid && <p className="text-muted-foreground">Vos autres sessions seront fermées.</p>}
+      <header>
+        <h1 className="pub-h2 text-foreground">
+          Nouveau <em>mot de passe</em>
+        </h1>
+        {valid && <p className="mt-3 text-muted-foreground">Vos autres sessions seront fermées.</p>}
       </header>
       {valid && token ? (
         <ResetPasswordForm token={token} />
@@ -26,7 +28,7 @@ export default async function ResetPasswordPage({
             title="Ce lien n’est plus valable."
             description="Il a expiré ou a déjà servi. Demandez-en un nouveau."
           />
-          <Button asChild className="justify-self-start">
+          <Button asChild size="xl" className="justify-self-start">
             <Link href="/forgot-password">Recevoir un nouveau lien</Link>
           </Button>
         </>

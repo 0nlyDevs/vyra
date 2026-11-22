@@ -13,7 +13,7 @@ export function ResetPasswordForm({ token }: { token: string }) {
     state && !state.ok && !errors?.password && !errors?.confirm ? state.error.message : null;
 
   return (
-    <form action={action} className="grid gap-4" noValidate>
+    <form action={action} className="grid gap-5" noValidate>
       <input type="hidden" name="token" value={token} />
       <PasswordField
         name="password"
@@ -29,7 +29,7 @@ export function ResetPasswordForm({ token }: { token: string }) {
         errors={errors?.confirm}
       />
       <FormMessage message={general} />
-      <Button type="submit" size="lg" disabled={pending} className="w-full">
+      <Button type="submit" size="xl" disabled={pending} className="w-full">
         {pending ? 'Enregistrement…' : 'Enregistrer le mot de passe'}
       </Button>
     </form>
