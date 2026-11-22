@@ -23,6 +23,9 @@ from xml.etree import ElementTree
 
 import httpx
 
+from app.core.config import Settings
+from app.services import key_pool
+from app.services.llm_common import AiUnavailableError
 from app.services.news_feeds import USER_AGENT, parse_feed
 
 logger = logging.getLogger(__name__)
@@ -418,7 +421,17 @@ async def _get(client: httpx.AsyncClient, url: str) -> httpx.Response:
     raise httpx.ConnectError(url)
 
 
-async def _search_facebook(client: httpx.AsyncClient, key: str, query: str) -> Any:
+async def _post_tavily(
+    client: httpx.AsyncClient, key: str, payload: dict[str, Any]
+) -> httpx.Response:
+    response = await client.post(
+        TAVILY_URL, headers={"Authorization": f"Bearer {key}"}, json=payload
+    )
+    response.raise_for_status()
+    return response
+
+
+async def _search_facebook(client: httpx.AsyncClient, settings: Settings, query: str) -> Any:
     payload = {
         "query": query,
         "topic": "general",
@@ -427,30 +440,31 @@ async def _search_facebook(client: httpx.AsyncClient, key: str, query: str) -> A
         "include_domains": ["facebook.com"],
         "time_range": "week",
     }
-    for attempt in range(CONNECT_RETRIES + 1):
-        try:
-            response = await client.post(
-                TAVILY_URL, headers={"Authorization": f"Bearer {key}"}, json=payload
-            )
-            break
-        except httpx.ConnectError:
-            if attempt == CONNECT_RETRIES:
-                raise
-            await asyncio.sleep(RETRY_PAUSE_SECONDS * (attempt + 1))
-    response.raise_for_status()
+
+    async def send(key: str) -> httpx.Response:
+        for attempt in range(CONNECT_RETRIES):
+            try:
+                return await _post_tavily(client, key, payload)
+            except httpx.ConnectError:
+                await asyncio.sleep(RETRY_PAUSE_SECONDS * (attempt + 1))
+        return await _post_tavily(client, key, payload)
+
+    response = await key_pool.call_with_rotation_async(
+        "tavily", settings.keys_for("tavily"), settings, send
+    )
     data = response.json()
     return data.get("results", []) if isinstance(data, dict) else []
 
 
 async def _read_source(
-    client: httpx.AsyncClient, source: LiveSource, tavily_key: str | None
+    client: httpx.AsyncClient, source: LiveSource, settings: Settings
 ) -> list[LiveItem]:
     try:
         if source.type == "facebook":
-            if not tavily_key:
+            if not settings.keys_for("tavily"):
                 return []
             return parse_facebook(
-                await _search_facebook(client, tavily_key, source.target), source.name
+                await _search_facebook(client, settings, source.target), source.name
             )
         response = await _get(client, source.target)
         if source.type == "rss":
@@ -472,7 +486,7 @@ async def _read_source(
         if source.type == "google-trends":
             geo = parse_qs(urlparse(source.target).query).get("geo", [""])[0]
             return parse_google_trends(response.text, source.name, geo)
-    except (httpx.HTTPError, ValueError) as exc:
+    except (httpx.HTTPError, ValueError, AiUnavailableError) as exc:
         logger.warning("fil : %s illisible (%s)", source.name, type(exc).__name__)
     return []
 
@@ -502,7 +516,7 @@ async def _fill_page_images(client: httpx.AsyncClient, items: list[LiveItem]) ->
 async def read_live_sources(
     sources: list[LiveSource],
     *,
-    tavily_key: str | None,
+    settings: Settings,
     transport: httpx.AsyncBaseTransport | None = None,
 ) -> tuple[list[LiveItem], int]:
     """Publications de toutes les sources lues à temps, et le nombre de sources qui ont répondu."""
@@ -516,7 +530,7 @@ async def read_live_sources(
 
         async def guarded(source: LiveSource) -> list[LiveItem]:
             async with semaphore:
-                return await _read_source(client, source, tavily_key)
+                return await _read_source(client, source, settings)
 
         tasks = [asyncio.create_task(guarded(source)) for source in sources]
         done, pending = await asyncio.wait(tasks, timeout=SOURCES_TOTAL_SECONDS)
