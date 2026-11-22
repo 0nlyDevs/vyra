@@ -224,7 +224,8 @@ html.lenis body {
   border: 1px solid var(--line);
 }
 
-.landing .reel-slot canvas {
+.landing .reel-slot canvas,
+.landing .reel-slot video {
   display: block;
   object-fit: cover;
   width: 100%;
@@ -237,7 +238,8 @@ html.lenis body {
   border-color: transparent;
 }
 
-.landing .reel-slot[data-live="1"] canvas {
+.landing .reel-slot[data-live="1"] canvas,
+.landing .reel-slot[data-live="1"] video {
   opacity: 0;
 }
 
