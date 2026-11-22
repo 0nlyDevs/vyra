@@ -32,7 +32,7 @@ forcément installés sur le PC. Les commandes passent par `docker compose exec`
 |---|---|
 | Tout vérifier | `make check` (Windows : les commandes de la cible `check` du `Makefile`) |
 | Corriger le style | `make lint-fix` |
-| Après un changement du schéma | `make db-push` |
+| Après un changement du schéma | `make db-push`, puis `make db-generate` et committer `web/drizzle/` (la CI refuse un `schema.ts` sans migration) |
 | Données de démo à zéro | `make seed` |
 | Ajouter un paquet (avec accord) | `docker compose exec web npm install <paquet>` |
 
