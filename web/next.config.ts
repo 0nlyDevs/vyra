@@ -40,6 +40,12 @@ const nextConfig: NextConfig = {
           { key: 'Access-Control-Max-Age', value: '86400' },
         ],
       },
+      {
+        // Les fichiers de démonstration du scan (images, vidéo) : l'aperçu web de l'application
+        // mobile les lit pour les envoyer au scan. Publics, en lecture seule.
+        source: '/demo/:path*',
+        headers: [{ key: 'Access-Control-Allow-Origin', value: apiCorsOrigin }],
+      },
     ];
   },
   ...(pollIntervalMs ? { watchOptions: { pollIntervalMs } } : {}),
