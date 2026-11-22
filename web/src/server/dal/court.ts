@@ -1,5 +1,5 @@
 import 'server-only';
-import { and, asc, cosineDistance, desc, eq, isNotNull, ne, sql } from 'drizzle-orm';
+import { and, asc, cosineDistance, desc, eq, isNotNull, isNull, ne, sql } from 'drizzle-orm';
 import type { AiSource, CertaintyLevel, Vote } from '@/lib/domain';
 import { db } from '@/server/db';
 import { cases, type HearingFindings, hearings, type Pleading } from '@/server/db/schema';
@@ -179,6 +179,21 @@ export async function listOpenRealCases() {
 }
 
 // Les affaires que l'assistant peut citer : les plus récentes, conclues ou non.
+// Les affaires qui n'ont pas encore de vecteur (affaires de démo, ou IA coupée à la conclusion).
+export function listCasesWithoutEmbedding(limit = 12) {
+  return db
+    .select({ id: cases.id, claim: cases.claim })
+    .from(cases)
+    .where(isNull(cases.embedding))
+    .limit(limit);
+}
+
+export async function setCaseEmbeddings(rows: { id: string; embedding: number[] }[]) {
+  for (const row of rows) {
+    await db.update(cases).set({ embedding: row.embedding }).where(eq(cases.id, row.id));
+  }
+}
+
 // Les affaires les plus proches de la question par le sens (pgvector) : ce que l'assistant lit
 // d'abord. Vide si aucune affaire n'a de vecteur.
 export function listNearestCasesForAssistant(embedding: number[], limit = 6) {

@@ -44,10 +44,12 @@ def _file(directory: Path, name: str, suffix: str) -> Path:
 
 @cache
 def load_prompt(name: str) -> str:
+    """La consigne du prompt, précédée des règles communes à toutes les IA (`_guardrails.md`)."""
     path = _file(PROMPTS_DIR, name, ".md")
     if not path.is_file():
         raise UnknownPromptError(name)
-    return path.read_text(encoding="utf-8")
+    guardrails = (PROMPTS_DIR / "_guardrails.md").read_text(encoding="utf-8")
+    return guardrails + path.read_text(encoding="utf-8")
 
 
 def load_fallback(name: str) -> dict[str, Any] | None:

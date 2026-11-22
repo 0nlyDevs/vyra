@@ -1,5 +1,6 @@
 'use server';
 
+import { embedMissingCases } from '@/features/court/embeddings';
 import { type ActionResult, fail, ok } from '@/lib/action-result';
 import { CERTAINTY_LABELS, type CertaintyLevel } from '@/lib/domain';
 import { ERRORS } from '@/lib/errors';
@@ -12,6 +13,8 @@ import {
 import { type AiSource, embedTexts, runPrompt } from '@/server/processing';
 import { getCurrentProfile } from '@/server/session';
 import { pickAssistantCases } from './context';
+import { guardAnswer, NO_VERDICT_ANSWER } from './guard';
+import { buildProposals, fallbackProposals, type Proposal } from './proposals';
 import { assistantAnswerSchema, assistantQuestionSchema } from './schema';
 
 // L'assistant : répond à partir des affaires du dossier, en les citant. Jamais de verdict nouveau.
@@ -24,7 +27,13 @@ export type Citation = {
   certainty: CertaintyLevel | null;
 };
 
-export type AssistantAnswer = { answer: string; citations: Citation[]; source: AiSource };
+export type AssistantAnswer = {
+  answer: string;
+  citations: Citation[];
+  // Actions que la personne peut confirmer d'un clic ; l'assistant n'exécute rien lui-même.
+  proposals: Proposal[];
+  source: AiSource;
+};
 
 type CaseRow = Awaited<ReturnType<typeof listCasesForAssistant>>[number];
 
@@ -56,6 +65,11 @@ async function offlineAnswer(
         href: hrefOf(row),
         certainty: row.certainty,
       })),
+      proposals: open.slice(0, 2).map((row) => ({
+        type: 'open_case',
+        label: `Ouvrir l’affaire : ${row.title}`,
+        href: hrefOf(row),
+      })),
     };
   }
   const judged = await findJudgedCase(question, embedding);
@@ -72,11 +86,13 @@ async function offlineAnswer(
           certainty: judged.certainty,
         },
       ],
+      proposals: fallbackProposals(question, judged),
     };
   }
   return {
     answer: `Je n’ai trouvé aucune affaire jugée qui en parle. Je ne peux pas trancher : ouvrez une enquête dans le module Enquêtes, ou signalez le contenu dans Alertes. ${pageHelp(pathname)}`,
     citations: [],
+    proposals: fallbackProposals(question, null),
   };
 }
 
@@ -92,6 +108,7 @@ export async function askAssistant(input: {
   const { question, pathname, history } = parsed.data;
 
   // Recherche par le sens : les affaires les plus proches de la question, puis les plus récentes.
+  await embedMissingCases();
   const vectors = await embedTexts([question]);
   const embedding = vectors.ok ? (vectors.data[0] ?? null) : null;
   const rows = pickAssistantCases(
@@ -127,9 +144,23 @@ export async function askAssistant(input: {
         href: hrefOf(row),
         certainty: row.certainty,
       }));
-    return ok({ answer: result.data.result.answer.trim(), citations, source: 'gemini' });
+    // L'IA peut mal faire : sa réponse est contrôlée avant d'être lue (pas de lien inventé, pas de
+    // verdict sans affaire jugée citée).
+    const guarded = guardAnswer(result.data.result.answer, citations.length);
+    // Un verdict sans affaire citée est remplacé : on propose alors d'enquêter ou de signaler. Sinon,
+    // seules comptent les propositions du modèle, validées une à une.
+    const proposals =
+      guarded.answer === NO_VERDICT_ANSWER
+        ? fallbackProposals(question, null)
+        : buildProposals(result.data.result.actions, rows);
+    return ok({ answer: guarded.answer, citations, proposals, source: 'gemini' });
   }
 
   const offline = await offlineAnswer(question, pathname, rows, embedding);
-  return ok({ answer: offline.answer, citations: offline.citations, source: 'fallback' });
+  return ok({
+    answer: offline.answer,
+    citations: offline.citations,
+    proposals: offline.proposals,
+    source: 'fallback',
+  });
 }

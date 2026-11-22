@@ -24,6 +24,7 @@ import { demoVariantForCase } from '@/server/demo/variants';
 import { embedTexts, runPrompt } from '@/server/processing';
 import { getCurrentProfile } from '@/server/session';
 import { computeCertainty } from './certainty';
+import { embedMissingCases } from './embeddings';
 import { guardPleading } from './pleading-guard';
 import {
   judgedSearchSchema,
@@ -191,6 +192,7 @@ export async function checkAlreadyJudged(
   const parsed = judgedSearchSchema.safeParse({ query: formData.get('query') });
   if (!parsed.success) return fail(ERRORS.VALIDATION_FAILED, parsed.error);
 
+  await embedMissingCases();
   const vectors = await embedTexts([parsed.data.query]);
   const embedding = vectors.ok ? (vectors.data[0] ?? null) : null;
   const found = await findJudgedCase(parsed.data.query, embedding);
