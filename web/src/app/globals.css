@@ -1072,7 +1072,24 @@ html:has([data-desk-bar]) {
   align-items: center;
   gap: 6px;
 }
-@media (max-width: 767px) {
+/* Sur ordinateur, deux côtés égaux : l'île reste au centre de la page, quelle que soit la largeur
+   de la marque et des outils. En dessous, l'île passe sur sa propre ligne, pleine largeur. */
+@media (min-width: 1100px) {
+  .site-bar-in {
+    display: grid;
+    grid-template-columns: minmax(max-content, 1fr) auto minmax(max-content, 1fr);
+  }
+  .site-nav {
+    margin-inline: 0;
+  }
+  .site-word {
+    justify-self: start;
+  }
+  .site-tools {
+    justify-self: end;
+  }
+}
+@media (width < 1100px) {
   .site-tools {
     margin-left: auto;
   }
@@ -1090,6 +1107,10 @@ html:has([data-desk-bar]) {
   .site-nav .tab {
     width: 100%;
     justify-content: center;
+  }
+}
+@media (max-width: 767px) {
+  .site-nav .tab {
     padding: 0 6px;
     font-size: 13px;
   }
