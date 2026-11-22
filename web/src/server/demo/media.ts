@@ -11,6 +11,7 @@ const DEMO_MEDIA: [file: string, variant: string][] = [
   ['inondation-virale.jpg', 'flood'],
   ['image-generee.png', 'generated'],
   ['vocal-coupure-eau.wav', 'water-voice'],
+  ['video-coupure-eau.mp4', 'water-video'],
 ];
 
 let variantsBySha: Promise<Map<string, string>> | null = null;

@@ -428,6 +428,16 @@
   border: 1px solid var(--border);
 }
 
+/* Lecture de l'IA : la même carte, en pointillés. Les faits gardent le trait plein de .surface. */
+@utility ai-reading {
+  display: grid;
+  align-content: start;
+  gap: 0.75rem;
+  padding: 1rem;
+  border-radius: var(--radius);
+  border: 1px dashed color-mix(in oklab, var(--foreground) 45%, transparent);
+}
+
 /* Ce qui flotte (barre du haut, panneaux) : le fond de la page, plein. */
 @utility glass {
   background: var(--background);
@@ -1608,6 +1618,18 @@ html[data-eco="on"][data-scrolled] .site-bar {
   to {
     transform: translateY(3px);
   }
+}
+
+/* Mode « Sans IA » : chaque lecture de l'IA laisse place à une ligne qui la signale. Hors couche,
+   comme le mode éco, pour passer devant les classes d'affichage de Tailwind. */
+.ai-reading-off {
+  display: none;
+}
+html[data-no-ai="on"] .ai-reading > :not(.ai-reading-off) {
+  display: none;
+}
+html[data-no-ai="on"] .ai-reading-off {
+  display: flex;
 }
 
 /* Mode éco : pas d'animation, pas de flou ni de grain, pas d'illustration décorative. Moins de

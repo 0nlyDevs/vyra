@@ -1,4 +1,4 @@
-import { CircleCheck, CircleDashed, CircleX } from 'lucide-react';
+import { CircleCheck, CircleDashed, CircleX, ShieldCheck } from 'lucide-react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import type { ReactNode } from 'react';
@@ -9,6 +9,7 @@ import { PageHeader } from '@/components/common/PageHeader';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ShareCard } from '@/features/court/ShareCard';
 import { SourceKindBadge } from '@/features/investigation/SourceKindBadge';
+import { sealForCase } from '@/features/seal/check';
 import { CERTAINTY_CRITERIA } from '@/lib/domain';
 import { formatDate } from '@/lib/format';
 import { getCaseFile } from '@/server/dal/cases';
@@ -38,7 +39,7 @@ export default async function PublicVerdictPage({ params }: { params: Promise<{ 
   if (!z.uuid().safeParse(id).success) notFound();
   const judged = await getConcludedCase(id);
   if (!judged?.certainty) notFound();
-  const file = await getCaseFile(id);
+  const [file, seal] = await Promise.all([getCaseFile(id), sealForCase(id)]);
   const findings = judged.hearing?.findings;
 
   return (
@@ -58,6 +59,20 @@ export default async function PublicVerdictPage({ params }: { params: Promise<{ 
             Règle appliquée : {CERTAINTY_CRITERIA[judged.certainty]}
           </p>
           {judged.conclusion && <p className="text-pretty text-lg">{judged.conclusion}</p>}
+          {seal && (
+            <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
+              <ShieldCheck aria-hidden className="size-4" />
+              <span>
+                Conclusion scellée <span className="font-mono font-semibold">{seal.code}</span>
+              </span>
+              <Link
+                href={`/verifier/sceau?code=${seal.code}`}
+                className="underline underline-offset-4"
+              >
+                Vérifier ce sceau
+              </Link>
+            </p>
+          )}
         </CardContent>
       </Card>
 
@@ -127,6 +142,7 @@ export default async function PublicVerdictPage({ params }: { params: Promise<{ 
           </CardHeader>
           <CardContent>
             <ShareCard
+              caseId={judged.id}
               claim={judged.claim}
               certainty={judged.certainty}
               conclusion={judged.conclusion}

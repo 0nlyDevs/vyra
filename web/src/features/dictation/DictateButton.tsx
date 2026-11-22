@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { dictate } from './actions';
+import { dictate, voiceStatus } from './actions';
 import { toWav } from './wav';
 
 // Seuil de volume au-dessus duquel on considère que la personne parle (0 à 1).
@@ -15,6 +15,9 @@ const SILENCE_MS = 1_200;
 // Sans aucune parole pendant ce temps, on abandonne.
 const NO_SPEECH_MS = 8_000;
 const MAX_MS = 60_000;
+
+const UNAVAILABLE =
+  'Dictée indisponible : il faut une clé Groq (ou Gemini) pour transcrire la voix.';
 
 type Phase = 'idle' | 'listening' | 'transcribing';
 
@@ -29,8 +32,17 @@ export function DictateButton({
 }) {
   const [phase, setPhase] = useState<Phase>('idle');
   const stopRef = useRef<(() => void) | null>(null);
+  // `null` : on ne sait pas encore. `false` : aucune IA ne peut lire le son (pas de clé Gemini).
+  const [available, setAvailable] = useState<boolean | null>(null);
 
   useEffect(() => () => stopRef.current?.(), []);
+  useEffect(() => {
+    let alive = true;
+    voiceStatus().then((status) => alive && setAvailable(status.dictate));
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   async function start() {
     let stream: MediaStream;
@@ -114,9 +126,18 @@ export function DictateButton({
       type="button"
       variant={phase === 'listening' ? 'default' : 'outline'}
       size="sm"
-      className={cn('justify-self-start', className)}
+      className={cn('justify-self-start', available === false && 'opacity-50', className)}
       disabled={phase === 'transcribing'}
-      onClick={() => (phase === 'listening' ? stopRef.current?.() : void start())}
+      aria-disabled={available === false || undefined}
+      title={available === false ? UNAVAILABLE : undefined}
+      onClick={() => {
+        if (available === false) {
+          toast.info(UNAVAILABLE);
+          return;
+        }
+        if (phase === 'listening') stopRef.current?.();
+        else void start();
+      }}
       aria-label={label}
     >
       {phase === 'transcribing' ? (

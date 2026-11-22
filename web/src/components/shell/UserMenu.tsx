@@ -1,6 +1,6 @@
 'use client';
 
-import { Leaf, LogOut, Monitor, Moon, Palette, Sun } from 'lucide-react';
+import { BotOff, Leaf, LogOut, Monitor, Moon, Palette, Sun } from 'lucide-react';
 import Link from 'next/link';
 import { useTheme } from 'next-themes';
 import { useTransition } from 'react';
@@ -43,7 +43,8 @@ export function UserMenu({
   signOutAction: () => Promise<void>;
 }) {
   const { theme, setTheme } = useTheme();
-  const { eco, canShrink, canGrow, changeSize, toggleEco } = useReadingPreferences();
+  const { eco, noAi, canShrink, canGrow, changeSize, toggleEco, toggleNoAi } =
+    useReadingPreferences();
   const [pending, startTransition] = useTransition();
 
   return (
@@ -112,6 +113,14 @@ export function UserMenu({
           className="min-h-10"
         >
           <Leaf aria-hidden /> {READING_LABELS.eco}
+        </DropdownMenuCheckboxItem>
+        <DropdownMenuCheckboxItem
+          checked={noAi}
+          onCheckedChange={toggleNoAi}
+          onSelect={(event) => event.preventDefault()}
+          className="min-h-10"
+        >
+          <BotOff aria-hidden /> {READING_LABELS.noAi}
         </DropdownMenuCheckboxItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem

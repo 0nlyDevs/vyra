@@ -10,25 +10,55 @@ export interface HeroClip {
   src?: string;
 }
 
-// Les cartes sont des vignettes peintes : une pièce du dossier chacune, à remplacer par de vraies
-// images ou vidéos en renseignant `src`.
+// Les cartes de la galaxie : de courts extraits vidéo (voir public/landing/videos/CREDITS.md). Sans
+// `src`, une vignette peinte est dessinée à la place.
 export const HERO_CLIPS: HeroClip[] = [
-  { id: 'v01', label: 'Capture d’écran', tones: ['cool'] },
-  { id: 'v02', label: 'Communiqué', tones: ['mono'] },
-  { id: 'v03', label: 'Vidéo virale', tones: ['warm'] },
-  { id: 'v04', label: 'Message transféré', tones: ['bright', 'warm'] },
-  { id: 'v05', label: 'Article', tones: ['mono'] },
-  { id: 'v06', label: 'Photo', tones: ['cool', 'bright'] },
-  { id: 'v07', label: 'Publication', tones: ['warm'] },
-  { id: 'v08', label: 'Audio', tones: ['mono', 'cool'] },
-  { id: 'v09', label: 'Témoignage', tones: ['bright'] },
-  { id: 'v10', label: 'Archive', tones: ['mono'] },
-  { id: 'v11', label: 'Rapport', tones: ['cool'] },
-  { id: 'v12', label: 'Source officielle', tones: ['bright', 'warm'] },
+  { id: 'v01', label: 'Marché', tones: ['warm'], src: '/landing/videos/marche-a.mp4' },
+  {
+    id: 'v02',
+    label: 'Cyclone Freddy',
+    tones: ['cool'],
+    src: '/landing/videos/cyclone-freddy.mp4',
+  },
+  {
+    id: 'v03',
+    label: 'Délestage vu du ciel',
+    tones: ['mono'],
+    src: '/landing/videos/delestage-satellite.mp4',
+  },
+  { id: 'v04', label: 'Archive', tones: ['mono'], src: '/landing/videos/archive-a.mp4' },
+  { id: 'v05', label: 'Reportage TV', tones: ['bright', 'cool'], src: '/auth/tv-reportage.mp4' },
+  {
+    id: 'v06',
+    label: 'Cyclone Gamane',
+    tones: ['warm', 'bright'],
+    src: '/landing/videos/cyclone-gamane.mp4',
+  },
+  { id: 'v07', label: 'Route', tones: ['bright'], src: '/landing/videos/route.mp4' },
+  {
+    id: 'v08',
+    label: 'Coupure vue du ciel',
+    tones: ['mono', 'cool'],
+    src: '/landing/videos/coupure-satellite.mp4',
+  },
+  {
+    id: 'v09',
+    label: 'Carte',
+    tones: ['bright', 'warm'],
+    src: '/landing/videos/carte-madagascar.mp4',
+  },
+  { id: 'v10', label: 'Marché', tones: ['warm'], src: '/landing/videos/marche-b.mp4' },
+  { id: 'v11', label: 'Archive', tones: ['mono'], src: '/landing/videos/archive-b.mp4' },
+  { id: 'v12', label: 'Studio radio', tones: ['warm', 'cool'], src: '/auth/studio-radio.mp4' },
 ];
 
 /** La carte que la torche sort de la galaxie. */
-export const REEL_CLIP: HeroClip = { id: 'reel', label: 'Pièce à juger', tones: ['warm'] };
+export const REEL_CLIP: HeroClip = {
+  id: 'reel',
+  label: 'Pièce à juger',
+  tones: ['warm'],
+  src: '/landing/videos/reel-rocade-nuit.mp4',
+};
 
 export const GALAXIE = {
   word: 'VYRA',

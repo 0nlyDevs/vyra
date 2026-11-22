@@ -185,7 +185,20 @@ export function Parcours() {
           </div>
           <figure className="reel" data-in>
             <div className="reel-slot" data-reel-slot>
-              <canvas ref={poster} width={640} height={360} aria-hidden />
+              {REEL_CLIP.src ? (
+                // La carte que la torche sort de la galaxie se pose sur cette vidéo, la même.
+                <video
+                  src={REEL_CLIP.src}
+                  muted
+                  loop
+                  playsInline
+                  autoPlay
+                  preload="metadata"
+                  aria-hidden
+                />
+              ) : (
+                <canvas ref={poster} width={640} height={360} aria-hidden />
+              )}
             </div>
             <figcaption className="mono">La pièce à juger · une info, deux camps</figcaption>
           </figure>

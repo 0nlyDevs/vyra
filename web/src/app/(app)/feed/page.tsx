@@ -2,10 +2,15 @@ import { ArrowLeft, Info } from 'lucide-react';
 import Link from 'next/link';
 import { PageHeader } from '@/components/common/PageHeader';
 import { EmptyState } from '@/components/states/States';
+import { AsideStrips } from '@/features/feed/AsideStrips';
 import { arrangeFeed, topTrends } from '@/features/feed/arrange';
-import { FeedCard } from '@/features/feed/FeedCard';
+import { FeedLead } from '@/features/feed/FeedLead';
 import { FeedLive } from '@/features/feed/FeedLive';
+import { FeedRow } from '@/features/feed/FeedRow';
+import { FeedStory } from '@/features/feed/FeedStory';
 import { FEED_MAX_AGE_MS, isFeedStale } from '@/features/feed/harvest';
+import { layoutFeed } from '@/features/feed/lead';
+import { ProgressiveList } from '@/features/feed/ProgressiveList';
 import { RegionChooser, RegionSwitch } from '@/features/feed/RegionPicker';
 import { getFeedRegion } from '@/features/feed/region';
 import { feedTopicSchema, feedViewSchema } from '@/features/feed/schema';
@@ -71,21 +76,20 @@ export default async function FeedPage({
   const focus = byItem.get(feedTopicSchema.parse(params.sujet) ?? '') ?? null;
   const shown = focus ? focus.items : arrangeFeed(items, region, view);
   // Dans le fil Monde, « Madagascar » et « Monde » feraient double emploi.
+  const { lead, sides, rest } = layoutFeed(shown, feedStatusOf);
   const views: FeedView[] = region === 'world' ? ['all', 'unofficial', 'checked'] : [...FEED_VIEWS];
 
   return (
     <div className="grid grid-cols-[minmax(0,1fr)] gap-8">
       {header}
       <div className="grid grid-cols-[minmax(0,1fr)] items-start gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
-        <section aria-label="Publications" className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-4">
-          <div className="flex flex-wrap items-center justify-between gap-3">
+        <section aria-label="Publications" className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-5">
+          {/* Une seule rangée de commandes : la région, la vue, l'actualisation. Elle défile de côté. */}
+          <div className="flex min-w-0 items-center gap-2 max-sm:overflow-x-auto max-sm:[-ms-overflow-style:none] max-sm:[scrollbar-width:none] sm:flex-wrap max-sm:[&::-webkit-scrollbar]:hidden max-sm:[&>*]:shrink-0">
             <RegionSwitch current={region} />
-            <FeedLive stale={stale} empty={items.length === 0} lastHarvest={freshness.all} />
-          </div>
-          <div className="flex flex-wrap items-center justify-between gap-3">
             <nav
               aria-label="Filtrer le fil"
-              className="flex max-w-full gap-1 overflow-x-auto rounded-full bg-foreground/[0.05] p-1 shadow-[inset_0_0_0_1px_color-mix(in_oklch,var(--foreground)_6%,transparent)]"
+              className="flex gap-1 rounded-full bg-foreground/[0.05] p-1 shadow-[inset_0_0_0_1px_color-mix(in_oklch,var(--foreground)_6%,transparent)]"
             >
               {views.map((option) => (
                 <Link
@@ -103,10 +107,9 @@ export default async function FeedPage({
                 </Link>
               ))}
             </nav>
-            <p className="flex items-center gap-1.5 text-muted-foreground text-sm">
-              <Info aria-hidden className="size-4" />
-              Non vérifié ne veut pas dire faux.
-            </p>
+            <div className="ml-auto max-sm:pl-2">
+              <FeedLive stale={stale} empty={items.length === 0} lastHarvest={freshness.all} />
+            </div>
           </div>
           {focus && (
             <div className="grid gap-2 rounded-[1.35rem] bg-primary/[0.07] p-5 shadow-[inset_0_0_0_1px_color-mix(in_oklch,var(--primary)_30%,transparent)]">
@@ -136,18 +139,53 @@ export default async function FeedPage({
               }
             />
           ) : (
-            shown.map((item) => (
-              <FeedCard
-                key={item.id}
-                item={item}
-                status={feedStatusOf(item)}
-                showWorld={region !== 'world'}
-                topic={focus ? undefined : byItem.get(item.id)}
-              />
-            ))
+            <>
+              {lead && (
+                <FeedLead
+                  item={lead}
+                  status={feedStatusOf(lead)}
+                  topic={focus ? undefined : byItem.get(lead.id)}
+                />
+              )}
+              {sides.length > 0 && (
+                <div className="-mx-4 flex max-w-[100vw] snap-x scroll-px-4 gap-3 overflow-x-auto px-4 pb-1 sm:mx-0 sm:max-w-none sm:grid sm:grid-cols-3 sm:overflow-visible sm:px-0 sm:pb-0">
+                  {sides.map((item) => (
+                    <FeedStory key={item.id} item={item} status={feedStatusOf(item)} />
+                  ))}
+                </div>
+              )}
+              <AsideStrips topics={topics.slice(0, 5)} trends={topTrends(items, 6)} />
+              {rest.length > 0 && (
+                <div className="grid gap-4">
+                  <h2 className="font-semibold text-lg">
+                    Le reste du fil
+                    <span className="ml-2 font-normal text-muted-foreground text-sm tabular-nums">
+                      {rest.length} publications
+                    </span>
+                  </h2>
+                  <div className="grid px-4 surface sm:px-5">
+                    <ProgressiveList initial={10} step={10}>
+                      {rest.map((item) => (
+                        <FeedRow
+                          key={item.id}
+                          item={item}
+                          status={feedStatusOf(item)}
+                          showWorld={region !== 'world'}
+                        />
+                      ))}
+                    </ProgressiveList>
+                  </div>
+                </div>
+              )}
+              <p className="flex items-center gap-1.5 text-muted-foreground text-sm">
+                <Info aria-hidden className="size-4 shrink-0" />
+                Non vérifié ne veut pas dire faux : une publication sans pastille n’a simplement pas
+                encore été examinée.
+              </p>
+            </>
           )}
         </section>
-        <div className="grid gap-4 lg:sticky lg:top-24">
+        <div className="hidden gap-4 lg:sticky lg:top-24 lg:grid">
           <TopicsColumn topics={topics.slice(0, 5)} />
           <TrendsColumn trends={topTrends(items, 6)} />
         </div>

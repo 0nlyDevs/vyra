@@ -5,3 +5,7 @@ pydantic-settings==2.15.0
 httpx==0.28.1
 # Serveur local (make dev).
 uvicorn==0.54.0
+# Copie protégée d'une image (visages floutés, informations cachées retirées) avant tout envoi.
+opencv-python-headless==4.14.0.94
+Pillow==12.3.0
+numpy==2.4.6

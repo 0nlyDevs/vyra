@@ -2,13 +2,22 @@
 
 from fastapi.testclient import TestClient
 
+from app.services import video
 from app.services.news_feeds import parse_feed
 
 
 def test_health_reports_offline_mode(offline_client: TestClient) -> None:
     response = offline_client.get("/health")
     assert response.status_code == 200
-    assert response.json() == {"status": "ok", "service": "vyra-processing", "ai": "offline"}
+    assert response.json() == {
+        "status": "ok",
+        "service": "vyra-processing",
+        "ai": "offline",
+        "audio": False,
+        "voice": False,
+        # Selon que ffmpeg est installé ou non sur le poste qui lance les tests.
+        "video": video.available(),
+    }
 
 
 def test_prompt_uses_fallback_when_offline(offline_client: TestClient) -> None:

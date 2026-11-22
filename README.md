@@ -157,7 +157,8 @@ Les clés n'apparaissent jamais dans les journaux. Après un changement :
 compte (DeepSeek), pas par clé. Plusieurs clés d'un même projet ne donnent pas plus de quota : il
 faut des clés de projets ou de comptes différents. DeepSeek n'a pas de palier gratuit. Groq et
 DeepSeek ne lisent pas les images ni le son : ces demandes vont à Gemini, qui fournit aussi les
-vecteurs de la recherche par le sens.
+vecteurs de la recherche par le sens. **La dictée** (« Dicter ») fait exception : elle passe par Groq
+Whisper, donc une clé Groq suffit.
 
 **Vérifier que l'IA répond**
 
@@ -183,6 +184,8 @@ changer quelque chose) :
 | `AI_TIMEOUT_SECONDS` | délai maximal d'une réponse (20) |
 | `AI_MODE` | `gemini` (défaut) : IA distantes seules ; `gemini-then-local` : puis Gemma 4 en local ; `local` : Gemma 4 seul |
 | `LOCAL_AI_URL`, `LOCAL_AI_MODEL`, `LOCAL_EMBEDDING_MODEL` | l'IA locale (Ollama : `ollama pull gemma4:e4b` et `ollama pull embeddinggemma`, environ 7 Go) |
+| `ELEVENLABS_API_KEYS` | la voix qui lit à voix haute (« Écouter »), une ou plusieurs clés ; sans clé, la voix du navigateur |
+| `STT_MODEL`, `ELEVENLABS_VOICE_ID`, `ELEVENLABS_MODEL` | le modèle de dictée (`whisper-large-v3`, Groq), la voix et le modèle ElevenLabs (`JBFqnCBsd6RMkjVDRZzb`, `eleven_flash_v2_5`) |
 | `DEMO_OFFLINE` | `true` : jamais d'appel à l'IA, toujours les réponses de secours (répéter le plan B) |
 | `PROCESSING_TOKEN` | en ligne seulement : secret partagé avec le web, même valeur des deux côtés |
 
@@ -208,6 +211,77 @@ vecteurs des deux IA ne se comparent pas.
 
   Sans ces deux valeurs, le bouton « Continuer avec Google » n'apparaît pas.
 - « Réinitialiser la démo » supprime les comptes créés pendant la démo ; les comptes de démo restent.
+
+### Les conclusions scellées
+
+Chaque carte de conclusion porte un **sceau** : un QR et un code `VY-XXXX-XXXX`. Le QR contient une
+signature Ed25519 du texte exact de la conclusion. `/verifier/sceau` dit si une carte est authentique
+(QR scanné ou code tapé) et montre la vraie conclusion ; la clé publique est sur `/api/v1/seal`.
+
+- En local, une clé de développement est utilisée : rien à régler.
+- **En ligne (Vercel)** : définir `SEAL_SECRET` (au moins 32 caractères, par exemple
+  `openssl rand -base64 48`), puis redéployer. Sans elle, les cartes sortent sans sceau. La changer
+  invalide tous les sceaux déjà partagés : la garder une fois pour toutes.
+- Rejuger une affaire change son sceau : l'ancienne carte s'affiche alors « ne correspond pas », avec
+  la conclusion actuelle.
+
+### Le scan de vidéo
+
+Onglet « Vidéo » du Scan (MP4, MOV, WebM, 3GP, 8 Mo au plus). `processing` examine la vidéo avec
+**ffmpeg**, sans IA (`POST /v1/media/video`) :
+
+- ce que le fichier déclare : type de source IPTC « générée par IA », outil de génération (Sora,
+  Veo, Runway…), Content Credentials, appareil, date, position, réencodage (« Lavf ») ;
+- quatre **images clés**, passées par la copie protégée (visages floutés), à télécharger pour la
+  recherche inversée ;
+- la **bande son** (90 s au plus, WAV 16 kHz), transcrite par l'IA puis comparée aux affaires déjà
+  jugées, comme un vocal.
+
+L'IA ne reçoit jamais la vidéo d'origine : seulement les images protégées et le son. ffmpeg est
+installé dans l'image Docker de `processing` ; s'il manque sur un serveur, `/health` répond
+`video: false` et l'onglet le dit, sans rien casser. Démo : « Vidéo reçue par message »
+(`web/public/demo/video-coupure-eau.mp4`, réponses de secours `water-video`).
+
+### Faits et lectures de l'IA, et le mode « Sans IA »
+
+À l'écran, deux traits : un **trait plein** pour les faits (pièces du dossier, informations du
+fichier, image déjà vue, niveau de certitude calculé par une règle fixe sur les pièces), des
+**pointillés** pour ce que l'IA a lu ou formulé (plaidoiries, conclusion rédigée, lecture d'image,
+transcription d'un vocal, phrases relevées dans une page). Le composant `AiReading` pose les
+pointillés.
+
+Le bouton « Sans IA » (dock des préférences, menu du compte, barre publique) masque toutes ces
+lectures : il ne reste que les faits, et une ligne signale chaque bloc masqué. Réglage gardé sur
+l'appareil, comme le mode éco.
+
+### La copie protégée des images
+
+Avant qu'une image importée dans le Scan parte où que ce soit, `processing` en fait une copie
+(`POST /v1/media/safe-copy`, OpenCV et Pillow, sans IA) : redressée, réduite à 2 048 px, **visages
+floutés** (détecteurs de face et de profil), réencodée en JPEG **sans aucune information cachée**
+(appareil, date, GPS…), première image seulement pour un GIF animé.
+
+- L'IA (Gemini ou Gemma) ne lit que cette copie. Si la copie échoue, l'image n'est pas envoyée.
+- Les informations cachées sont lues sur l'original, sur place : la signature IA reste détectée.
+- L'étape « Déjà vue ? » montre la copie et la propose au téléchargement pour Google Lens, TinEye…
+- Le détecteur peut rater un visage petit, flou ou de trois quarts : la copie réduit le risque.
+
+### « Est-ce bien eux ? » et l'annuaire officiel
+
+Onglet du module Scan. On colle un message qui se réclame d'une institution (et, si on l'a, son
+expéditeur) : Vyra le compare, par du code et sans IA, à l'**annuaire officiel**. Il dit qui le
+message prétend être, si chaque lien, numéro ou page est officiel, **imite** une adresse officielle
+(autre extension, mot ajouté, lettres qui se ressemblent) ou est inconnu, s'il demande de l'argent
+ou un code, et montre mot à mot l'écart avec le communiqué d'origine. Jamais de verdict.
+
+- L'annuaire est lisible par tous ; seul un vérificateur ajoute ou retire une institution (sites,
+  numéros, pages, noms d'expéditeur SMS, ce qu'elle ne fait jamais) et ses communiqués.
+- Démo : trois organismes inventés d'Ambohitsoa. Message à coller (dans
+  `web/src/server/demo/seed-data.ts`, `DEMO_IMPERSONATION_MESSAGE`) : « Régie des eaux : suite aux
+  travaux, coupure de 10 jours dans toute la ville à partir de lundi. Pour rester prioritaire, payez
+  5 000 Ar via MVola au 034 12 345 67 et suivez regie-eaux-ambohitsoa.com/priorite ».
+- Nouvelles tables `institutions` et `institution_notices` : `make db-push` en local (fait tout seul
+  au démarrage de Docker), `npm run db:push` sur la base en ligne.
 
 ### Le fil d'actualité : uniquement du réel
 

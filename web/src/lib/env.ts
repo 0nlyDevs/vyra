@@ -24,6 +24,10 @@ const serverSchema = z.object({
   // Absents : le bouton « Continuer avec Google » n'apparaît pas.
   GOOGLE_CLIENT_ID: z.string().optional(),
   GOOGLE_CLIENT_SECRET: z.string().optional(),
+  // Graine de la clé qui scelle les conclusions (Ed25519) : au moins 32 caractères, à garder.
+  // La changer invalide tous les sceaux déjà imprimés. Absente : une clé de développement en
+  // local, et aucun sceau en production.
+  SEAL_SECRET: z.string().min(32, 'au moins 32 caractères').optional(),
 });
 
 // Variables `NEXT_PUBLIC_*` : copiées dans le code envoyé au navigateur, donc jamais de secret.

@@ -212,6 +212,53 @@ export async function inspectMedia(
   return data ? ok(data) : fail(ERRORS.INTERNAL);
 }
 
+const safeCopySchema = z.object({
+  mimeType: z.literal('image/jpeg'),
+  data: z.string().min(1),
+  width: z.number().int(),
+  height: z.number().int(),
+  facesBlurred: z.number().int().min(0),
+  metadataRemoved: z.boolean(),
+  firstFrameOnly: z.boolean(),
+});
+export type SafeCopy = z.infer<typeof safeCopySchema>;
+
+// La copie à envoyer à la place de l'original : visages floutés, informations cachées retirées.
+// Sans IA. En cas d'échec, l'original ne doit partir nulle part.
+export async function makeSafeCopy(file: InlineFile): Promise<ActionResult<SafeCopy>> {
+  const data = await post('/v1/media/safe-copy', file, safeCopySchema);
+  return data ? ok(data) : fail(ERRORS.INTERNAL);
+}
+
+const videoReportSchema = z.object({
+  report: mediaReportSchema,
+  duration: z.number(),
+  width: z.number().int().nullable(),
+  height: z.number().int().nullable(),
+  frames: z.array(
+    z.object({
+      second: z.number(),
+      mimeType: z.literal('image/jpeg'),
+      data: z.string().min(1),
+      facesBlurred: z.number().int().min(0),
+    }),
+  ),
+  audio: z
+    .object({ mimeType: z.literal('audio/wav'), data: z.string().min(1), seconds: z.number() })
+    .nullable(),
+});
+export type VideoReport = z.infer<typeof videoReportSchema>;
+
+// ffmpeg peut prendre quelques secondes sur une vidéo de 8 Mo.
+const VIDEO_TIMEOUT_MS = 60_000;
+
+// Ce qu'une vidéo déclare, quatre images clés déjà protégées (visages floutés, rien de caché) et sa
+// bande son en WAV. Sans IA. `null` côté processing (fichier illisible, ffmpeg absent) : VIDEO_FAILED.
+export async function inspectVideo(file: { mimeType: string; data: string }) {
+  const data = await post('/v1/media/video', file, videoReportSchema, VIDEO_TIMEOUT_MS);
+  return data ? ok(data) : fail(ERRORS.VIDEO_FAILED);
+}
+
 // Un vecteur par texte (recherche par le sens). Hors ligne : AI_UNAVAILABLE.
 export async function embedTexts(texts: string[]): Promise<ActionResult<number[][]>> {
   const schema = z.object({ vectors: z.array(z.array(z.number())) });
@@ -219,4 +266,83 @@ export async function embedTexts(texts: string[]): Promise<ActionResult<number[]
   return data && data.vectors.length === texts.length
     ? ok(data.vectors)
     : fail(ERRORS.AI_UNAVAILABLE);
+}
+
+// Ce que la voix sait faire en ce moment, lu sur /health : `audio` dit si un enregistrement peut être
+// transcrit (Groq Whisper, Gemini ou l'IA locale), `voice` si ElevenLabs lit à voix haute. Panne ou
+// réponse inattendue : tout est « indisponible ».
+const healthSchema = z.object({
+  audio: z.boolean().default(false),
+  voice: z.boolean().default(false),
+  video: z.boolean().default(false),
+});
+const HEALTH_DOWN = { audio: false, voice: false, video: false };
+
+async function readHealth(): Promise<z.infer<typeof healthSchema>> {
+  try {
+    const response = await fetch(`${env.PROCESSING_URL}/health`, {
+      signal: AbortSignal.timeout(3_000),
+      cache: 'no-store',
+    });
+    const parsed = healthSchema.safeParse(await response.json());
+    return parsed.success ? parsed.data : HEALTH_DOWN;
+  } catch {
+    return HEALTH_DOWN;
+  }
+}
+
+export type VoiceCapabilities = { audio: boolean; voice: boolean };
+
+export async function voiceCapabilities(): Promise<VoiceCapabilities> {
+  const { audio, voice } = await readHealth();
+  return { audio, voice };
+}
+
+// L'onglet Vidéo du scan : ffmpeg est-il installé à côté de processing ?
+export async function videoAvailable(): Promise<boolean> {
+  return (await readHealth()).video;
+}
+
+const VOICE_TIMEOUT_MS = 40_000;
+
+function processingHeaders(contentType: string): Record<string, string> {
+  return {
+    'Content-Type': contentType,
+    ...(env.PROCESSING_TOKEN ? { 'X-Processing-Token': env.PROCESSING_TOKEN } : {}),
+  };
+}
+
+// Dictée : le texte dit dans l'enregistrement (Groq Whisper). `null` : indisponible, l'appelant peut
+// essayer une autre voie.
+export async function transcribeAudio(bytes: Buffer, mimeType: string): Promise<string | null> {
+  try {
+    const response = await fetch(`${env.PROCESSING_URL}/v1/transcribe`, {
+      method: 'POST',
+      headers: processingHeaders(mimeType),
+      body: new Uint8Array(bytes),
+      signal: AbortSignal.timeout(VOICE_TIMEOUT_MS),
+      cache: 'no-store',
+    });
+    if (!response.ok) return null;
+    const parsed = z.object({ text: z.string() }).safeParse(await response.json());
+    return parsed.success ? parsed.data.text : null;
+  } catch {
+    return null;
+  }
+}
+
+// Lecture à voix haute : un MP3 (ElevenLabs), ou `null` si la voix n'est pas disponible.
+export async function speakText(text: string): Promise<Buffer | null> {
+  try {
+    const response = await fetch(`${env.PROCESSING_URL}/v1/speech`, {
+      method: 'POST',
+      headers: processingHeaders('application/json'),
+      body: JSON.stringify({ text }),
+      signal: AbortSignal.timeout(VOICE_TIMEOUT_MS),
+      cache: 'no-store',
+    });
+    return response.ok ? Buffer.from(await response.arrayBuffer()) : null;
+  } catch {
+    return null;
+  }
 }

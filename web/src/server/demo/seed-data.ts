@@ -8,6 +8,8 @@ import {
   caseVersions,
   evidence,
   hearings,
+  institutionNotices,
+  institutions,
   notes,
   profiles,
   reportGroups,
@@ -697,6 +699,84 @@ const DEMO_VERSION_IMAGES: [string, string][] = [
 
 // ─── Comptes de démo (lot de Mahery) ─────────────────────────────────────────────────────────
 
+// Annuaire officiel (« Est-ce bien eux ? ») : les organismes inventés des affaires, leurs canaux
+// et leurs communiqués d'origine (les mêmes textes que les pièces officielles des affaires).
+// Domaines en .mg, numéros en 034 00 0xx xx : inventés, comme le reste.
+const DEMO_INSTITUTION_IDS = { water: id(1101), town: id(1102), jobs: id(1103) } as const;
+
+const DEMO_INSTITUTIONS: (typeof institutions.$inferInsert)[] = [
+  {
+    id: DEMO_INSTITUTION_IDS.water,
+    name: 'Régie des eaux d’Ambohitsoa',
+    aliases: ['Régie des eaux', 'la Régie'],
+    channels: {
+      domains: ['regie-eaux-ambohitsoa.mg'],
+      phones: ['340000101'],
+      pages: ['facebook.com/regieeauxambohitsoa'],
+      senders: ['REGIE-EAUX'],
+    },
+    never: 'Ne demande jamais de paiement par mobile money ni de code reçu par SMS.',
+  },
+  {
+    id: DEMO_INSTITUTION_IDS.town,
+    name: 'Mairie d’Ambohitsoa',
+    aliases: ['la mairie d’Ambohitsoa', 'commune d’Ambohitsoa'],
+    channels: {
+      domains: ['mairie-ambohitsoa.mg'],
+      phones: ['340000202'],
+      pages: ['facebook.com/mairieambohitsoa'],
+      senders: ['MAIRIE-AMB'],
+    },
+    never: '',
+  },
+  {
+    id: DEMO_INSTITUTION_IDS.jobs,
+    name: 'Office de l’emploi d’Ambohitsoa',
+    aliases: ['Office de l’emploi'],
+    channels: {
+      domains: ['emploi-ambohitsoa.mg'],
+      phones: ['340000303'],
+      pages: [],
+      senders: [],
+    },
+    never: 'Les dossiers de concours sont gratuits : aucun frais n’est jamais demandé.',
+  },
+];
+
+const DEMO_NOTICES: (typeof institutionNotices.$inferInsert)[] = [
+  {
+    id: id(1111),
+    institutionId: DEMO_INSTITUTION_IDS.water,
+    title: 'Avis de travaux',
+    content:
+      'Avis de travaux : coupure d’eau lundi de 10 h à 14 h dans les quartiers Est et du Vieux-Pont.',
+    sourceUrl: 'https://regie-eaux-ambohitsoa.mg/avis/travaux-lundi',
+    publishedAt: daysAgo(3, 16),
+  },
+  {
+    id: id(1112),
+    institutionId: DEMO_INSTITUTION_IDS.town,
+    title: 'Pas d’inondation ce matin',
+    content:
+      'Communiqué : aucune inondation ce matin à Ambohitsoa-Nord. La photo qui circule date de mars 2019. Aucune victime, l’école est ouverte.',
+    sourceUrl: null,
+    publishedAt: daysAgo(1, 11),
+  },
+  {
+    id: id(1113),
+    institutionId: DEMO_INSTITUTION_IDS.jobs,
+    title: 'Avis de concours',
+    content:
+      'Avis de concours : 12 postes d’agent administratif. Dossier gratuit, à déposer au guichet.',
+    sourceUrl: null,
+    publishedAt: daysAgo(6, 10),
+  },
+];
+
+// Le message à coller sur scène dans « Est-ce bien eux ? » (README, docs/DEMO.md).
+export const DEMO_IMPERSONATION_MESSAGE =
+  'Régie des eaux : suite aux travaux, coupure de 10 jours dans toute la ville à partir de lundi. Pour rester prioritaire, payez 5 000 Ar via MVola au 034 12 345 67 et suivez regie-eaux-ambohitsoa.com/priorite';
+
 // Mot de passe des comptes de démo : une valeur de test, pour ce poste seulement. Sur scène, on
 // entre avec les boutons « Comptes de démo » de la page de connexion.
 export const DEMO_PASSWORD = 'mindstack-demo';
@@ -762,6 +842,11 @@ export async function resetDemoData(database: Database) {
     // Jeu vrai ou fake. Les parties jouées partent avec leurs profils (supprimés plus haut).
     await tx.delete(scenarios);
     await tx.insert(scenarios).values(DEMO_SCENARIOS);
+
+    // Annuaire officiel : supprimer une institution supprime ses communiqués.
+    await tx.delete(institutions);
+    await tx.insert(institutions).values(DEMO_INSTITUTIONS);
+    await tx.insert(institutionNotices).values(DEMO_NOTICES);
 
     // Le fil d'actualité n'a pas de données de démo : il ne montre que des publications réelles.
   });
