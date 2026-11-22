@@ -4,12 +4,18 @@ import { randomBytes, type ScryptOptions, scrypt, timingSafeEqual } from 'node:c
 // Mots de passe protégés avec scrypt (intégré à Node, aucun paquet). Format enregistré :
 // scrypt$N$r$p$sel$empreinte (sel et empreinte en base64url).
 
-const PARAMS = { N: 16384, r: 8, p: 1 } as const;
+// Réglages du minimum de l'OWASP (N = 2^17, r = 8, p = 1) : environ 128 Mo et une fraction de
+// seconde par calcul, ce qui rend coûteux de deviner à la chaîne une empreinte volée. Les
+// empreintes plus anciennes (N = 2^14) restent lisibles et sont refaites à la connexion.
+const PARAMS = { N: 2 ** 17, r: 8, p: 1 } as const;
 const KEY_LENGTH = 64;
+// Node refuse au-delà de 32 Mo par défaut ; 128 × N × r octets sont nécessaires, plus une marge.
+const MAX_MEMORY = 256 * 1024 * 1024;
 
 function derive(password: string, salt: Buffer, options: ScryptOptions) {
   return new Promise<Buffer>((resolve, reject) => {
-    scrypt(password.normalize('NFKC'), salt, KEY_LENGTH, options, (error, key) =>
+    const withMemory = { ...options, maxmem: MAX_MEMORY };
+    scrypt(password.normalize('NFKC'), salt, KEY_LENGTH, withMemory, (error, key) =>
       error ? reject(error) : resolve(key),
     );
   });
@@ -38,6 +44,14 @@ export async function verifyPassword(password: string, stored: string) {
     p: Number(p),
   });
   return actual.length === expected.length && timingSafeEqual(actual, expected);
+}
+
+// L'empreinte a été faite avec des réglages plus faibles que les actuels : à refaire.
+export function needsRehash(stored: string) {
+  const [scheme, n, r, p] = stored.split('$');
+  return (
+    scheme !== 'scrypt' || Number(n) < PARAMS.N || Number(r) < PARAMS.r || Number(p) < PARAMS.p
+  );
 }
 
 // Empreinte factice : vérifier un mot de passe prend le même temps, que le compte existe ou non.

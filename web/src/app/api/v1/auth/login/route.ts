@@ -1,6 +1,7 @@
 import { signInSchema } from '@/features/auth/schema';
 import { apiFail, apiOk, apiSession, readJson } from '@/server/api';
 import { dummyPasswordHash, verifyPassword } from '@/server/auth/password';
+import { upgradePasswordHash } from '@/server/auth/rehash';
 import { findAccountByEmail } from '@/server/dal/accounts';
 import { signInAllowed } from '@/server/rate-limit';
 
@@ -19,5 +20,6 @@ export async function POST(request: Request) {
     found?.account.passwordHash ?? (await dummyPasswordHash()),
   );
   if (!found || !valid) return apiFail('INVALID_CREDENTIALS');
+  await upgradePasswordHash(found.profile.id, parsed.data.password, found.account.passwordHash);
   return apiOk(await apiSession(found.profile));
 }

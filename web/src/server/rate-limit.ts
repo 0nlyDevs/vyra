@@ -2,6 +2,7 @@ import 'server-only';
 import { sql } from 'drizzle-orm';
 import { headers } from 'next/headers';
 import { tokenHash } from '@/server/auth/tokens';
+import { normalizeEmail } from '@/server/dal/accounts';
 import { db } from '@/server/db';
 import { rateLimits } from '@/server/db/schema';
 
@@ -34,11 +35,12 @@ export async function clientIp() {
   return forwarded?.split(',')[0]?.trim() || 'local';
 }
 
-// Connexion (site et application mobile) : contre les mots de passe devinés à la chaîne.
+// Connexion (site et application mobile) : contre les mots de passe devinés à la chaîne. L'adresse
+// est comptée comme la base la cherche : « Hery@… » et « hery@… » partagent la même limite.
 export async function signInAllowed(email: string) {
   const ip = await clientIp();
   return (
     (await withinLimit(`signin:ip:${ip}`, 30, 15 * 60)) &&
-    (await withinLimit(`signin:email:${email}`, 10, 15 * 60))
+    (await withinLimit(`signin:email:${normalizeEmail(email)}`, 10, 15 * 60))
   );
 }

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { isCommonPassword, repeatsIdentity } from './common-passwords';
 
 const email = z
   .string()
@@ -10,13 +11,22 @@ const email = z
 const newPassword = z
   .string()
   .min(8, 'Au moins 8 caractères.')
-  .max(128, '128 caractères au maximum.');
+  .max(128, '128 caractères au maximum.')
+  .refine(
+    (value) => !isCommonPassword(value),
+    'Ce mot de passe est trop courant : choisissez-en un autre.',
+  );
 
-export const signUpSchema = z.object({
-  name: z.string().trim().min(2, 'Au moins 2 caractères.').max(60, '60 caractères au maximum.'),
-  email,
-  password: newPassword,
-});
+export const signUpSchema = z
+  .object({
+    name: z.string().trim().min(2, 'Au moins 2 caractères.').max(60, '60 caractères au maximum.'),
+    email,
+    password: newPassword,
+  })
+  .refine((value) => !repeatsIdentity(value.password, value), {
+    path: ['password'],
+    message: 'Le mot de passe ne doit pas être votre nom ou votre adresse e-mail.',
+  });
 
 export const signInSchema = z.object({
   email,
