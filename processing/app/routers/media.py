@@ -7,7 +7,16 @@ from dataclasses import asdict
 from fastapi import APIRouter
 
 from app.core.errors import AppError
-from app.schemas.media import MediaInspectRequest, MediaReportResponse, SafeCopyResponse
+from app.schemas.media import (
+    MediaInspectRequest,
+    MediaReportResponse,
+    SafeCopyResponse,
+    VideoAudio,
+    VideoFrame,
+    VideoInspectRequest,
+    VideoReportResponse,
+)
+from app.services import video
 from app.services.media_inspect import inspect_image
 from app.services.safe_copy import UnreadableImageError, make_safe_copy
 
@@ -35,6 +44,39 @@ def safe_copy(body: MediaInspectRequest) -> SafeCopyResponse:
         faces_blurred=copy.faces_blurred,
         metadata_removed=copy.metadata_removed,
         first_frame_only=copy.first_frame_only,
+    )
+
+
+@router.post("/video", operation_id="inspectVideo")
+def inspect_video(body: VideoInspectRequest) -> VideoReportResponse:
+    """Ce que la vidéo déclare, quatre images clés protégées et sa bande son (WAV 16 kHz)."""
+    if not video.available():
+        raise AppError("VIDEO_UNAVAILABLE", 503, "L'examen des vidéos n'est pas disponible ici.")
+    try:
+        result = video.inspect_video(_decode(body.data))
+    except video.UnreadableVideoError as exc:
+        raise AppError("FILE_NOT_SUPPORTED", 422, "Cette vidéo ne se lit pas.") from exc
+    return VideoReportResponse(
+        report=MediaReportResponse(**asdict(result.report)),
+        duration=result.duration,
+        width=result.width,
+        height=result.height,
+        frames=[
+            VideoFrame(
+                second=frame.second,
+                mime_type="image/jpeg",
+                data=base64.b64encode(frame.data).decode("ascii"),
+                faces_blurred=frame.faces_blurred,
+            )
+            for frame in result.frames
+        ],
+        audio=VideoAudio(
+            mime_type="audio/wav",
+            data=base64.b64encode(result.audio).decode("ascii"),
+            seconds=result.audio_seconds,
+        )
+        if result.audio
+        else None,
     )
 
 

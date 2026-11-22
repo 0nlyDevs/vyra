@@ -4,7 +4,7 @@ from fastapi import APIRouter
 from pydantic import BaseModel
 
 from app.core.config import SettingsDep
-from app.services import voice
+from app.services import video, voice
 
 router = APIRouter(tags=["health"])
 
@@ -17,6 +17,8 @@ class HealthResponse(BaseModel):
     audio: bool
     # La voix d'ElevenLabs lit-elle à voix haute ? Sinon, le site garde la voix du navigateur.
     voice: bool
+    # ffmpeg est-il là pour examiner une vidéo (onglet Vidéo du scan) ?
+    video: bool = False
 
 
 @router.get("/health", operation_id="getHealth")
@@ -40,5 +42,10 @@ def get_health(settings: SettingsDep) -> HealthResponse:
         or bool(settings.keys_for("gemini"))
     )
     return HealthResponse(
-        status="ok", service="vyra-processing", ai=ai, audio=audio, voice=voice.can_speak(settings)
+        status="ok",
+        service="vyra-processing",
+        ai=ai,
+        audio=audio,
+        voice=voice.can_speak(settings),
+        video=video.available(),
     )

@@ -2,6 +2,7 @@
 
 from fastapi.testclient import TestClient
 
+from app.services import video
 from app.services.news_feeds import parse_feed
 
 
@@ -14,6 +15,8 @@ def test_health_reports_offline_mode(offline_client: TestClient) -> None:
         "ai": "offline",
         "audio": False,
         "voice": False,
+        # Selon que ffmpeg est installé ou non sur le poste qui lance les tests.
+        "video": video.available(),
     }
 
 

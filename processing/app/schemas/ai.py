@@ -22,7 +22,8 @@ class PromptRequest(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
     payload: dict[str, Any] = Field(default_factory=dict)
-    files: list[InlineFile] = Field(default_factory=list, max_length=2)
+    # Jusqu'à 4 : les images clés d'une vidéo (scan vidéo, prompt `read-video`).
+    files: list[InlineFile] = Field(default_factory=list, max_length=4)
     # Réponse de secours propre à un cas de démo : `fallbacks/<nom>--<variante>.json`.
     fallback_variant: str | None = Field(
         default=None, alias="fallbackVariant", pattern=VARIANT_PATTERN
