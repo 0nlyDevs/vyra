@@ -15,7 +15,7 @@ import { gameAudio } from './audio';
 import { Chibi, MASCOTS } from './Chibi';
 import { City } from './City';
 import { PALETTE, RUMOR_SPOT, STAMPS } from './constants';
-import { CluePanel, Hud, ResultPanel } from './Hud';
+import { CluePanel, Hud, KEY, ResultPanel } from './Hud';
 import { type CameraMode, Player } from './Player';
 import { Confetti, Rumor, SpreadWave } from './Rumor';
 import { flightTime, PlayerAvatar, Shots } from './Shots';
@@ -101,6 +101,18 @@ function Aim({
   return null;
 }
 
+// Les commandes, rappelées en pause : la touche, puis ce qu'elle fait.
+const CONTROLS = [
+  ['Z Q S D', 'marcher'],
+  ['Maj', 'courir'],
+  ['Clic', 'tamponner'],
+  ['E', 'examiner un indice'],
+  ['1 2 3', 'choisir l’encre'],
+  ['Molette', 'encre suivante'],
+  ['V', 'changer de vue'],
+  ['F', 'plein écran'],
+] as const;
+
 function Loader() {
   const { progress, active } = useProgress();
   const [hidden, setHidden] = useState(false);
@@ -127,7 +139,7 @@ function Loader() {
             style={{ width: `${Math.round(progress)}%` }}
           />
         </div>
-        <p className="text-sm text-white/60 tabular-nums">{Math.round(progress)} %</p>
+        <p className="text-sm text-white/80 tabular-nums">{Math.round(progress)} %</p>
       </div>
     </div>
   );
@@ -442,7 +454,7 @@ export function Game3D({
     <div
       ref={container}
       className={cn(
-        'dark relative isolate overflow-hidden rounded-3xl border border-white/10 bg-[#12080a] text-foreground shadow-2xl',
+        'dark relative isolate overflow-hidden rounded-3xl border border-white/10 bg-[#12080a] text-foreground shadow-2xl [--eyebrow-color:rgb(255_255_255/0.82)]',
         fullscreen ? 'h-screen rounded-none' : 'h-[min(80vh,860px)] min-h-[560px]',
       )}
     >
@@ -588,18 +600,32 @@ export function Game3D({
       {/* Menu : choisir son avatar. */}
       {phase === 'menu' && (
         <div className="pointer-events-none absolute inset-0 z-10 flex flex-col justify-between p-6 sm:p-8">
-          <div className="grid max-w-md gap-2 text-white animate-in fade-in-0 slide-in-from-top-4 duration-700">
+          {/* Voiles : le texte ne se pose jamais sur les guirlandes ni sur le ciel clair. */}
+          <div
+            aria-hidden
+            className="absolute inset-x-0 top-0 -z-10 h-72 bg-linear-to-b from-black/80 via-black/45 to-transparent"
+          />
+          <div
+            aria-hidden
+            className="absolute inset-x-0 bottom-0 -z-10 h-80 bg-linear-to-t from-black/75 via-black/35 to-transparent"
+          />
+          <div className="grid max-w-lg gap-3 text-white animate-in fade-in-0 slide-in-from-top-4 duration-700">
             <p className="eyebrow">Vrai ou fake · en 3D</p>
             <h2 className="display text-4xl sm:text-5xl">La rue du marché</h2>
-            <p className="text-pretty text-white/75">
+            <p className="max-w-md text-pretty text-white/90 [text-shadow:0_1px_12px_rgb(0_0_0/0.6)]">
               Les rumeurs circulent entre les étals. Examinez les indices, puis tamponnez chaque
               publication : vrai, fake, ou impossible à dire.
             </p>
           </div>
           <div className="pointer-events-auto grid gap-3 sm:self-end lg:w-[46rem]">
-            <div className="flex items-center justify-end gap-2 text-sm text-white/80">
-              Vue
-              <div className="flex gap-1 rounded-full bg-black/45 p-1 backdrop-blur-xl">
+            <div className="flex items-center justify-end gap-2.5 text-sm text-white">
+              <span id="game3d-view-label" className="font-medium">
+                Vue
+              </span>
+              <fieldset
+                aria-labelledby="game3d-view-label"
+                className="flex min-w-0 gap-1 rounded-full border border-white/15 bg-black/60 p-1 backdrop-blur-xl"
+              >
                 {(
                   [
                     ['third', '3e personne'],
@@ -612,14 +638,16 @@ export function Game3D({
                     aria-pressed={view === value}
                     onClick={() => changeView(value)}
                     className={cn(
-                      'rounded-full px-3.5 py-1.5 font-medium transition-colors duration-200',
-                      view === value ? 'bg-primary text-white' : 'text-white/70 hover:bg-white/10',
+                      'min-h-10 rounded-full px-4 font-medium transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 focus-visible:ring-offset-2 focus-visible:ring-offset-black',
+                      view === value
+                        ? 'bg-primary text-primary-foreground'
+                        : 'text-white/85 hover:bg-white/12 hover:text-white',
                     )}
                   >
                     {label}
                   </button>
                 ))}
-              </div>
+              </fieldset>
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
               {(['girl', 'boy'] as const).map((value) => (
@@ -636,15 +664,15 @@ export function Game3D({
                   onFocus={() => setHovered(value)}
                   onClick={() => chooseAvatar(value)}
                   className={cn(
-                    'group grid gap-1 rounded-3xl border border-white/10 bg-black/45 p-5 text-left text-white backdrop-blur-xl transition-all duration-300 ease-out hover:-translate-y-1 hover:border-primary/60 hover:bg-black/60 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-primary/50',
-                    chosen === value && 'border-primary bg-primary/25',
-                    chosen && chosen !== value && 'opacity-40',
+                    'group grid gap-1 rounded-3xl border border-white/15 bg-black/60 p-5 text-left text-white backdrop-blur-xl transition-[transform,border-color,background-color,opacity] duration-300 ease-out enabled:hover:-translate-y-1 enabled:hover:border-white/50 enabled:hover:bg-black/70 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-white/80 disabled:cursor-default',
+                    chosen === value && 'border-white bg-black/75',
+                    chosen && chosen !== value && 'opacity-45',
                   )}
                 >
                   <span className="eyebrow text-[0.68rem]!">{AVATARS[value].role}</span>
                   <span className="font-semibold text-2xl">{AVATARS[value].name}</span>
-                  <span className="text-sm text-white/70">{AVATARS[value].description}</span>
-                  <span className="mt-2 inline-flex items-center gap-1.5 font-medium text-primary text-sm">
+                  <span className="text-sm text-white/85">{AVATARS[value].description}</span>
+                  <span className="mt-3 inline-flex items-center gap-1.5 justify-self-start rounded-full bg-primary px-3.5 py-1.5 font-semibold text-primary-foreground text-sm">
                     {chosen === value ? 'C’est parti !' : `Jouer avec ${AVATARS[value].name}`}
                     <ArrowRight
                       aria-hidden
@@ -701,25 +729,25 @@ export function Game3D({
             : 'pointer-events-none opacity-0',
         )}
       >
-        <div className="grid max-w-sm gap-4 rounded-3xl border border-white/10 bg-black/60 p-6 text-center text-white backdrop-blur-xl">
+        <div className="grid max-w-sm gap-4 rounded-3xl border border-white/15 bg-black/75 p-6 text-center text-white backdrop-blur-xl">
           <p className="eyebrow">{answers.length === 0 && !answer ? 'Prêt ?' : 'Pause'}</p>
           <p className="display text-3xl">
             {answers.length === 0 && !answer ? 'Entrer dans la rue' : 'Reprendre'}
           </p>
-          <p className="text-sm text-white/70">
+          <p className="text-sm text-white/85">
             Cliquez pour viser à la souris. Échap pour revenir ici.
           </p>
-          <div className="grid grid-cols-2 gap-2 text-left text-white/80 text-xs">
-            <span>Z Q S D · marcher</span>
-            <span>Maj · courir</span>
-            <span>Clic · tamponner</span>
-            <span>1 2 3 · encre</span>
-            <span>E · examiner</span>
-            <span>Molette · encre suivante</span>
-            <span>V · changer de vue</span>
-            <span>F · plein écran</span>
-          </div>
-          <span className="inline-flex items-center justify-center gap-2 rounded-full bg-primary px-5 py-3 font-semibold">
+          <dl className="grid grid-cols-[auto_1fr] items-center gap-x-3 gap-y-2 text-left text-sm text-white/90">
+            {CONTROLS.map(([keys, action]) => (
+              <div key={keys} className="contents">
+                <dt className="justify-self-end">
+                  <kbd className={KEY}>{keys}</kbd>
+                </dt>
+                <dd>{action}</dd>
+              </div>
+            ))}
+          </dl>
+          <span className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-primary px-5 py-3 font-semibold text-primary-foreground">
             <Sparkles aria-hidden className="size-4" />
             Cliquer pour jouer
           </span>
