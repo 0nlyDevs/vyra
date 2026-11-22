@@ -1,0 +1,258 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <title>Vyra · Scénarios de l'extension</title>
+    <!-- Page de test de l'extension « Vérifier ici », à ouvrir directement depuis le disque
+         (glisser le fichier dans Chrome). Chaque scénario dit quoi faire et ce qui doit s'afficher.
+         Résultats relevés avec les données de démo (make seed) et sans clé d'IA : avec Gemini, la
+         comparaison par le sens peut trouver l'affaire jugée dans plus de cas. -->
+    <style>
+      @font-face {
+        font-family: "Bricolage Grotesque";
+        font-weight: 200 800;
+        src: url(fonts/bricolage-grotesque-latin.woff2) format("woff2-variations");
+      }
+      @font-face {
+        font-family: "Cormorant Garamond";
+        font-style: italic;
+        font-weight: 500;
+        src: url(fonts/cormorant-garamond-latin-500-italic.woff2) format("woff2");
+      }
+      :root {
+        --ground: #f3f2ee; --ink: #0a0a0b; --paper: #fbfaf7; --soft: #e9e8e2;
+        --muted: #55544e; --rule: #dcdbd5; --edge: #8f8e88;
+        --bubble: #dcf8c6; --bubble-ink: #0a0a0b;
+        font: 16px/1.5 "Bricolage Grotesque", system-ui, sans-serif;
+        color: var(--ink); background: var(--ground);
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --ground: #0a0a0b; --ink: #f3f2ee; --paper: #111113; --soft: #19191c;
+          --muted: #a6a5a0; --rule: #2a2a2d; --edge: #6d6c68;
+          --bubble: #144d37; --bubble-ink: #f3f2ee;
+        }
+      }
+      * { box-sizing: border-box; }
+      body { margin: 0; }
+      main { max-width: 760px; margin: auto; padding: 40px 20px 64px; }
+      h1 { font-size: 2.5rem; font-weight: 800; letter-spacing: -.04em; line-height: 1.05; margin: 0; }
+      h1 em, .quote { font-family: "Cormorant Garamond", Georgia, serif; font-style: italic; font-weight: 500; }
+      .lead { color: var(--muted); max-width: 56ch; }
+      h2 { font-size: 1.25rem; font-weight: 800; letter-spacing: -.02em; margin: 48px 0 0; padding-top: 16px; border-top: 1px solid var(--ink); }
+      ol.setup { padding-left: 20px; }
+      ol.setup li { margin: 6px 0; }
+      code { font-size: .9em; background: var(--soft); padding: 1px 6px; border-radius: 6px; }
+      .case { margin-top: 28px; padding: 20px; border: 1px solid var(--rule); border-radius: 20px; background: var(--paper); }
+      .case header { display: flex; gap: 12px; align-items: baseline; }
+      .num { display: inline-grid; place-items: center; flex: none; width: 34px; height: 34px; border-radius: 50%; background: var(--ink); color: var(--ground); font-weight: 700; font-size: .875rem; }
+      .case h3 { margin: 0; font-size: 1.125rem; }
+      .do { margin: 12px 0; color: var(--muted); }
+      .do strong { color: var(--ink); }
+      .post { margin: 12px 0; padding: 14px 16px; border-radius: 4px 18px 18px 18px; background: var(--bubble); color: var(--bubble-ink); max-width: 52ch; }
+      .post small { display: block; margin-bottom: 4px; opacity: .7; font-size: .8125rem; }
+      .article { margin: 12px 0; padding: 16px; border-left: 3px solid var(--ink); background: var(--soft); border-radius: 0 14px 14px 0; }
+      .expect { margin: 12px 0 0; padding: 12px 14px; border: 2px dashed var(--edge); border-radius: 14px; font-size: .9375rem; }
+      .expect b { display: block; margin-bottom: 4px; }
+      .expect ul { margin: 0; padding-left: 18px; }
+      a { color: inherit; text-underline-offset: 3px; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Scénarios de <em>test</em>.</h1>
+      <p class="lead">
+        Des messages comme ceux qui circulent, pour essayer l’extension « Vérifier ici » de bout en
+        bout. Chaque carte dit quoi faire et ce que le panneau doit montrer.
+      </p>
+
+      <h2>Avant de commencer</h2>
+      <ol class="setup">
+        <li>La plateforme tourne : <code>docker compose up --build</code>, puis <code>make seed</code> pour les données de démo.</li>
+        <li>L’extension est chargée depuis <code>extension/</code> (<code>chrome://extensions</code>, mode développeur), puis rechargée après chaque <code>git pull</code>.</li>
+        <li>Pour cette page ouverte depuis le disque : dans les détails de l’extension, activer <strong>« Autoriser l’accès aux URL de fichier »</strong>, sinon le clic droit n’y apparaît pas.</li>
+        <li>Rien n’est envoyé avant le clic sur « Vérifier ce contenu » : vérifier aussi ça à chaque scénario.</li>
+      </ol>
+
+      <h2>Clic droit sur un texte</h2>
+
+      <section class="case">
+        <header><span class="num">01</span><h3>Une rumeur déjà jugée, réécrite</h3></header>
+        <p class="do">Sélectionner tout le message, <strong>clic droit → Vérifier ce texte</strong>, puis « Vérifier ce contenu ».</p>
+        <div class="post">
+          <small>Transféré plusieurs fois</small>
+          ⚠️ La Régie des eaux coupe l'eau 10 jours dans toute la ville dès lundi !! Faites vos réserves, transférez à vos proches.
+        </div>
+        <div class="expect">
+          <b>Attendu</b>
+          <ul>
+            <li>Le panneau s’ouvre sur « Texte sélectionné », le message en italique ; la ligne passe à 02.</li>
+            <li>Bloc rouge plein « Déjà jugée par le tribunal » : <strong>Contredit</strong>, « Dix jours sans eau », la conclusion, « Voir les preuves » (ouvre la page publique de l’affaire).</li>
+            <li>Signes d’alerte : <strong>Ton sensationnel</strong> (appel à partager, points d’exclamation empilés, émoji d’alarme), puis « Peu de danger apparent ».</li>
+            <li>La ligne finit sur trois coches.</li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="case">
+        <header><span class="num">02</span><h3>Une arnaque au recrutement</h3></header>
+        <p class="do">Sélectionner le message, clic droit → Vérifier ce texte, puis « Vérifier ce contenu ».</p>
+        <div class="post">
+          Recrutement officiel : 500 postes à pourvoir au ministère. Envoyez 20 000 Ar de frais de dossier par mobile money avant demain midi, places limitées !
+        </div>
+        <div class="expect">
+          <b>Attendu</b>
+          <ul>
+            <li>Bloc en pointillés « Pas encore jugée » : l’affaire existe en démo, mais n’est pas conclue.</li>
+            <li><strong>Ton appuyé</strong> (urgence : « avant demain ») et <strong>Danger possible si elle circule</strong> (se présente comme un texte officiel).</li>
+            <li>« Ouvrir une enquête dans la plateforme » ouvre <code>/cases</code> avec le texte pré-rempli (connexion demandée si besoin).</li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="case">
+        <header><span class="num">03</span><h3>Une alerte qui fait peur</h3></header>
+        <p class="do">Sélectionner le message, clic droit → Vérifier ce texte, puis « Vérifier ce contenu ».</p>
+        <div class="post">
+          URGENT : inondation ce matin à Ambohitsoa-Nord, 3 morts, l'école est fermée. La mairie cache la vérité. Partagez vite avant que ce soit supprimé !
+        </div>
+        <div class="expect">
+          <b>Attendu</b>
+          <ul>
+            <li>« Pas encore jugée ».</li>
+            <li><strong>Ton sensationnel</strong> avec quatre signes (urgence, appel à partager, deux fois « on vous cache la vérité »), chacun avec ses mots en italique.</li>
+            <li><strong>Danger possible si elle circule</strong> : peut créer la panique (« inondation », « morts »).</li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="case">
+        <header><span class="num">04</span><h3>Une information calme</h3></header>
+        <p class="do">Sélectionner le paragraphe, clic droit → Vérifier ce texte, puis « Vérifier ce contenu ».</p>
+        <p class="article">
+          La JIRAMA rappelle que les travaux de maintenance du réseau prévus samedi matin dans le
+          quartier d'Analakely dureront environ trois heures.
+        </p>
+        <div class="expect">
+          <b>Attendu</b>
+          <ul>
+            <li>« Pas encore jugée », <strong>Ton neutre</strong> et <strong>Peu de danger apparent</strong>, sans signe relevé.</li>
+            <li>Le panneau ne dit jamais « vrai » : seule une affaire jugée donne un verdict.</li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="case">
+        <header><span class="num">05</span><h3>La même rumeur, sans les mêmes mots</h3></header>
+        <p class="do">Sélectionner le message, clic droit → Vérifier ce texte, puis « Vérifier ce contenu ».</p>
+        <div class="post">Les robinets resteront secs une semaine et demie, d'après la compagnie, remplissez vos bidons.</div>
+        <div class="expect">
+          <b>Attendu</b>
+          <ul>
+            <li><strong>Sans clé d’IA</strong> : « Pas encore jugée » (la comparaison se fait sur les mots, et ils sont tous différents).</li>
+            <li><strong>Avec Gemini</strong> (<code>GEMINI_API_KEY</code> dans <code>processing/.env</code>, puis <code>make seed</code>) : la comparaison par le sens peut retrouver « Dix jours sans eau ». C’est le cas qui montre l’IA dans la démo.</li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="case">
+        <header><span class="num">06</span><h3>Trop court</h3></header>
+        <p class="do">Sélectionner seulement le mot ci-dessous, clic droit → Vérifier ce texte, puis « Vérifier ce contenu ».</p>
+        <div class="post">Faux !</div>
+        <div class="expect">
+          <b>Attendu</b>
+          <ul>
+            <li>Message encadré « Un texte de 10 caractères au moins, ou un lien. », l’étape 02 marquée d’une croix, le bouton à nouveau cliquable.</li>
+          </ul>
+        </div>
+      </section>
+
+      <h2>Clic droit sur un lien</h2>
+
+      <section class="case">
+        <header><span class="num">07</span><h3>Une page qui se lit</h3></header>
+        <p class="do">Clic droit sur le lien → <strong>Vérifier ce lien</strong>, puis « Vérifier ce contenu ».</p>
+        <p class="article"><a href="https://fr.wikipedia.org/wiki/Antananarivo">Antananarivo — Wikipédia</a></p>
+        <div class="expect">
+          <b>Attendu</b>
+          <ul>
+            <li>Le panneau montre « Lien » et l’adresse (en texte droit, pas en italique).</li>
+            <li>« Page lue : Antananarivo — Wikipédia », puis « Pas encore jugée », Ton neutre, Peu de danger apparent.</li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="case">
+        <header><span class="num">08</span><h3>Une page fermée</h3></header>
+        <p class="do">Clic droit sur le lien → Vérifier ce lien, puis « Vérifier ce contenu ».</p>
+        <p class="article"><a href="https://www.facebook.com/somepage/posts/123">Publication Facebook partagée</a></p>
+        <div class="expect">
+          <b>Attendu</b>
+          <ul>
+            <li>Message « Cette page ne se lit pas de l’extérieur : sélectionnez son texte. », étape 02 en échec.</li>
+          </ul>
+        </div>
+      </section>
+
+      <h2>Clic droit sur une image</h2>
+
+      <section class="case">
+        <header><span class="num">09</span><h3>D’où vient cette photo ?</h3></header>
+        <p class="do">
+          Ouvrir <a href="https://fr.wikipedia.org/wiki/Antananarivo">la page Antananarivo de Wikipédia</a>,
+          clic droit sur sa première photo → <strong>Examiner cette image</strong>, puis « Chercher sa première publication ».
+        </p>
+        <div class="expect">
+          <b>Attendu</b>
+          <ul>
+            <li>Le panneau montre l’image ; le bouton dit « Chercher sa première publication ».</li>
+            <li>« Déjà vue ailleurs ? » avec quatre boutons : Google Lens, TinEye, Yandex Images, Bing. Chacun ouvre la recherche inversée dans un onglet.</li>
+            <li>« Aucun outil ne dit avec certitude si une image est générée par IA. » Rien n’est envoyé à la plateforme.</li>
+          </ul>
+        </div>
+      </section>
+
+      <h2>Dans le panneau</h2>
+
+      <section class="case">
+        <header><span class="num">10</span><h3>Coller un message reçu</h3></header>
+        <p class="do">Cliquer l’icône de l’extension, « Effacer » si un contenu est affiché, puis coller ce texte dans le champ et « Vérifier ce contenu ».</p>
+        <div class="post">La Régie des eaux annonce 10 jours de coupure dans toute la ville à partir de lundi. Faites vos réserves !</div>
+        <div class="expect">
+          <b>Attendu</b>
+          <ul>
+            <li>« Recherche dans les affaires jugées… » reste affiché pendant la recherche.</li>
+            <li>Même résultat que le scénario 01 : Contredit, « Dix jours sans eau ». Ici, Ton neutre et « Danger possible si elle circule » (peut créer la panique : « coupure »).</li>
+            <li>Coller une adresse <code>https://…</code> au lieu d’un texte la traite comme un lien (scénario 07).</li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="case">
+        <header><span class="num">11</span><h3>La plateforme est arrêtée</h3></header>
+        <p class="do">Arrêter le web : <code>docker compose stop web</code>. Refaire le scénario 01, puis relancer : <code>docker compose start web</code>.</p>
+        <div class="expect">
+          <b>Attendu</b>
+          <ul>
+            <li>Message encadré « Plateforme injoignable à http://localhost:3000… », étape 02 en échec.</li>
+            <li>Après le redémarrage, « Vérifier ce contenu » marche de nouveau sans recharger l’extension.</li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="case">
+        <header><span class="num">12</span><h3>Réglages et thèmes</h3></header>
+        <p class="do">Cliquer « Réglages » en haut du panneau, garder <code>http://localhost:3000</code> et « Enregistrer ». Puis passer le système en thème clair, puis sombre.</p>
+        <div class="expect">
+          <b>Attendu</b>
+          <ul>
+            <li>« Enregistré : http://localhost:3000 », sans demande de permission (localhost est déjà autorisé). Une autre adresse demande votre accord.</li>
+            <li>Le panneau suit le thème du système : papier et encre en clair, inversés en sombre ; seuls les verdicts sont en couleur.</li>
+          </ul>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>

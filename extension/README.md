@@ -31,6 +31,12 @@ icône et un mot. Une ligne numérotée suit les vraies étapes : 01 contenu, 02
 passages cités. Les polices sont dans `fonts/` (aucun appel réseau) avec leur licence OFL ; les
 icônes Phosphor (licence MIT) sont dans `sidepanel.html`.
 
+## Tester
+
+`scenarios.html` (à glisser dans Chrome) : douze scénarios réels, texte, lien, image, panneau et
+plateforme arrêtée, chacun avec le résultat attendu. Pour l'ouvrir depuis le disque, activer
+« Autoriser l'accès aux URL de fichier » dans les détails de l'extension.
+
 ## Vie privée
 
 - Aucun script injecté dans les pages, aucun accès à toutes les pages, ni à l'historique ni aux
