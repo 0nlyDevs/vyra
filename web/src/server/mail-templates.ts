@@ -8,7 +8,6 @@ import type { Mail } from '@/server/mail';
 
 const INK = '#0a0a0b';
 const PAPER = '#f3f2ee';
-const CARD = '#fbfaf7';
 const MUTED = '#55544e';
 const BORDER = '#e2e1dc';
 const SANS = "'Bricolage Grotesque',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
@@ -22,19 +21,21 @@ function escapeHtml(value: string) {
     .replaceAll('"', '&quot;');
 }
 
+// Une lettre, pas une carte : alignée à gauche sur le papier, grand titre, texte à taille de lecture,
+// un seul bouton en encre et un filet fin avant le pied de page.
 function layout(title: string, paragraphs: string[], button?: { label: string; url: string }) {
   // L'aperçu affiché dans la liste des e-mails : la première phrase après « Bonjour ».
   const preview = escapeHtml(paragraphs[1] ?? paragraphs[0] ?? '');
   const body = paragraphs
     .map(
       (text) =>
-        `<p style="margin:0 0 16px;font-size:15px;line-height:1.65;color:${INK}">${escapeHtml(text)}</p>`,
+        `<p style="margin:0 0 18px;font-size:17px;line-height:1.65;color:${INK}">${escapeHtml(text)}</p>`,
     )
     .join('');
   const cta = button
-    ? `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:28px 0 24px"><tr><td style="border-radius:999px;background:${INK}"><a href="${escapeHtml(button.url)}" style="display:inline-block;padding:13px 26px;font-family:${SANS};font-size:15px;font-weight:600;color:${PAPER};text-decoration:none;border-radius:999px">${escapeHtml(button.label)}</a></td></tr></table><p style="margin:0;font-size:13px;line-height:1.6;color:${MUTED}">Si le bouton ne s’ouvre pas, copiez ce lien dans votre navigateur :<br><a href="${escapeHtml(button.url)}" style="color:${MUTED};word-break:break-all">${escapeHtml(button.url)}</a></p>`
+    ? `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:36px 0 28px"><tr><td style="border-radius:999px;background:${INK}"><a href="${escapeHtml(button.url)}" style="display:inline-block;padding:16px 30px;font-family:${SANS};font-size:17px;font-weight:600;color:${PAPER};text-decoration:none;border-radius:999px">${escapeHtml(button.label)}</a></td></tr></table><p style="margin:0;font-size:14px;line-height:1.6;color:${MUTED}">Si le bouton ne s’ouvre pas, copiez ce lien dans votre navigateur :<br><a href="${escapeHtml(button.url)}" style="color:${MUTED};word-break:break-all">${escapeHtml(button.url)}</a></p>`
     : '';
-  return `<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light"><meta name="supported-color-schemes" content="light"><title>${escapeHtml(title)}</title></head><body style="margin:0;padding:0;background:${PAPER};font-family:${SANS};color:${INK};-webkit-font-smoothing:antialiased"><div style="display:none;max-height:0;overflow:hidden;opacity:0">${preview}</div><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${PAPER}"><tr><td align="center" style="padding:40px 16px"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px"><tr><td style="padding:0 4px 24px;font-family:${SANS};font-size:22px;font-weight:800;letter-spacing:-0.04em;color:${INK}">Vyra<span style="font-family:${SERIF};font-style:italic;font-weight:500">.</span></td></tr><tr><td style="background:${CARD};border:1px solid ${BORDER};border-radius:20px;padding:36px 32px"><h1 style="margin:0 0 20px;font-family:${SANS};font-size:22px;line-height:1.3;font-weight:700;letter-spacing:-0.02em;color:${INK}">${escapeHtml(title)}</h1>${body}${cta}</td></tr><tr><td style="padding:24px 4px 0;font-size:12px;line-height:1.6;color:${MUTED}">Vous recevez cet e-mail parce qu’un compte Vyra utilise cette adresse.<br>Vyra · vérifier avant de partager</td></tr></table></td></tr></table></body></html>`;
+  return `<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light"><meta name="supported-color-schemes" content="light"><title>${escapeHtml(title)}</title></head><body style="margin:0;padding:0;background:${PAPER};font-family:${SANS};color:${INK};-webkit-font-smoothing:antialiased"><div style="display:none;max-height:0;overflow:hidden;opacity:0">${preview}</div><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${PAPER}"><tr><td align="left" style="padding:56px 32px 48px"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:580px"><tr><td style="padding:0 0 56px;font-family:${SANS};font-size:26px;font-weight:800;letter-spacing:-0.04em;color:${INK}">Vyra<span style="font-family:${SERIF};font-style:italic;font-weight:500">.</span></td></tr><tr><td><h1 style="margin:0 0 28px;font-family:${SANS};font-size:34px;line-height:1.15;font-weight:700;letter-spacing:-0.03em;color:${INK}">${escapeHtml(title)}</h1>${body}${cta}</td></tr><tr><td style="padding:48px 0 0"><div style="border-top:1px solid ${BORDER};padding-top:20px;font-size:13px;line-height:1.6;color:${MUTED}">Vous recevez cet e-mail parce qu’un compte Vyra utilise cette adresse.<br>Vyra · vérifier avant de partager</div></td></tr></table></td></tr></table></body></html>`;
 }
 
 export function verifyEmailMail(to: string, name: string, url: string): Mail {
