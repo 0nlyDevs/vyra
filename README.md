@@ -132,56 +132,60 @@ officielle toute prête : on prend celle compilée par la communauté
    port **5432** (celui de Postgres sur le PC ; 5433 est celui de Docker) :
    `DATABASE_URL=postgres://mindstack:mindstack@localhost:5432/mindstack`.
 
-### L'IA : plusieurs fournisseurs, plusieurs clés, un ordre
+### L'IA : les clés, et rien d'autre à régler
 
-Tout se règle dans `processing/.env` (copié depuis `processing/.env.example`).
-
-**L'ordre des fournisseurs** : `AI_PROVIDERS=groq,gemini,deepseek` (c'est l'ordre par défaut). La
-première IA répond ; si elle n'a pas de clé, a atteint son quota ou tombe en panne, la suivante
-prend le relais. Une IA sans clé est sautée.
-
-**Les clés** : une ou plusieurs par fournisseur, séparées par des virgules.
+Dans `processing/.env` (copié depuis `processing/.env.example`), il suffit de mettre une ou plusieurs
+clés, séparées par des virgules :
 
 ```
-GROQ_API_KEYS=cle1,cle2,cle3
-GEMINI_API_KEYS=cle1,cle2
+GROQ_API_KEYS=cle1,cle2
+GEMINI_API_KEYS=cle1
 DEEPSEEK_API_KEYS=cle1
 ```
 
-Quand une clé atteint son quota (erreur 429), la suivante prend le relais toute seule, sans couper
-la demande en cours. La clé épuisée est mise de côté 60 secondes (limite de débit), ou 1 heure
-(quota du jour, solde épuisé, clé refusée), puis elle revient. Quand toutes les clés d'un
-fournisseur sont épuisées, on passe au fournisseur suivant. Les clés n'apparaissent jamais dans
-les journaux. (`GEMINI_API_KEY`, une seule clé, marche toujours.)
+L'ordre des IA est groq, gemini, deepseek. Une IA sans clé est sautée ; si la première est hors
+quota ou en panne, la suivante prend le relais, puis la réponse préparée de chaque consigne : la démo
+continue. Quand une clé atteint son quota (erreur 429), la suivante du même fournisseur prend le
+relais toute seule, puis la clé épuisée est mise de côté (60 s pour une limite de débit, 1 h pour un
+quota du jour). Les clés n'apparaissent jamais dans les journaux. Après un changement :
+`docker compose up -d --force-recreate processing`.
 
 **Attention aux quotas** : ils sont comptés par projet (Gemini), par organisation (Groq) ou par
 compte (DeepSeek), pas par clé. Plusieurs clés d'un même projet ne donnent pas plus de quota : il
-faut des clés de projets ou de comptes différents. DeepSeek n'a pas de palier gratuit (il faut un
-solde). Modèles par défaut : `openai/gpt-oss-120b` (Groq, `GROQ_MODEL`) et `deepseek-flash`
-(DeepSeek, `DEEPSEEK_MODEL`).
+faut des clés de projets ou de comptes différents. DeepSeek n'a pas de palier gratuit. Groq et
+DeepSeek ne lisent pas les images ni le son : ces demandes vont à Gemini, qui fournit aussi les
+vecteurs de la recherche par le sens.
 
-Groq et DeepSeek ne lisent pas les images ni le son : ces demandes (scan) vont à Gemini. Les
-vecteurs de la recherche par le sens viennent aussi de Gemini, avec rotation de ses clés.
+**Vérifier que l'IA répond**
 
-**Le local** : `AI_MODE` décide de Gemma 4.
+1. `curl http://127.0.0.1:8000/health` : `"ai"` liste les IA qui ont une clé (`"deepseek"`,
+   `"groq+gemini"`…). `not-configured` : aucune clé.
+2. `curl -s -X POST http://127.0.0.1:8000/v1/prompts/summarize -H 'content-type: application/json'
+   -d '{"payload":{"notes":["Le marché ouvre à 7 h.","Il pleut sur Tamatave."]}}'` : `"source":"gemini"`
+   veut dire qu'un modèle a répondu (Groq, Gemini ou DeepSeek) ; `"source":"fallback"` : réponse
+   préparée, aucune IA n'a répondu.
+3. `docker compose logs processing --tail 20` : « ia : groq ne répond pas, relais par gemini » montre
+   le relais ; « deepseek : réponse en … ms » dit qui a répondu.
 
-| `AI_MODE` | Qui répond | À installer |
-|---|---|---|
-| `gemini` (par défaut) | Les IA distantes seules, dans l'ordre | Au moins une clé (Gemini : gratuite sur https://aistudio.google.com/apikey) |
-| `gemini-then-local` | Les IA distantes, puis Gemma 4 en local si aucune ne répond | Les clés, plus [Ollama](https://ollama.com) avec `ollama pull gemma4:e4b` et `ollama pull embeddinggemma` (environ 7 Go, 16 Go de mémoire conseillés) |
-| `local` | Gemma 4 en local seul, sans wifi | Ollama et les deux modèles |
+**Réglages facultatifs** (tous ont une valeur par défaut, à ne mettre dans `processing/.env` que pour
+changer quelque chose) :
 
-Dans l'équipe, seul le Mac de Mahery a Gemma 4 (modes `local` et `gemini-then-local`) : tous les
-autres postes restent en `gemini` et n'installent ni Ollama ni Gemma.
+| Variable | Rôle (défaut) |
+|---|---|
+| `AI_PROVIDERS` | l'ordre et le choix des IA (`groq,gemini,deepseek`) |
+| `GROQ_MODEL`, `DEEPSEEK_MODEL`, `GEMINI_MODEL` | les modèles (`openai/gpt-oss-120b`, `deepseek-flash`, `gemini-3-flash-preview`) |
+| `GEMINI_FALLBACK_MODELS` | modèles Gemini essayés si le premier est saturé (liste JSON) |
+| `GROQ_BASE_URL`, `DEEPSEEK_BASE_URL`, `GEMINI_BASE_URL` | les adresses des API (proxy, autre région) |
+| `KEY_COOLDOWN_SECONDS`, `KEY_QUOTA_COOLDOWN_SECONDS` | mise de côté d'une clé (60, 3600) |
+| `AI_TIMEOUT_SECONDS` | délai maximal d'une réponse (20) |
+| `AI_MODE` | `gemini` (défaut) : IA distantes seules ; `gemini-then-local` : puis Gemma 4 en local ; `local` : Gemma 4 seul |
+| `LOCAL_AI_URL`, `LOCAL_AI_MODEL`, `LOCAL_EMBEDDING_MODEL` | l'IA locale (Ollama : `ollama pull gemma4:e4b` et `ollama pull embeddinggemma`, environ 7 Go) |
+| `DEMO_OFFLINE` | `true` : jamais d'appel à l'IA, toujours les réponses de secours (répéter le plan B) |
+| `PROCESSING_TOKEN` | en ligne seulement : secret partagé avec le web, même valeur des deux côtés |
 
-Dans tous les cas, si aucune IA ne répond, la réponse préparée de chaque consigne s'affiche : la
-démo continue.
-
-Après un changement de `processing/.env` : `docker compose up -d --force-recreate processing`.
-Vérifier : http://127.0.0.1:8000/health affiche les IA qui ont une clé, dans l'ordre
-(`"ai": "groq+gemini"`), ou le mode (`gemini-then-local`, `local`).
-En passant vers ou depuis `local`, lancer aussi `make seed` : les vecteurs des deux IA ne se
-comparent pas.
+Dans l'équipe, seul le Mac de Mahery a Gemma 4 (`AI_MODE=local` ou `gemini-then-local`) : les autres
+postes restent sur les IA distantes. En passant vers ou depuis `local`, lancer `make seed` : les
+vecteurs des deux IA ne se comparent pas.
 
 ### Comptes, e-mails et connexion Google
 
