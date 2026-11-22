@@ -2,6 +2,8 @@ import { PageHeader } from '@/components/common/PageHeader';
 import { FamilyChat } from '@/features/game/FamilyChat';
 import { requireProfile } from '@/server/session';
 
+export const metadata = { title: 'Le groupe famille' };
+
 // Bonus du jeu vrai ou fake : annoncer la vérité au groupe famille, sans vexer personne.
 export default async function GameFamilyPage() {
   await requireProfile();

@@ -8,6 +8,8 @@ import { PressIndexBar } from '@/features/investigation/PressIndexBar';
 import { listCases } from '@/server/dal/cases';
 import { getNewsIndexState } from '@/server/dal/news-index';
 
+export const metadata = { title: 'Enquêtes' };
+
 // `?information=…&lien=…` pré-remplit l'analyse (envoyé par l'extension du navigateur).
 export default async function CasesPage({
   searchParams,

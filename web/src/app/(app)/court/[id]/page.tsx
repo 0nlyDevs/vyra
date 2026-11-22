@@ -6,6 +6,8 @@ import { Hearing } from '@/features/court/Hearing';
 import { getCaseFile } from '@/server/dal/cases';
 import { getLatestHearing } from '@/server/dal/court';
 
+export const metadata = { title: 'Audience' };
+
 // L'audience d'une affaire : elle reprend là où la dernière s'est arrêtée.
 export default async function HearingPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;

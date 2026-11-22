@@ -4,6 +4,8 @@ import { PlayStage } from '@/features/game3d/PlayStage';
 import { listScenarios } from '@/server/dal/game';
 import { requireProfile } from '@/server/session';
 
+export const metadata = { title: 'Une série' };
+
 // Une série du jeu vrai ou fake, de la première information au score.
 export default async function GamePlayPage() {
   await requireProfile();

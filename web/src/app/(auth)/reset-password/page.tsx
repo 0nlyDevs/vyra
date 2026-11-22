@@ -4,6 +4,8 @@ import { Button } from '@/components/ui/button';
 import { ResetPasswordForm } from '@/features/auth/ResetPasswordForm';
 import { isAuthTokenValid } from '@/server/dal/accounts';
 
+export const metadata = { title: 'Nouveau mot de passe' };
+
 export default async function ResetPasswordPage({
   searchParams,
 }: {

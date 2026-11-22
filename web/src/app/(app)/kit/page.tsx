@@ -28,6 +28,8 @@ import {
 } from '@/lib/domain';
 import { env } from '@/lib/env';
 
+export const metadata = { title: 'Kit d’interface' };
+
 // Le kit : tout ce qui existe déjà. Avant de créer un composant, vérifier qu'il n'est pas ici.
 // Chaque bloc donne le fichier à importer.
 
