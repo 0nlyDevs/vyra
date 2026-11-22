@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { isCommonPassword, repeatsIdentity } from './common-passwords';
+import { passwordWeakness } from './password-strength';
 
 const email = z
   .string()
@@ -11,11 +11,14 @@ const email = z
 const newPassword = z
   .string()
   .min(8, 'Au moins 8 caractères.')
-  .max(128, '128 caractères au maximum.')
-  .refine(
-    (value) => !isCommonPassword(value),
-    'Ce mot de passe est trop courant : choisissez-en un autre.',
-  );
+  .max(128, '128 caractères au maximum.');
+
+// Un nouveau mot de passe doit être difficile à deviner (voir password-strength.ts). Vérification
+// asynchrone : ces schémas se lisent avec `safeParseAsync`.
+async function requireStrong(password: string, personal: string[], ctx: z.RefinementCtx) {
+  const weakness = await passwordWeakness(password, personal);
+  if (weakness) ctx.addIssue({ code: 'custom', path: ['password'], message: weakness });
+}
 
 export const signUpSchema = z
   .object({
@@ -23,10 +26,9 @@ export const signUpSchema = z
     email,
     password: newPassword,
   })
-  .refine((value) => !repeatsIdentity(value.password, value), {
-    path: ['password'],
-    message: 'Le mot de passe ne doit pas être votre nom ou votre adresse e-mail.',
-  });
+  .superRefine((value, ctx) =>
+    requireStrong(value.password, [value.name, value.email, value.email.split('@')[0] ?? ''], ctx),
+  );
 
 export const signInSchema = z.object({
   email,
@@ -44,4 +46,5 @@ export const resetPasswordSchema = z
   .refine((value) => value.password === value.confirm, {
     path: ['confirm'],
     message: 'Les deux mots de passe ne sont pas identiques.',
-  });
+  })
+  .superRefine((value, ctx) => requireStrong(value.password, [], ctx));
