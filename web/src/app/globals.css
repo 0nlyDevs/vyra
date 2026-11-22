@@ -510,13 +510,17 @@ html:has([data-desk-bar]) {
   }
 }
 
-/* La barre du haut : logo à gauche, l'île d'encre au centre, l'avatar à droite. */
+/* La barre du haut : logo à gauche, l'île d'encre au centre, l'avatar à droite. Les deux côtés se
+   partagent la place à parts égales : l'île reste au milieu de l'écran, quelle que soit leur
+   largeur ; elle se replie (« Plus ») avant de pousser un côté. */
 .desk-bar {
   position: sticky;
   top: 0;
   z-index: 30;
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-columns:
+    minmax(var(--bar-side, max-content), 1fr) minmax(0, max-content)
+    minmax(var(--bar-side, max-content), 1fr);
   align-items: center;
   gap: 20px;
   padding: 14px var(--inset);
@@ -567,6 +571,8 @@ html:has([data-desk-bar]) {
   position: relative;
   display: flex;
   justify-content: center;
+  width: var(--tabs-full, auto);
+  max-width: 100%;
   min-width: 0;
   overflow-x: clip;
 }
@@ -714,6 +720,7 @@ html:has([data-desk-bar]) {
     grid-column: 1 / -1;
     grid-row: 2;
     justify-content: flex-start;
+    width: auto;
   }
   .dock .dock-opt,
   .dock .dock-sep {
