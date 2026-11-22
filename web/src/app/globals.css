@@ -1052,9 +1052,28 @@ html:has([data-desk-bar]) {
   position: sticky;
   top: 0;
   z-index: 30;
-  background: color-mix(in srgb, var(--background) 88%, transparent);
-  -webkit-backdrop-filter: blur(14px);
-  backdrop-filter: blur(14px);
+  background: var(--background);
+}
+
+/* Les deux barres du haut : un aplat tant que la page est en haut, puis une vitre floutée avec
+   un filet dès qu'un contenu passe dessous (`data-scrolled`, posé par ScrollState). En mode éco,
+   sans flou, la barre reste opaque. */
+.desk-bar,
+.site-bar {
+  transition:
+    background-color 0.35s var(--ease-out),
+    box-shadow 0.35s var(--ease-out);
+}
+html[data-scrolled] .desk-bar,
+html[data-scrolled] .site-bar {
+  background: color-mix(in srgb, var(--background) 62%, transparent);
+  -webkit-backdrop-filter: blur(20px) saturate(1.8);
+  backdrop-filter: blur(20px) saturate(1.8);
+  box-shadow: 0 1px 0 var(--border);
+}
+html[data-eco="on"][data-scrolled] .desk-bar,
+html[data-eco="on"][data-scrolled] .site-bar {
+  background: var(--background);
 }
 .site-bar-in {
   display: flex;
