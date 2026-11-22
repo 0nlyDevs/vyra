@@ -8,8 +8,8 @@ import { Assistant } from '@/features/assistant/Assistant';
 import { VerifyEmailBanner } from '@/features/auth/VerifyEmailBanner';
 import { signOut } from '@/features/demo/actions';
 import { ResetDemoButton } from '@/features/demo/ResetDemoButton';
-import { PROFILE_ROLE_LABELS } from '@/lib/domain';
-import { publicEnv } from '@/lib/env';
+import { isVerifier, PROFILE_ROLE_LABELS } from '@/lib/domain';
+import { demoMode, publicEnv } from '@/lib/env';
 import { KIT_ITEM } from '@/lib/navigation';
 import { getAccount } from '@/server/dal/accounts';
 import { requireProfile } from '@/server/session';
@@ -40,7 +40,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
         <TabIsland />
         <div className="bar-right">
           <div className="hidden sm:block">
-            <ResetDemoButton />
+            {demoMode && isVerifier(profile.role) && <ResetDemoButton />}
           </div>
           <UserMenu
             name={profile.name}
@@ -56,7 +56,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
         <div className="mx-auto w-full max-w-[90rem] px-4 pt-6 pb-10 sm:pt-8 min-[901px]:px-0">
           {/* Sur téléphone, la réinitialisation de la démo passe en haut de la page. */}
           <div className="mb-6 flex justify-end sm:hidden">
-            <ResetDemoButton />
+            {demoMode && isVerifier(profile.role) && <ResetDemoButton />}
           </div>
           {children}
         </div>
