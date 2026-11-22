@@ -1,6 +1,7 @@
 import { CircleCheck, CircleDashed, CircleX, Lightbulb, TriangleAlert } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { AiNotice } from '@/components/common/AiNotice';
+import { AiReading } from '@/components/common/AiReading';
 import {
   AiSourceBadge,
   CertaintyBadge,
@@ -74,7 +75,7 @@ function UnverifiedQuotes({ quotes }: { quotes?: string[] }) {
 
 export function Pleadings({ hearing }: { hearing: HearingView }) {
   return (
-    <div className="grid gap-6">
+    <AiReading label="Plaidoiries écrites par l’IA" className="gap-6">
       <div className={cn('grid gap-2', ENTER)}>
         <SpeechBubble
           speaker="Accusation"
@@ -105,7 +106,7 @@ export function Pleadings({ hearing }: { hearing: HearingView }) {
         <UnverifiedQuotes quotes={hearing.defense.unverified} />
       </div>
       <AiSourceBadge source={hearing.pleadingsSource} />
-    </div>
+    </AiReading>
   );
 }
 
@@ -164,7 +165,7 @@ function FindingList({
   empty: string;
 }) {
   return (
-    <section className="grid content-start gap-2 surface p-4">
+    <section className="grid content-start gap-2 rounded-lg bg-muted p-4">
       <h3 className="flex items-center gap-2 font-semibold">
         {icon}
         {title}
@@ -197,51 +198,38 @@ export function Verdict({ hearing }: { hearing: HearingView }) {
           <CertaintyBadge level={certainty} />
         </div>
         <p className="text-muted-foreground text-sm">
-          Règle appliquée : {CERTAINTY_CRITERIA[certainty]}
+          Règle appliquée, calculée sur les pièces sans IA : {CERTAINTY_CRITERIA[certainty]}
         </p>
+      </div>
+
+      <AiReading
+        label="Conclusion formulée par l’IA"
+        className={cn('[animation-delay:60ms]', ENTER)}
+      >
         <p className="max-w-prose text-pretty text-xl leading-relaxed">{hearing.conclusion}</p>
         {hearing.conclusion && (
           <SpeakButton text={hearing.conclusion} label="Écouter la conclusion" />
         )}
-      </div>
-
-      <div className={cn('grid gap-4 md:grid-cols-3 [animation-delay:100ms]', ENTER)}>
-        <FindingList
-          title="Confirmé"
-          icon={<CircleCheck aria-hidden className="size-5 text-success" />}
-          items={findings?.confirmed ?? []}
-          empty="Rien n’est confirmé par une pièce."
-        />
-        <FindingList
-          title="Contesté"
-          icon={<CircleX aria-hidden className="size-5 text-danger" />}
-          items={findings?.contested ?? []}
-          empty="Rien n’est contredit par une pièce."
-        />
-        <FindingList
-          title="Manquant"
-          icon={<CircleDashed aria-hidden className="size-5 text-muted-foreground" />}
-          items={findings?.missing ?? []}
-          empty="Chaque affirmation a au moins une pièce."
-        />
-      </div>
-
-      <div className={cn('grid gap-4 md:grid-cols-2 [animation-delay:200ms]', ENTER)}>
-        {vote && (
-          <div
-            className={cn(
-              'grid gap-1 rounded-xl p-4',
-              voteMatches ? 'bg-success-soft' : 'bg-warning-soft',
-            )}
-          >
-            <p className="font-semibold">Votre vote : {VOTE_LABELS[vote]}</p>
-            <p className={voteMatches ? 'text-success' : 'text-warning'}>
-              {voteMatches
-                ? 'Il rejoint la conclusion du juge.'
-                : `La conclusion appelait plutôt « ${VOTE_LABELS[VOTE_MATCHING_CERTAINTY[certainty]]} ».`}
-            </p>
-          </div>
-        )}
+        <div className="grid gap-4 md:grid-cols-3">
+          <FindingList
+            title="Confirmé"
+            icon={<CircleCheck aria-hidden className="size-5 text-success" />}
+            items={findings?.confirmed ?? []}
+            empty="Rien n’est confirmé par une pièce."
+          />
+          <FindingList
+            title="Contesté"
+            icon={<CircleX aria-hidden className="size-5 text-danger" />}
+            items={findings?.contested ?? []}
+            empty="Rien n’est contredit par une pièce."
+          />
+          <FindingList
+            title="Manquant"
+            icon={<CircleDashed aria-hidden className="size-5 text-muted-foreground" />}
+            items={findings?.missing ?? []}
+            empty="Chaque affirmation a au moins une pièce."
+          />
+        </div>
         {hearing.whatToCheck && (
           <div className="grid gap-1 rounded-xl bg-accent p-4 text-accent-foreground">
             <p className="flex items-center gap-2 font-semibold">
@@ -251,12 +239,27 @@ export function Verdict({ hearing }: { hearing: HearingView }) {
             <p className="text-pretty">{hearing.whatToCheck}</p>
           </div>
         )}
-      </div>
-
-      <div className="flex flex-wrap items-center gap-3">
-        <AiNotice className="flex-1" />
         {hearing.verdictSource && <AiSourceBadge source={hearing.verdictSource} />}
-      </div>
+      </AiReading>
+
+      {vote && (
+        <div
+          className={cn(
+            'grid max-w-prose gap-1 rounded-xl p-4 [animation-delay:200ms]',
+            ENTER,
+            voteMatches ? 'bg-success-soft' : 'bg-warning-soft',
+          )}
+        >
+          <p className="font-semibold">Votre vote : {VOTE_LABELS[vote]}</p>
+          <p className={voteMatches ? 'text-success' : 'text-warning'}>
+            {voteMatches
+              ? 'Il rejoint la conclusion du juge.'
+              : `La conclusion appelait plutôt « ${VOTE_LABELS[VOTE_MATCHING_CERTAINTY[certainty]]} ».`}
+          </p>
+        </div>
+      )}
+
+      <AiNotice />
     </div>
   );
 }
