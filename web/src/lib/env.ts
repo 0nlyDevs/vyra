@@ -28,6 +28,9 @@ const serverSchema = z.object({
   // La changer invalide tous les sceaux déjà imprimés. Absente : une clé de développement en
   // local, et aucun sceau en production.
   SEAL_SECRET: z.string().min(32, 'au moins 32 caractères').optional(),
+  // Comptes de démo en un clic (dont un admin) et remise à zéro des données. Absente : actif sur
+  // le PC, coupé en production. `true` en ligne seulement le temps d'une présentation.
+  DEMO_MODE: z.stringbool().optional(),
 });
 
 // Variables `NEXT_PUBLIC_*` : copiées dans le code envoyé au navigateur, donc jamais de secret.
@@ -59,4 +62,5 @@ function parseEnv<T extends z.ZodType>(schema: T, source: Record<string, string 
 }
 
 export const env = parseEnv(serverSchema, process.env);
+export const demoMode = env.DEMO_MODE ?? env.NODE_ENV !== 'production';
 export const publicEnv = parseEnv(publicSchema, publicSource);

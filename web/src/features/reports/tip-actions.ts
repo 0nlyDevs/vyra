@@ -4,6 +4,7 @@ import { randomBytes } from 'node:crypto';
 import { redirect } from 'next/navigation';
 import { type ActionResult, fail } from '@/lib/action-result';
 import { ERRORS } from '@/lib/errors';
+import { clientIp, withinLimit } from '@/server/rate-limit';
 import { fileReport } from './file-report';
 import { tipSchema } from './schema';
 
@@ -19,6 +20,9 @@ export async function submitTip(
     reason: formData.get('reason') ?? '',
   });
   if (!parsed.success) return fail(ERRORS.VALIDATION_FAILED, parsed.error);
+  if (!(await withinLimit(`tip:ip:${await clientIp()}`, 10, 60 * 60))) {
+    return fail(ERRORS.RATE_LIMITED);
+  }
 
   const followToken = randomBytes(16).toString('base64url');
   const outcome = await fileReport({

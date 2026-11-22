@@ -29,5 +29,11 @@ def test_health_stays_open() -> None:
     assert _client().get("/health").status_code == 200
 
 
+def test_docs_are_hidden_online(offline_client: TestClient) -> None:
+    for path in ("/docs", "/openapi.json"):
+        assert _client().get(path).status_code == 404
+    assert offline_client.get("/docs").status_code == 200
+
+
 def test_no_token_configured_keeps_local_behaviour(offline_client: TestClient) -> None:
     assert offline_client.post(PROMPT, json=BODY).status_code == 200

@@ -4,6 +4,7 @@ import { type ActionResult, fail, ok } from '@/lib/action-result';
 import { env } from '@/lib/env';
 import { ERRORS } from '@/lib/errors';
 import { logger } from '@/lib/logger';
+import { clientIp, withinLimit } from '@/server/rate-limit';
 
 // Seul point d'appel vers le service `processing` (FastAPI, même PC). Toute panne (service arrêté,
 // délai dépassé, réponse inattendue) devient AI_UNAVAILABLE : jamais d'exception vers l'écran.
@@ -11,8 +12,19 @@ import { logger } from '@/lib/logger';
 // Plus long que le délai de processing (20 s avec Gemini, 60 s avec l'IA locale, dont le premier
 // appel charge le modèle en mémoire) : processing renvoie la réponse de secours avant.
 const TIMEOUT_MS = 65_000;
+// Appels à processing (IA, recherche web) par adresse IP, pour que personne n'épuise seul les
+// quotas partagés. Large : une action en fait plusieurs, et une salle partage souvent une IP.
+const CALLS_PER_IP = 240;
+const CALLS_WINDOW_SECONDS = 10 * 60;
 
 export type AiSource = 'gemini' | 'fallback';
+
+async function callAllowed(path: string) {
+  const ip = await clientIp();
+  if (await withinLimit(`processing:ip:${ip}`, CALLS_PER_IP, CALLS_WINDOW_SECONDS)) return true;
+  logger.warn('processing : limite d’appels atteinte', { path });
+  return false;
+}
 
 async function post<T>(
   path: string,
@@ -21,6 +33,7 @@ async function post<T>(
   timeoutMs = TIMEOUT_MS,
 ): Promise<T | null> {
   const started = Date.now();
+  if (!(await callAllowed(path))) return null;
   try {
     const response = await fetch(`${env.PROCESSING_URL}${path}`, {
       method: 'POST',
@@ -322,6 +335,7 @@ function processingHeaders(contentType: string): Record<string, string> {
 // Dictée : le texte dit dans l'enregistrement (Groq Whisper). `null` : indisponible, l'appelant peut
 // essayer une autre voie.
 export async function transcribeAudio(bytes: Buffer, mimeType: string): Promise<string | null> {
+  if (!(await callAllowed('/v1/transcribe'))) return null;
   try {
     const response = await fetch(`${env.PROCESSING_URL}/v1/transcribe`, {
       method: 'POST',
@@ -340,6 +354,7 @@ export async function transcribeAudio(bytes: Buffer, mimeType: string): Promise<
 
 // Lecture à voix haute : un MP3 (ElevenLabs), ou `null` si la voix n'est pas disponible.
 export async function speakText(text: string): Promise<Buffer | null> {
+  if (!(await callAllowed('/v1/speech'))) return null;
   try {
     const response = await fetch(`${env.PROCESSING_URL}/v1/speech`, {
       method: 'POST',

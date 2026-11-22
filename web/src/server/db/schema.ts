@@ -118,6 +118,14 @@ export const authTokens = pgTable('auth_tokens', {
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 });
 
+// Compteurs anti-abus (connexions, inscriptions, appels à l'IA) : une ligne par clé, remise à zéro
+// à `reset_at`. La clé est une empreinte (jamais l'adresse IP ni l'e-mail en clair).
+export const rateLimits = pgTable('rate_limits', {
+  key: varchar('key', { length: 64 }).primaryKey(),
+  hits: integer('hits').notNull(),
+  resetAt: timestamp('reset_at', { withTimezone: true }).notNull(),
+});
+
 // ─── L'affaire : le dossier commun à tous les modules ───────────────────────────────────────
 // Ces quatre tables sont partagées. Chaque module ajoute SES tables plus bas, dans sa section
 // (audiences du tribunal, signalements, scénarios du détective…), sans modifier celles-ci.

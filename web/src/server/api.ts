@@ -18,6 +18,7 @@ const STATUS: Partial<Record<ErrorCode, number>> = {
   VIDEO_FAILED: 422,
   NOTHING_TO_ADD: 409,
   INTERNAL: 500,
+  RATE_LIMITED: 429,
 };
 
 export function apiOk<T>(data: T, status = 200) {

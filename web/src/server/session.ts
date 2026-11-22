@@ -1,6 +1,7 @@
 import 'server-only';
 import { cookies, headers } from 'next/headers';
 import { redirect } from 'next/navigation';
+import { env } from '@/lib/env';
 import { newToken } from '@/server/auth/tokens';
 import { createSession, deleteSession, findSessionProfile } from '@/server/dal/accounts';
 
@@ -43,6 +44,8 @@ export async function startSession(profileId: string) {
   (await cookies()).set(COOKIE_NAME, token, {
     httpOnly: true,
     sameSite: 'lax',
+    // Jamais en clair sur le réseau en ligne ; le PC reste en http://localhost.
+    secure: env.APP_URL.startsWith('https://'),
     path: '/',
     expires: expiresAt,
   });
