@@ -16,6 +16,7 @@ import httpx
 
 from app.core.config import Settings
 from app.schemas.ai import InlineFile
+from app.services import key_pool
 from app.services.connect_retry import call_with_connect_retry
 from app.services.llm_common import AiUnavailableError, extract_json
 
@@ -24,10 +25,11 @@ logger = logging.getLogger(__name__)
 GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models"
 
 
-def _api_key(settings: Settings) -> str:
-    if settings.demo_offline or settings.gemini_api_key is None:
+def _keys(settings: Settings) -> list[str]:
+    keys = settings.keys_for("gemini")
+    if settings.demo_offline or not keys:
         raise AiUnavailableError("offline or not configured")
-    return settings.gemini_api_key.get_secret_value()
+    return keys
 
 
 def _post(
@@ -37,22 +39,27 @@ def _post(
     transport: httpx.BaseTransport | None,
     timeout: float | None = None,
 ) -> dict[str, Any]:
-    # La clé part dans un en-tête, jamais dans l'adresse : elle n'apparaît pas dans les journaux.
-    headers = {"x-goog-api-key": _api_key(settings)}
     # Les nouveaux essais (DNS du conteneur instable) restent dans le temps prévu pour l'appel.
     deadline = time.monotonic() + (timeout or settings.ai_timeout_seconds)
-    with httpx.Client(transport=transport) as client:
-        response = call_with_connect_retry(
-            lambda: client.post(
-                url, json=body, headers=headers, timeout=deadline - time.monotonic()
-            ),
-            deadline=deadline,
-        )
-    response.raise_for_status()
-    data = response.json()
-    if not isinstance(data, dict):
-        raise ValueError("unexpected response")
-    return data
+
+    def call(key: str) -> dict[str, Any]:
+        # La clé part dans un en-tête, jamais dans l'adresse : pas dans les journaux.
+        headers = {"x-goog-api-key": key}
+        with httpx.Client(transport=transport) as client:
+            response = call_with_connect_retry(
+                lambda: client.post(
+                    url, json=body, headers=headers, timeout=deadline - time.monotonic()
+                ),
+                deadline=deadline,
+            )
+        response.raise_for_status()
+        data = response.json()
+        if not isinstance(data, dict):
+            raise ValueError("unexpected response")
+        return data
+
+    # Plusieurs clés : quand l'une atteint son quota, la suivante prend le relais.
+    return key_pool.call_with_rotation("gemini", _keys(settings), settings, call)
 
 
 def _is_overloaded(exc: Exception) -> bool:
