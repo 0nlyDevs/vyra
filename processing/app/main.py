@@ -35,6 +35,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         title="Vyra Processing",
         summary="IA et traitements Python, appelés uniquement par le serveur Next.js.",
         version="0.1.0",
+        # En ligne (secret configuré), pas de documentation publique : elle listerait chaque route.
+        openapi_url=None if settings.processing_token else "/openapi.json",
     )
     # Toute dépendance `get_settings` de l'application renvoie les réglages reçus ici.
     application.dependency_overrides[get_settings] = lambda: settings
