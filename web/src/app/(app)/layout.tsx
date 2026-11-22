@@ -21,6 +21,7 @@ import { requireProfile } from '@/server/session';
 export default async function AppLayout({ children }: { children: ReactNode }) {
   const profile = await requireProfile();
   const account = await getAccount(profile.id);
+  const showDemoReset = demoResetAllowed && isVerifier(profile.role);
 
   return (
     <div data-app-shell data-scope="desk" className="min-h-dvh bg-background">
@@ -38,9 +39,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
         </div>
         <TabIsland />
         <div className="bar-right">
-          <div className="hidden sm:block">
-            {demoResetAllowed && isVerifier(profile.role) && <ResetDemoButton />}
-          </div>
+          <div className="hidden sm:block">{showDemoReset && <ResetDemoButton />}</div>
           <UserMenu
             name={profile.name}
             role={PROFILE_ROLE_LABELS[profile.role]}
@@ -52,10 +51,13 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
 
       <main id="contenu" tabIndex={-1} className="desk-main outline-none">
         <div className="mx-auto w-full max-w-[90rem] px-4 pt-6 pb-10 sm:pt-8 min-[901px]:px-0">
-          {/* Sur téléphone, la réinitialisation de la démo passe en haut de la page. */}
-          <div className="mb-6 flex justify-end sm:hidden">
-            {demoResetAllowed && isVerifier(profile.role) && <ResetDemoButton />}
-          </div>
+          {/* Sur téléphone, la réinitialisation de la démo passe en haut de la page. Sans bouton,
+              pas de bloc : sa marge laisserait un vide sous la barre. */}
+          {showDemoReset && (
+            <div className="mb-6 flex justify-end sm:hidden">
+              <ResetDemoButton />
+            </div>
+          )}
           {children}
         </div>
       </main>
