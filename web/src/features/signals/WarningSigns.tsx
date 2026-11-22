@@ -29,10 +29,10 @@ export function WarningSigns({
   return (
     <section className="grid gap-3 surface p-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h3 className="flex items-center gap-2 font-semibold">
+        <h2 className="flex items-center gap-2 font-semibold">
           <TriangleAlert aria-hidden className="size-5" />
           {title}
-        </h3>
+        </h2>
         <div className="flex flex-wrap gap-2">
           <SignalBadge tone={TONE_LEVEL_TONES[tone.level]}>
             {TONE_LEVEL_LABELS[tone.level]}

@@ -47,7 +47,7 @@ export function ReportGroups({
           <li key={group.id} className="grid gap-4 p-5 md:grid-cols-[minmax(0,1fr)_16rem]">
             <div className="grid content-start gap-2">
               <div className="flex flex-wrap items-center gap-2">
-                <h3 className="font-semibold text-lg">{group.title}</h3>
+                <h2 className="font-semibold text-lg">{group.title}</h2>
                 <ToneBadge tone={REPORT_STATE_TONES[group.state]}>
                   {REPORT_STATE_LABELS[group.state]}
                 </ToneBadge>
