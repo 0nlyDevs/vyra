@@ -269,10 +269,13 @@ postes restent sur les IA distantes. Les vecteurs doivent venir du même modèle
 ### Règles des comptes et des mots de passe
 
 L’inscription demande un nom de 2 à 60 caractères et une adresse e-mail valide. Les nouveaux
-mots de passe font 8 à 128 caractères et ne doivent pas figurer dans la courte liste de mots
-courants du projet ; à l’inscription, ceux qui reprennent le nom ou l’adresse e-mail sont refusés.
-La réinitialisation applique la longueur, la liste de mots courants et la confirmation identique.
-Les détails exécutables sont dans `web/src/features/auth/schema.ts` et `common-passwords.ts`.
+mots de passe font 8 à 128 caractères et doivent être difficiles à deviner : leur solidité est
+estimée par zxcvbn (mots de passe courants, dictionnaires français et anglais, suites de touches,
+répétitions, dates, quelques mots du site comme « vyra » ou « madagascar ») et doit atteindre
+3 sur 4. À l’inscription, le nom et l’adresse e-mail comptent parmi les mots devinables. La
+réinitialisation applique la longueur, la même estimation et la confirmation identique. Un refus
+explique la raison et suggère une phrase de plusieurs mots. Les détails exécutables sont dans
+`web/src/features/auth/schema.ts` et `password-strength.ts` (côté serveur seulement).
 
 Les empreintes sont dérivées avec scrypt (`N=2^17`, `r=8`, `p=1`) ; une empreinte plus ancienne
 reste vérifiable et est renforcée après une connexion réussie sur le site ou l’API mobile.
@@ -346,8 +349,8 @@ ou un code, et montre mot à mot l'écart avec le communiqué d'origine. Jamais 
   `web/src/server/demo/seed-data.ts`, `DEMO_IMPERSONATION_MESSAGE`) : « Régie des eaux : suite aux
   travaux, coupure de 10 jours dans toute la ville à partir de lundi. Pour rester prioritaire, payez
   5 000 Ar via MVola au 034 12 345 67 et suivez regie-eaux-ambohitsoa.com/priorite ».
-- Nouvelles tables `institutions` et `institution_notices` : `make db-push` en local (fait tout seul
-  au démarrage de Docker). En ligne, la migration s'applique au déploiement (voir plus bas).
+- Tables `institutions` et `institution_notices` : créées en local par `db:push`, lancé tout seul
+  au démarrage de Docker. En ligne, la migration s'applique au déploiement (voir plus bas).
 
 ### Le fil d'actualité : uniquement du réel
 
@@ -360,7 +363,7 @@ au plus toutes les 10 minutes (bouton « Actualiser » pour forcer) :
 | Monde | RFI, Le Monde, BBC, Les Décodeurs, Les Observateurs, recherches Google qui montent (France, États-Unis, Afrique du Sud, Nigeria), tendances Mastodon |
 
 - La région se choisit à la première visite (cookie), et se change en haut du fil.
-- **Facebook public** : pages et groupes publics trouvés par Tavily (`TAVILY_API_KEY`), au plus
+- **Facebook public** : pages et groupes publics trouvés par Tavily (`TAVILY_API_KEYS`), au plus
   une fois par heure. Sans la clé, le fil marche sans Facebook. Les groupes privés et WhatsApp
   restent invisibles : ils passent par la boîte d'alertes.
 - **Sujets qui reviennent** : publications proches par le sens venues de sources différentes. Il

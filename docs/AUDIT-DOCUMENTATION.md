@@ -60,3 +60,23 @@ Les modifications locales ne sont pas automatiquement déployées. Le checkout m
 avait déjà des modifications d’`app.json` et du lockfile ; elles ne font pas partie de cet audit.
 
 La passe finale inclut également les README extension/prompts et les modèles d’environnement ; les licences et attributions originales sont conservées.
+
+## Nouvelle relecture, même jour (jusqu’à `91de0cd`)
+
+Relecture des mêmes documents après les PR #58 à #68 et le passage des adresses en anglais. Le
+mobile a été relu sur `origin/main` (`9402c6a`). Les chemins de fichiers, les pages du site citées et
+les 35 méthodes de `/api/v1` ont été recomparés au code par script ; ils correspondent.
+
+| Point | Correction |
+|---|---|
+| Mots de passe décrits avec une liste de mots courants (`common-passwords.ts` n’existe plus) | Estimation zxcvbn, note minimale 3 sur 4 (`password-strength.ts`) : README, architecture, contrat mobile |
+| Recherche du tribunal décrite sans son filtre de pertinence (PR #58) | Prompt `court-relevance`, indisponibilité sans IA, réponse de secours vide : architecture, démo, extension, prompts |
+| Animations attribuées à `Reveal` et `MaskLines` | Composants présents mais inutilisés ; les écrans importent `motion/react` directement |
+| Cibles de 44 px présentées comme un objectif | Atteintes par les boutons et onglets du kit sur écran tactile (PR #64) ; mouvement réduit étendu aux transitions (PR #63) |
+| Titre d’onglet du navigateur absent du guide d’écran | `metadata.title` par page, gabarit « … · Vyra » (PR #60) |
+| Onglets de l’extension au clavier (PR #67) | README de l’extension et liste des scénarios de test |
+| Libellés de variables et de tables | `TAVILY_API_KEYS` ; tables de l’annuaire créées par `db:push` au démarrage de Docker |
+
+Cette passe a été vérifiée avec le serveur Docker local et Chromium : affichage des pages, test
+de bout en bout de l’extension (9 étapes) et aperçu web du mobile. Les contrôles « avant remise »
+ci-dessus (déploiements, clés, projecteur, vidéo de secours) restent à faire.
