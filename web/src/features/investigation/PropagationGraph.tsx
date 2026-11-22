@@ -1,7 +1,7 @@
 'use client';
 
-import { ArrowLeftRight, MousePointerClick, TriangleAlert } from 'lucide-react';
-import { type CSSProperties, useEffect, useRef, useState } from 'react';
+import { ArrowLeftRight, MousePointerClick, MoveHorizontal, TriangleAlert } from 'lucide-react';
+import { type CSSProperties, useCallback, useEffect, useRef, useState } from 'react';
 import { ToneBadge } from '@/components/common/ToneBadge';
 import { Button } from '@/components/ui/button';
 import {
@@ -87,6 +87,24 @@ export function PropagationGraph({
     observer.observe(frame);
     return () => observer.disconnect();
   }, []);
+
+  // Sur téléphone, l'arbre est plus large que son cadre : un fondu sur le bord qui cache encore
+  // des sources, et une phrase qui dit de faire glisser, jusqu'à ce qu'on arrive au bout.
+  const [scroll, setScroll] = useState({ overflow: false, atStart: true, atEnd: true });
+  const measureScroll = useCallback(() => {
+    const frame = frameRef.current;
+    if (!frame) return;
+    const overflow = frame.scrollWidth - frame.clientWidth > 1;
+    const atStart = frame.scrollLeft <= 1;
+    const atEnd = frame.scrollLeft + frame.clientWidth >= frame.scrollWidth - 1;
+    setScroll((previous) =>
+      previous.overflow === overflow && previous.atStart === atStart && previous.atEnd === atEnd
+        ? previous
+        : { overflow, atStart, atEnd },
+    );
+  }, []);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: la taille de l'arbre suit ces valeurs.
+  useEffect(() => measureScroll(), [measureScroll, available, showContext, versions.length]);
 
   const center = findCenter(versions, claim);
   if (!center) return null;
@@ -193,7 +211,12 @@ export function PropagationGraph({
         )}
       </div>
 
-      <div ref={frameRef} className="overflow-x-auto pb-2">
+      <div
+        ref={frameRef}
+        onScroll={measureScroll}
+        className="overflow-x-auto pb-2"
+        style={scroll.overflow ? { maskImage: edgeFade(scroll.atStart, scroll.atEnd) } : undefined}
+      >
         {/* `isolate` : les étiquettes restent sous l'en-tête de la page quand on fait défiler. */}
         <figure
           className="relative isolate mx-auto"
@@ -371,6 +394,12 @@ export function PropagationGraph({
           })}
         </figure>
       </div>
+      {scroll.overflow && !scroll.atEnd && (
+        <p className="-mt-3 flex items-center gap-2 text-muted-foreground text-sm">
+          <MoveHorizontal className="size-4 shrink-0" aria-hidden />
+          Faites glisser l’arbre pour voir toute la propagation.
+        </p>
+      )}
 
       <p className="text-muted-foreground text-sm">
         Liens déduits des dates, des phrases reprises, des citations et des liens entre pages : «
@@ -401,11 +430,18 @@ export function PropagationGraph({
       ) : (
         <p className="flex items-center gap-2 rounded-lg border border-dashed px-4 py-5 text-muted-foreground">
           <MousePointerClick className="size-5 shrink-0" aria-hidden />
-          Cliquez sur une source pour la lire ou l’explorer, ou sur un lien pour voir ce qui change.
+          Choisissez une source pour la lire ou l’explorer, ou un lien pour voir ce qui change.
         </p>
       )}
     </div>
   );
+}
+
+/** Fondu des bords du cadre qui cachent encore une partie de l'arbre. */
+function edgeFade(atStart: boolean, atEnd: boolean) {
+  const left = atStart ? 'black 0' : 'transparent 0, black 40px';
+  const right = atEnd ? 'black 100%' : 'black calc(100% - 40px), transparent 100%';
+  return `linear-gradient(to right, ${left}, ${right})`;
 }
 
 function GraphLegend() {
