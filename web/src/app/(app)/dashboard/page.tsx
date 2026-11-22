@@ -29,7 +29,7 @@ export default async function DashboardPage() {
           <p className="rise mb-5 font-medium text-muted-foreground text-sm">
             {PROFILE_ROLE_LABELS[profile.role]}
           </p>
-          <h1 className="lines pub-display">
+          <h1 className="lines pub-display dashboard-title">
             <span>
               <span style={{ '--l': 0 } as CSSProperties}>Bonjour {firstName},</span>
             </span>
@@ -95,7 +95,7 @@ export default async function DashboardPage() {
               <Link href={item.href} className="mcard">
                 <span className="mcard-head">
                   <span className="mcard-icon">
-                    <item.icon aria-hidden />
+                    <item.icon aria-hidden className="size-5" />
                   </span>
                   <span className="mcard-index">{String(index + 1).padStart(2, '0')}</span>
                 </span>
@@ -106,7 +106,7 @@ export default async function DashboardPage() {
                 <span className="mcard-foot">
                   <span>Ouvrir</span>
                   <span className="mcard-go">
-                    <ArrowUpRight aria-hidden />
+                    <ArrowUpRight aria-hidden className="mcard-arrow size-[18px]" />
                   </span>
                 </span>
               </Link>
