@@ -39,14 +39,6 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
 
-  # Boîte aux lettres locale : les e-mails de l'application (confirmation, mot de passe oublié)
-  # s'affichent sur http://localhost:8025, sans jamais partir vers une vraie adresse.
-  mailpit:
-    image: axllent/mailpit:v1.34.0
-    ports:
-      - "127.0.0.1:8025:8025"
-      - "127.0.0.1:1025:1025"
-
   web:
     build: ./web
     # Installe les paquets si besoin, met les tables à jour, crée les données de démo si la base
@@ -56,7 +48,7 @@ services:
       DATABASE_URL: postgres://mindstack:mindstack@db:5432/mindstack
       PROCESSING_URL: http://processing:8000
       APP_URL: http://localhost:3000
-      SMTP_URL: smtp://mailpit:1025
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
       # Dernier recours si les modifications ne sont pas vues (Windows hors WSL) : voir README.
       WATCH_POLL_INTERVAL_MS: ${WATCH_POLL_INTERVAL_MS:-}
     volumes:
@@ -73,8 +65,6 @@ services:
       db:
         condition: service_healthy
       processing:
-        condition: service_started
-      mailpit:
         condition: service_started
 
 volumes:
