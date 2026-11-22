@@ -15,6 +15,8 @@ import { formatDate } from '@/lib/format';
 import { getCaseFile } from '@/server/dal/cases';
 import { getConcludedCase } from '@/server/dal/court';
 
+export const metadata = { title: 'Conclusion publiée' };
+
 function Findings({ title, icon, items }: { title: string; icon: ReactNode; items: string[] }) {
   if (items.length === 0) return null;
   return (

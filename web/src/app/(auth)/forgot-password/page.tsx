@@ -1,6 +1,8 @@
 import Link from 'next/link';
 import { ForgotPasswordForm } from '@/features/auth/ForgotPasswordForm';
 
+export const metadata = { title: 'Mot de passe oublié' };
+
 export default function ForgotPasswordPage() {
   return (
     <div className="grid gap-8">

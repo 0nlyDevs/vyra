@@ -31,6 +31,8 @@ import { formatDateTime } from '@/lib/format';
 import { getCaseFile } from '@/server/dal/cases';
 import { getWebSearch, listExploredVersions } from '@/server/dal/investigation';
 
+export const metadata = { title: 'Enquête' };
+
 // Le dossier d'une affaire, en lecture seule : versions retrouvées et pièces.
 // Le module Enquête remplace la liste des versions par le graphe ; le tribunal part des pièces.
 export default async function CaseFilePage({

@@ -5,6 +5,8 @@ import { Button } from '@/components/ui/button';
 import { AFTER_SIGN_IN_PATH } from '@/lib/navigation';
 import { consumeAuthToken, markEmailVerified } from '@/server/dal/accounts';
 
+export const metadata = { title: 'Confirmer l’adresse e-mail' };
+
 // Arrivée depuis le lien de l'e-mail de confirmation.
 export default async function VerifyEmailPage({
   searchParams,

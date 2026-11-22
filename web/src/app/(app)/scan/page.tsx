@@ -16,6 +16,8 @@ import { listKnownImages } from '@/server/dal/scans';
 import { videoAvailable } from '@/server/processing';
 import { requireProfile } from '@/server/session';
 
+export const metadata = { title: 'Scan' };
+
 // Les onglets du scan, dans le même ordre que l'écran Scan de l'application mobile. `?tab=`
 // ouvre l'un d'eux (les formulaires « Texte » et « Sceau » reviennent ici avec leur réponse).
 const TABS = ['image', 'video', 'audio', 'link', 'text', 'source', 'seal'] as const;

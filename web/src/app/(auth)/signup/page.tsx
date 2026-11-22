@@ -6,6 +6,8 @@ import { AFTER_SIGN_IN_PATH } from '@/lib/navigation';
 import { isGoogleEnabled } from '@/server/auth/google';
 import { getCurrentProfile } from '@/server/session';
 
+export const metadata = { title: 'Créer un compte' };
+
 export default async function SignupPage() {
   if (await getCurrentProfile()) redirect(AFTER_SIGN_IN_PATH);
 

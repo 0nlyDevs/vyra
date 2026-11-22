@@ -5,6 +5,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { AlreadyJudgedForm } from '@/features/court/AlreadyJudgedForm';
 import { listCases } from '@/server/dal/cases';
 
+export const metadata = { title: 'Tribunal' };
+
 export default async function CourtPage() {
   const caseList = await listCases();
 

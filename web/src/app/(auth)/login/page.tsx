@@ -8,6 +8,8 @@ import { AFTER_SIGN_IN_PATH } from '@/lib/navigation';
 import { isGoogleEnabled } from '@/server/auth/google';
 import { getCurrentProfile } from '@/server/session';
 
+export const metadata = { title: 'Se connecter' };
+
 const ERROR_MESSAGES: Record<string, string> = {
   google: 'La connexion avec Google n’a pas abouti. Réessayez.',
   'google-disabled': 'La connexion avec Google n’est pas configurée sur ce poste.',
