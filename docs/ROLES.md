@@ -26,5 +26,5 @@ La répartition des modules se lit dans les dossiers suivants ; les contribution
 | Fil d'actualité, assistant et voix, chaîne de fournisseurs d'IA, mobile, extension | `web/src/features/feed`, `web/src/features/assistant`, `processing/app/services/providers.py` |
 | Client mobile et vérifications TypeScript/tests | `vyra-mobile` ; la CI du checkout audité ne génère pas d’APK |
 
-Règle : chacun travaille dans ses dossiers et ouvre une PR vers `main`, fusionnée selon la méthode retenue pour la PR. Les dernières PR de fonctionnalités conservent les commits avec un commit de merge ; le squash n’est pas une obligation.
+Règle : chacun travaille dans ses dossiers et ouvre une PR vers `main`, fusionnée par un commit de merge (seul mode autorisé par le dépôt) qui reprend le titre de la PR. Voir [CONVENTIONS.md](CONVENTIONS.md).
 Messages de commit conventionnels (`feat:`, `fix:`, `docs:`…).
