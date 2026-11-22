@@ -98,10 +98,14 @@ class Settings(BaseSettings):
     local_ai_backup_timeout_seconds: float = 40.0
 
     # Clé de l'API Tavily (https://tavily.com) : recherche web. Absente : recherche GDELT.
+    # Une seule clé (ancien réglage, toujours lu) ; plusieurs : `TAVILY_API_KEYS=cle1,cle2`.
     tavily_api_key: SecretStr | None = None
+    tavily_api_keys: CsvSecrets = []
     # Clé Google Cloud avec l'API Fact Check Tools (gratuite) : les vérifications publiées dans le
     # monde. Absente : seulement les rubriques de vérification (par Tavily) et Wikipédia.
+    # Plusieurs : `GOOGLE_FACTCHECK_API_KEYS=cle1,cle2`.
     google_factcheck_api_key: SecretStr | None = None
+    google_factcheck_api_keys: CsvSecrets = []
     # true : jamais d'appel à Gemini, toujours les réponses de secours (répétition du plan B).
     demo_offline: bool = False
     # Secret partagé avec le web (même valeur des deux côtés), exigé dans l'en-tête
@@ -109,7 +113,13 @@ class Settings(BaseSettings):
     processing_token: SecretStr | None = None
 
     @field_validator(
-        "ai_providers", "groq_api_keys", "gemini_api_keys", "deepseek_api_keys", mode="before"
+        "ai_providers",
+        "groq_api_keys",
+        "gemini_api_keys",
+        "deepseek_api_keys",
+        "tavily_api_keys",
+        "google_factcheck_api_keys",
+        mode="before",
     )
     @classmethod
     def _csv(cls, value: object) -> object:
@@ -153,15 +163,15 @@ class Settings(BaseSettings):
         }[provider]
 
     def keys_for(self, provider: str) -> list[str]:
-        """Les clés d'un fournisseur, dans l'ordre, sans doublon (clé unique de Gemini à la fin)."""
-        secrets: list[SecretStr] = {
-            "groq": self.groq_api_keys,
-            "gemini": [
-                *self.gemini_api_keys,
-                *([self.gemini_api_key] if self.gemini_api_key else []),
-            ],
-            "deepseek": self.deepseek_api_keys,
+        """Les clés d'un fournisseur, dans l'ordre, sans doublon (clé unique à la fin)."""
+        many, single = {
+            "groq": (self.groq_api_keys, None),
+            "gemini": (self.gemini_api_keys, self.gemini_api_key),
+            "deepseek": (self.deepseek_api_keys, None),
+            "tavily": (self.tavily_api_keys, self.tavily_api_key),
+            "factcheck": (self.google_factcheck_api_keys, self.google_factcheck_api_key),
         }[provider]
+        secrets = [*many, *([single] if single else [])]
         return list(dict.fromkeys(secret.get_secret_value() for secret in secrets))
 
 

@@ -14,12 +14,11 @@ async def read_live_feed(body: LiveFeedRequest, settings: SettingsDep) -> LiveFe
     """Publications récentes des sources demandées. Hors ligne : aucune."""
     if settings.demo_offline:
         return LiveFeedResponse(items=[], sources_read=0)
-    key = settings.tavily_api_key.get_secret_value() if settings.tavily_api_key else None
     sources = [
         LiveSource(type=source.type, target=source.target, name=source.name)
         for source in body.sources
     ]
-    items, read = await read_live_sources(sources, tavily_key=key)
+    items, read = await read_live_sources(sources, settings=settings)
     return LiveFeedResponse(
         items=[LiveItemOut.model_validate(item.as_dict()) for item in items], sources_read=read
     )
