@@ -1740,6 +1740,15 @@ html[data-eco="on"] .doodle path {
 .vreels {
   position: relative;
 }
+/* Sur ordinateur, l'éventail se centre dans sa colonne, en hauteur face au titre et au champ. */
+@media (min-width: 1024px) {
+  .vreels {
+    align-self: center;
+    width: 100%;
+    max-width: 36rem;
+    margin-inline: auto;
+  }
+}
 .vreels-stage {
   position: relative;
   /* La hauteur suit la largeur : les cartes inclinées ne débordent jamais sous la scène. */
