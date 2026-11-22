@@ -3,7 +3,7 @@
 import { transcriptSchema } from '@/features/scan/schema';
 import { type ActionResult, fail, ok } from '@/lib/action-result';
 import { ERRORS } from '@/lib/errors';
-import { runPrompt } from '@/server/processing';
+import { aiCanReadAudio, runPrompt } from '@/server/processing';
 import { getCurrentProfile } from '@/server/session';
 
 // Dictée : un court enregistrement (WAV, une minute au plus) devient du texte. Rien n'est gardé.
@@ -25,4 +25,10 @@ export async function dictate(formData: FormData): Promise<ActionResult<{ text: 
   const text = result.ok && result.data.source === 'gemini' ? result.data.result.transcript : '';
   if (!text.trim()) return fail(ERRORS.AI_UNAVAILABLE);
   return ok({ text: text.trim() });
+}
+
+// Le bouton « Dicter » demande d'abord si une IA peut lire le son : sans clé Gemini (ni IA locale),
+// il se présente comme indisponible, au lieu d'échouer après l'enregistrement.
+export async function canDictate(): Promise<boolean> {
+  return aiCanReadAudio();
 }
