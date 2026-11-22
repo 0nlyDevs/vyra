@@ -22,10 +22,9 @@ import { forgotPasswordSchema, resetPasswordSchema, signInSchema, signUpSchema }
 // Comptes : inscription, connexion, mot de passe oublié, confirmation d'adresse.
 // Les messages restent généraux : on ne dit jamais si c'est l'e-mail ou le mot de passe qui est faux.
 
-export async function signUp(
-  _previous: ActionResult<null> | null,
-  formData: FormData,
-): Promise<ActionResult<null>> {
+// Crée le compte (e-mail et mot de passe) et envoie l'e-mail de confirmation, sans ouvrir de
+// session : le site (`signUp`) ouvre celle du cookie, l'application mobile reçoit un jeton.
+export async function registerAccount(formData: FormData) {
   const parsed = signUpSchema.safeParse({
     name: formData.get('name'),
     email: formData.get('email'),
@@ -51,7 +50,16 @@ export async function signUp(
   }
   // L'e-mail de confirmation part sans bloquer : on peut utiliser l'application tout de suite.
   await sendVerificationEmail(profile, parsed.data.email);
-  await startSession(profile.id);
+  return ok(profile);
+}
+
+export async function signUp(
+  _previous: ActionResult<null> | null,
+  formData: FormData,
+): Promise<ActionResult<null>> {
+  const result = await registerAccount(formData);
+  if (!result.ok) return result;
+  await startSession(result.data.id);
   redirect(AFTER_SIGN_IN_PATH);
 }
 

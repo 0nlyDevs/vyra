@@ -111,3 +111,33 @@ export function fallbackProposals(
     [],
   );
 }
+
+// L'application mobile n'a ni tribunal ni jeu : une audience devient le dossier de l'affaire (sa
+// conclusion et son sceau y sont), et les pages absentes du téléphone sont écartées.
+const MOBILE_HIDDEN = ['/court', '/game', '/verifier/flash'];
+const COURT_CASE = /^\/court\/([0-9a-f-]{36})$/;
+const COURT_LABEL = 'Voir l’audience : ';
+
+export function mobileProposals(proposals: readonly Proposal[]): Proposal[] {
+  const kept: Proposal[] = [];
+  const seen = new Set<string>();
+  for (const proposal of proposals) {
+    const court = COURT_CASE.exec(proposal.href);
+    const next = court
+      ? {
+          type: 'open_case',
+          label: proposal.label.startsWith(COURT_LABEL)
+            ? `Ouvrir l’affaire : ${proposal.label.slice(COURT_LABEL.length)}`
+            : proposal.label,
+          href: `/cases/${court[1]}`,
+        }
+      : proposal;
+    if (MOBILE_HIDDEN.some((path) => next.href === path || next.href.startsWith(`${path}/`))) {
+      continue;
+    }
+    if (seen.has(next.href)) continue;
+    seen.add(next.href);
+    kept.push(next);
+  }
+  return kept;
+}

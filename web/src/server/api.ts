@@ -1,6 +1,8 @@
 import 'server-only';
 import type { ActionResult } from '@/lib/action-result';
 import { ERRORS, type ErrorCode } from '@/lib/errors';
+import { newToken } from '@/server/auth/tokens';
+import { createSession } from '@/server/dal/accounts';
 import { getCurrentProfile } from '@/server/session';
 
 // Outils communs des routes `/api/v1` (application mobile). Réponses en JSON ; une erreur a toujours
@@ -19,6 +21,10 @@ const STATUS: Partial<Record<ErrorCode, number>> = {
   NOTHING_TO_ADD: 409,
   INTERNAL: 500,
   RATE_LIMITED: 429,
+  REPORT_LIMIT_REACHED: 429,
+  ALREADY_REPORTED: 409,
+  EMAIL_TAKEN: 409,
+  WEB_SEARCH_UNAVAILABLE: 503,
 };
 
 export function apiOk<T>(data: T, status = 200) {
@@ -53,4 +59,21 @@ export function apiResult<T>(result: ActionResult<T>, status = 200) {
 
 export async function readJson(request: Request): Promise<unknown> {
   return request.json().catch(() => null);
+}
+
+const SESSION_DAYS = 30;
+
+// Ouvre une session pour l'application mobile : un jeton de 30 jours (la même table que le cookie
+// du site), à renvoyer ensuite en `Authorization: Bearer <jeton>`.
+export async function apiSession(profile: {
+  id: string;
+  name: string;
+  role: string;
+  headline: string;
+}) {
+  const token = newToken();
+  const expiresAt = new Date(Date.now() + SESSION_DAYS * 24 * 60 * 60 * 1000);
+  await createSession(profile.id, token, expiresAt);
+  const { id, name, role, headline } = profile;
+  return { token, expiresAt, profile: { id, name, role, headline } };
 }
