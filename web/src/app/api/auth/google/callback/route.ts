@@ -43,9 +43,11 @@ export async function GET(request: NextRequest) {
 
   let profileId = (await findAccountByGoogleSub(user.sub))?.profile.id;
   if (!profileId && user.email_verified) {
-    // Un compte e-mail existe avec la même adresse, confirmée par Google : on les relie.
+    // Un compte e-mail existe avec la même adresse, confirmée des deux côtés : on les relie. Pas si
+    // le compte n'a jamais confirmé son adresse : quelqu'un d'autre a pu le créer avec cet e-mail
+    // et en garderait le mot de passe.
     const byEmail = await findAccountByEmail(user.email);
-    if (byEmail) {
+    if (byEmail?.account.emailVerifiedAt) {
       await linkGoogle(byEmail.profile.id, user.sub);
       profileId = byEmail.profile.id;
     }
