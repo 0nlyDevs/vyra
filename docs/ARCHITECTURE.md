@@ -51,7 +51,9 @@ web/src/
 
 processing/app/
 ├── routers/              /health, /v1/prompts/{nom}, /v1/embeddings
-├── services/providers.py mode de l'IA (AI_MODE) : Gemini, Gemini puis Gemma 4, ou Gemma 4
+├── services/providers.py quelle IA répond : AI_PROVIDERS (groq, gemini, deepseek dans l'ordre), puis Gemma 4 selon AI_MODE
+├── services/key_pool.py  rotation des clés d'API quand l'une atteint son quota
+├── services/openai_compat.py  Groq et DeepSeek (format chat completions)
 ├── services/gemini.py    appels à l'API Gemini (REST)
 ├── services/local_ai.py  appels au modèle local (Ollama, Gemma 4)
 ├── services/media_inspect.py informations cachées d'une image (sans IA)

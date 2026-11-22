@@ -17,13 +17,15 @@ class HealthResponse(BaseModel):
 @router.get("/health", operation_id="getHealth")
 def get_health(settings: SettingsDep) -> HealthResponse:
     """« ok » si le service tourne ; `ai` vaut le mode (gemini, gemini-then-local, local),
-    offline, ou not-configured (mode gemini sans clé)."""
+    offline, ou not-configured (mode gemini sans aucune clé). Avec des clés, `ai` nomme les IA
+    distantes qui en ont, dans l'ordre (par exemple « groq+gemini »)."""
+    configured = [name for name in settings.ai_providers if settings.keys_for(name)]
     if settings.demo_offline:
         ai = "offline"
     elif settings.ai_mode != "gemini":
         ai = settings.ai_mode
-    elif settings.gemini_api_key is None:
+    elif not configured:
         ai = "not-configured"
     else:
-        ai = "gemini"
+        ai = "+".join(configured)
     return HealthResponse(status="ok", service="mindstack-processing", ai=ai)
