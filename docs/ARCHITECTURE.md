@@ -64,6 +64,7 @@ Sans IA, les réponses de secours, les dossiers préparés et le flash radio res
 | Risque | Mesure |
 |---|---|
 | Accès aux données d'autrui | Rôles vérifiés côté serveur à chaque action (`isVerifier`), jamais côté client |
+| Mots de passe | scrypt (`N=2^17`, `r=8`, `p=1`), anciennes empreintes mises à niveau après connexion réussie ; nouveaux mots de passe contrôlés par Zod et liste de mots courants (`server/auth/password.ts`, `features/auth/schema.ts`) |
 | Abus des routes publiques | Limites par adresse en base (`server/rate-limit.ts`) : connexion, signalements (10/jour), vérifications (60/h), examens d'image (30/h) |
 | Lecture de pages vers une adresse interne (SSRF) | `processing/app/services/safe_url.py` refuse les adresses privées |
 | Image personnelle envoyée à une IA | Copie protégée : visages floutés, informations cachées retirées ; l’original n’est pas envoyé au modèle d’IA |

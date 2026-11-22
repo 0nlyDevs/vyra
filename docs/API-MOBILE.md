@@ -17,6 +17,8 @@ le site, e-mail de confirmation envoyé) et renvoie la même session que `login`
 prise). `POST /api/v1/auth/forgot-password` avec `{ "email": "vous@example.org" }` envoie le lien de réinitialisation
 (il s'ouvre sur le site) et répond toujours `{ "sent": true }`.
 
+À l’inscription : nom de 2 à 60 caractères ; mot de passe de 8 à 128 caractères, absent de la liste de mots courants et ne reprenant pas le nom ou l’e-mail. La connexion vérifie aussi les anciennes empreintes et les met à niveau si nécessaire ; elle n’applique pas rétroactivement ces règles de création au mot de passe saisi.
+
 Comptes de démo (mode démo seulement) : `GET /api/v1/auth/demo` liste les profils (vide hors démo),
 `POST /api/v1/auth/demo` avec `{ "profileId" }` renvoie leur session.
 

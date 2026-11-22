@@ -251,6 +251,19 @@ postes restent sur les IA distantes. Les vecteurs doivent venir du même modèle
   Sans ces deux valeurs, le bouton « Continuer avec Google » n'apparaît pas.
 - « Réinitialiser la démo » supprime les comptes créés pendant la démo ; les comptes de démo restent.
 
+### Règles des comptes et des mots de passe
+
+L’inscription demande un nom de 2 à 60 caractères et une adresse e-mail valide. Les nouveaux
+mots de passe font 8 à 128 caractères et ne doivent pas figurer dans la courte liste de mots
+courants du projet ; à l’inscription, ceux qui reprennent le nom ou l’adresse e-mail sont refusés.
+La réinitialisation applique la longueur, la liste de mots courants et la confirmation identique.
+Les détails exécutables sont dans `web/src/features/auth/schema.ts` et `common-passwords.ts`.
+
+Les empreintes sont dérivées avec scrypt (`N=2^17`, `r=8`, `p=1`) ; une empreinte plus ancienne
+reste vérifiable et est renforcée après une connexion réussie sur le site ou l’API mobile.
+Les limites de connexion et de réinitialisation normalisent l’adresse e-mail en minuscules.
+Les identifiants de démonstration existants restent utilisables pour se connecter.
+
 ### Les conclusions scellées
 
 Chaque carte de conclusion porte un **sceau** : un QR et un code `VY-XXXX-XXXX`. Le QR contient une

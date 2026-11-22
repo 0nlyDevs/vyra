@@ -31,6 +31,8 @@ nouvelle règle. Le dépôt principal a été confirmé public via les métadonn
 | Commandes et configuration obsolètes | Lien vers l’IA, table des commandes, tests web, migration/pgvector, Resend/MAIL_FROM et distinction Docker/hors Docker corrigés |
 | Crédits incomplets | Index des crédits d’accueil public, connexion, accueil connecté, jeu, polices et icônes |
 
+La passe avant envoi intègre également `main` jusqu’à `b63450c` : nouvelles règles de mots de passe, limites par e-mail normalisé et renforcement scrypt à la connexion. Les documents de comptes et le contrat d’inscription ont été alignés sur ces changements.
+
 ## Contrôles effectués sur les sources
 
 - Liens locaux des 16 documents de navigation et de contribution : aucun lien de fichier cassé.
