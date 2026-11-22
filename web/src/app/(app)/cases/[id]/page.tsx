@@ -40,11 +40,11 @@ export default async function CaseFilePage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ retrouvee?: string; nouvelle?: string; pourquoi?: string }>;
+  searchParams: Promise<{ matched?: string; new?: string; reason?: string }>;
 }) {
   const { id } = await params;
-  const { retrouvee, nouvelle, pourquoi } = await searchParams;
-  const matchKind = z.enum(MATCH_KINDS).safeParse(retrouvee).data;
+  const { matched, new: isNew, reason } = await searchParams;
+  const matchKind = z.enum(MATCH_KINDS).safeParse(matched).data;
   if (!z.uuid().safeParse(id).success) notFound();
 
   const file = await getCaseFile(id);
@@ -78,7 +78,7 @@ export default async function CaseFilePage({
         }
       />
 
-      {retrouvee && (
+      {matched && (
         <Alert>
           <AlertTitle>Cette information est déjà dans un dossier</AlertTitle>
           <AlertDescription className="grid gap-2">
@@ -88,13 +88,13 @@ export default async function CaseFilePage({
                 <ToneBadge tone={matchKind === 'ai' ? 'success' : 'neutral'}>
                   {MATCH_KIND_LABELS[matchKind]}
                 </ToneBadge>
-                {pourquoi && <span className="text-foreground">« {pourquoi} »</span>}
+                {reason && <span className="text-foreground">« {reason} »</span>}
               </p>
             )}
           </AlertDescription>
         </Alert>
       )}
-      {nouvelle && (
+      {isNew && (
         <Alert>
           <AlertTitle>Nouvelle affaire ouverte</AlertTitle>
           <AlertDescription>

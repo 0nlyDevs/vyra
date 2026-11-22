@@ -29,7 +29,7 @@ citation ni lien, à relire avant toute diffusion). Les vecteurs de la recherche
 | 25 s | Enquêtes → *La photo de l'inondation* | Ouvrir l'affaire, montrer l'arbre des versions | La même image a changé de légende de version en version |
 | 25 s | Scan `/scan` | Déposer `web/public/demo/inondation-virale.jpg`, puis `image-generee.png` | La photo virale n'a plus d'informations cachées (« rien à en conclure ») ; l'image générée déclare son outil. Jamais de verdict |
 | 70 s | Tribunal `/court/…` | Lancer l'audience, voter | Deux IA plaident, le juré vote, les pièces déterminent **Contredit** et l’IA en explique la raison |
-| 20 s | Carte de conclusion → `/verifier/sceau` | Scanner le QR ou taper le code | La carte est authentique : la conclusion est signée |
+| 20 s | Carte de conclusion → `/check/seal` | Scanner le QR ou taper le code | La carte est authentique : la conclusion est signée |
 
 ## Séquences optionnelles
 
@@ -39,7 +39,7 @@ citation ni lien, à relire avant toute diffusion). Les vecteurs de la recherche
 | 7 | Assistant | « Que sais-tu sur la photo de l'inondation ? » | Il cite l'affaire jugée au lieu d'inventer |
 | 8 | Extension (panneau latéral) | Sélectionner un texte sur une page, clic droit → *Vérifier ce texte* | La vérification là où on lit, sans compte |
 | 9 | Application mobile | Fil, Enquêtes, Scan, Alertes, Compte, puis assistant flottant | Le même serveur et les mêmes dossiers ; les nouvelles fonctions vocales et sources web de l’assistant restent à intégrer au client mobile |
-| 10 | Flash radio `/verifier/flash` | Ouvrir la page | De la conclusion au texte lu à l'antenne |
+| 10 | Flash radio `/check/flash` | Ouvrir la page | De la conclusion au texte lu à l'antenne |
 
 Autres variantes à répéter si elles sont présentées :
 

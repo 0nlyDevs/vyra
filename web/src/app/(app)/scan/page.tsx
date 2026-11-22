@@ -18,12 +18,12 @@ import { requireProfile } from '@/server/session';
 
 export const metadata = { title: 'Scan' };
 
-// Les onglets du scan, dans le même ordre que l'écran Scan de l'application mobile. `?onglet=`
+// Les onglets du scan, dans le même ordre que l'écran Scan de l'application mobile. `?tab=`
 // ouvre l'un d'eux (les formulaires « Texte » et « Sceau » reviennent ici avec leur réponse).
-const TABS = ['image', 'video', 'audio', 'link', 'texte', 'source', 'sceau'] as const;
+const TABS = ['image', 'video', 'audio', 'link', 'text', 'source', 'seal'] as const;
 type ScanTab = (typeof TABS)[number];
 
-type ScanSearchParams = { onglet?: string; q?: string; code?: string; c?: string; s?: string };
+type ScanSearchParams = { tab?: string; q?: string; code?: string; c?: string; s?: string };
 
 export default async function ScanPage({
   searchParams,
@@ -31,7 +31,7 @@ export default async function ScanPage({
   searchParams: Promise<ScanSearchParams>;
 }) {
   const params = await searchParams;
-  const tab: ScanTab = TABS.find((item) => item === params.onglet) ?? 'image';
+  const tab: ScanTab = TABS.find((item) => item === params.tab) ?? 'image';
   const [profile, knownImages, caseList, directory, canReadVideo] = await Promise.all([
     requireProfile(),
     listKnownImages(),
@@ -55,9 +55,9 @@ export default async function ScanPage({
           <TabsTrigger value="video">Vidéo</TabsTrigger>
           <TabsTrigger value="audio">Vocal</TabsTrigger>
           <TabsTrigger value="link">Lien</TabsTrigger>
-          <TabsTrigger value="texte">Texte</TabsTrigger>
+          <TabsTrigger value="text">Texte</TabsTrigger>
           <TabsTrigger value="source">Est-ce bien eux ?</TabsTrigger>
-          <TabsTrigger value="sceau">Sceau</TabsTrigger>
+          <TabsTrigger value="seal">Sceau</TabsTrigger>
         </TabsList>
         <TabsContent value="image">
           <ImageScanner knownImages={knownImages} caseOptions={caseOptions} />
@@ -71,18 +71,18 @@ export default async function ScanPage({
         <TabsContent value="link">
           <LinkScanner />
         </TabsContent>
-        <TabsContent value="texte">
+        <TabsContent value="text">
           <QuickCheckPanel query={params.q ?? ''} />
         </TabsContent>
         <TabsContent value="source" className="grid gap-10">
           <ImpersonationCheck />
           <Directory entries={directory} canEdit={isVerifier(profile.role)} />
         </TabsContent>
-        <TabsContent value="sceau">
+        <TabsContent value="seal">
           <SealCheckPanel
             query={params}
             action="/scan"
-            hidden={{ onglet: 'sceau' }}
+            hidden={{ tab: 'seal' }}
             proofHref={(id) => `/cases/${id}`}
           />
         </TabsContent>

@@ -35,7 +35,7 @@ export default async function VerifyPage({
         title="Est-ce déjà vérifié ?"
         description="Collez le message reçu, même reformulé. Si une affaire a déjà été jugée, sa conclusion s’affiche avec ses preuves."
       />
-      <form action="/verifier" className="grid gap-3">
+      <form action="/check" className="grid gap-3">
         <Textarea
           name="q"
           rows={3}
@@ -61,7 +61,7 @@ export default async function VerifyPage({
                 <CardTitle className="text-xl">{match.title}</CardTitle>
                 {match.conclusion && <p className="text-pretty">{match.conclusion}</p>}
                 <Button asChild className="justify-self-start">
-                  <Link href={`/verifier/${match.id}`}>Voir les preuves</Link>
+                  <Link href={`/check/${match.id}`}>Voir les preuves</Link>
                 </Button>
               </CardContent>
             </Card>
@@ -71,7 +71,7 @@ export default async function VerifyPage({
               attendez avant de le partager, et signalez-le : une enquête s’ouvre quand plusieurs
               personnes le signalent.
               <Button asChild variant="outline" className="mt-3 flex w-fit">
-                <Link href={`/verifier/signaler?texte=${encodeURIComponent(query)}`}>
+                <Link href={`/check/report?texte=${encodeURIComponent(query)}`}>
                   Signaler sans compte
                 </Link>
               </Button>
@@ -82,7 +82,7 @@ export default async function VerifyPage({
 
       <p className="text-muted-foreground text-sm">
         Vous avez reçu une carte de conclusion Vyra ?{' '}
-        <Link href="/verifier/sceau" className="text-foreground underline underline-offset-4">
+        <Link href="/check/seal" className="text-foreground underline underline-offset-4">
           Vérifiez son sceau
         </Link>{' '}
         : vous saurez si elle a été retouchée.
@@ -97,7 +97,7 @@ export default async function VerifyPage({
             {concluded.map((item) => (
               <li key={item.id}>
                 <Link
-                  href={`/verifier/${item.id}`}
+                  href={`/check/${item.id}`}
                   className="grid gap-2 surface p-4 transition-colors hover:bg-muted/40"
                 >
                   <span className="flex flex-wrap items-center gap-2">

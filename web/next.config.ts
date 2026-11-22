@@ -18,6 +18,19 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   // Le scan envoie une image ou un vocal par une server action : 8 Mo au plus (1 Mo par défaut).
   experimental: { serverActions: { bodySizeLimit: '10mb' } },
+  // Les anciennes adresses en français restent valables pour toujours : les cartes de conclusion
+  // imprimées portent un QR vers /verifier/sceau, et des liens de suivi ont été partagés. La
+  // requête (?code=…) suit la redirection.
+  async redirects() {
+    return [
+      { source: '/verifier', destination: '/check', permanent: true },
+      { source: '/verifier/sceau', destination: '/check/seal', permanent: true },
+      { source: '/verifier/signaler', destination: '/check/report', permanent: true },
+      { source: '/verifier/suivi/:token', destination: '/check/track/:token', permanent: true },
+      { source: '/verifier/flash', destination: '/check/flash', permanent: true },
+      { source: '/verifier/:id', destination: '/check/:id', permanent: true },
+    ];
+  },
   async headers() {
     return [
       {

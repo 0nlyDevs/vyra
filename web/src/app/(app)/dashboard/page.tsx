@@ -70,7 +70,7 @@ export default async function DashboardPage() {
               />
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <Link
-                  href="/verifier"
+                  href="/check"
                   className="text-muted-foreground text-sm underline-offset-4 hover:text-foreground hover:underline"
                 >
                   Déjà vérifié ? Chercher sans compte

@@ -336,7 +336,7 @@ export const reports = pgTable(
     reporterId: varchar('reporter_id', { length: 40 }).references(() => profiles.id, {
       onDelete: 'cascade',
     }),
-    // Jeton du lien de suivi privé (/verifier/suivi/<jeton>), pour un signalement sans compte.
+    // Jeton du lien de suivi privé (/check/track/<jeton>), pour un signalement sans compte.
     followToken: varchar('follow_token', { length: 32 }),
     // Le texte signalé tel que la personne l'a vu (vide si elle n'a donné qu'un lien).
     content: text('content').notNull().default(''),

@@ -64,7 +64,7 @@ export function AuthShell({ appName, children }: { appName: string; children: Re
       <section className="auth-panel">
         <div className="auth-top">
           <Link
-            href="/verifier"
+            href="/check"
             className="group inline-flex h-10 items-center gap-2 rounded-full px-1 font-bold text-foreground text-sm outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring"
           >
             <ArrowLeft

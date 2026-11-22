@@ -18,7 +18,7 @@ export const PAGE_TARGETS = {
   reports: { href: '/reports', label: 'Ouvrir la boîte d’alertes' },
   scan: { href: '/scan', label: 'Examiner un fichier ou un lien' },
   game: { href: '/game', label: 'Jouer à Vrai ou fake ?' },
-  flash: { href: '/verifier/flash', label: 'Lire le flash radio' },
+  flash: { href: '/check/flash', label: 'Lire le flash radio' },
 } as const;
 const PAGES = Object.keys(PAGE_TARGETS) as [
   keyof typeof PAGE_TARGETS,
@@ -127,7 +127,7 @@ export function fallbackProposals(
 
 // L'application mobile n'a ni tribunal ni jeu : une audience devient le dossier de l'affaire (sa
 // conclusion et son sceau y sont), et les pages absentes du téléphone sont écartées.
-const MOBILE_HIDDEN = ['/court', '/game', '/verifier/flash'];
+const MOBILE_HIDDEN = ['/court', '/game', '/check/flash'];
 const COURT_CASE = /^\/court\/([0-9a-f-]{36})$/;
 const COURT_LABEL = 'Voir l’audience : ';
 

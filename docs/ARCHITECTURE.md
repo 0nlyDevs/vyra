@@ -69,7 +69,7 @@ Sans IA, les réponses de secours, les dossiers préparés et le flash radio res
 | Lecture de pages vers une adresse interne (SSRF) | `processing/app/services/safe_url.py` refuse les adresses privées |
 | Image personnelle envoyée à une IA | Copie protégée : visages floutés, informations cachées retirées ; l’original n’est pas envoyé au modèle d’IA |
 | Appels directs à processing | `PROCESSING_TOKEN` partagé : 401 pour un appel sans jeton correct si le secret est configuré ; facultatif en local |
-| Fausse conclusion | Sceau signé, vérifiable sans compte (`/verifier/sceau`) |
+| Fausse conclusion | Sceau signé, vérifiable sans compte (`/check/seal`) |
 | Manipulation d'une IA (injection de prompt) | Garde-fous communs et contrôle de la sortie : voir « Les garde-fous de l'IA » |
 | Navigateur | `X-Frame-Options`, `nosniff`, `Referrer-Policy`, CORS limité à `/api/v1` |
 | Secrets | Jamais dans le dépôt : `.env` ignorés, `*.env.example` documentés ; clés d'IA en rotation (plusieurs par fournisseur) |

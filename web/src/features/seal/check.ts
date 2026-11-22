@@ -24,7 +24,7 @@ export async function sealForCase(id: string): Promise<Seal | null> {
   if (!content) return null;
   const signature = signConclusion(content);
   if (!signature) return null;
-  const url = new URL('/verifier/sceau', env.APP_URL);
+  const url = new URL('/check/seal', env.APP_URL);
   url.searchParams.set('c', content.id);
   url.searchParams.set('s', signature);
   return { code: sealCode(signature), url: url.toString() };

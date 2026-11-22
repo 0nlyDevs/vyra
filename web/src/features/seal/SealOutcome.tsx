@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import type { SealedContent } from '@/server/seal';
 import type { SealCheck } from './check';
 
-// Le résultat de la vérification d'un sceau, partagé par la page publique /verifier/sceau et
+// Le résultat de la vérification d'un sceau, partagé par la page publique /check/seal et
 // l'onglet « Sceau » du scan.
 
 function Verdict({
@@ -64,7 +64,7 @@ function Result({
  */
 export function SealOutcome({
   check,
-  proofHref = (id) => `/verifier/${id}`,
+  proofHref = (id) => `/check/${id}`,
 }: {
   check: SealCheck;
   proofHref?: (id: string) => string;

@@ -49,7 +49,7 @@ export function Fin({ signedIn }: { signedIn: boolean }) {
                 <a href="#difference">La différence</a>
               </li>
               <li>
-                <Link href="/verifier">Déjà vérifié ?</Link>
+                <Link href="/check">Déjà vérifié ?</Link>
               </li>
             </ul>
           </nav>

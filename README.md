@@ -282,7 +282,7 @@ Les identifiants de démonstration existants restent utilisables pour se connect
 ### Les conclusions scellées
 
 Chaque carte de conclusion porte un **sceau** : un QR et un code `VY-XXXX-XXXX`. Le QR contient une
-signature Ed25519 du texte exact de la conclusion. `/verifier/sceau` dit si une carte est authentique
+signature Ed25519 du texte exact de la conclusion. `/check/seal` dit si une carte est authentique
 (QR scanné ou code tapé) et montre la vraie conclusion ; la clé publique est sur `/api/v1/seal`.
 
 - En local, une clé de développement est utilisée : rien à régler.
