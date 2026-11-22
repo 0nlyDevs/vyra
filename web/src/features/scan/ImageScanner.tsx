@@ -1,9 +1,18 @@
 'use client';
 
-import { ExternalLink, FileSearch, FolderInput, History, Sparkles } from 'lucide-react';
+import {
+  Download,
+  ExternalLink,
+  FileSearch,
+  FolderInput,
+  History,
+  ShieldCheck,
+  Sparkles,
+} from 'lucide-react';
 import Link from 'next/link';
 import { type ReactNode, useEffect, useState, useTransition } from 'react';
 import { toast } from 'sonner';
+import { AiReading } from '@/components/common/AiReading';
 import { AiSourceBadge } from '@/components/common/DomainBadges';
 import { FileDrop } from '@/components/common/FileDrop';
 import { ToneBadge } from '@/components/common/ToneBadge';
@@ -14,12 +23,12 @@ import { Label } from '@/components/ui/label';
 import { SCAN_OUTCOME_DESCRIPTIONS, SCAN_OUTCOME_LABELS, SCAN_OUTCOME_TONES } from '@/lib/domain';
 import { formatDate } from '@/lib/format';
 import { cn } from '@/lib/utils';
-import { addScanToCase, analyzeImage, type ScanView } from './actions';
+import { addScanToCase, analyzeImage, type SafeCopyView, type ScanView } from './actions';
 import { fingerprintDistance, imageFingerprint } from './fingerprint';
 import styles from './scan.module.css';
 import { IMAGE_TYPES, MAX_IMAGE_DISTANCE } from './schema';
 
-const ENTER =
+export const ENTER =
   'animate-in fade-in slide-in-from-bottom-2 fill-mode-both duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] motion-reduce:slide-in-from-bottom-0';
 
 // Fichiers prêts pour la démo sur scène : pas besoin d'ouvrir un sélecteur de fichiers.
@@ -51,26 +60,44 @@ async function findMatches(file: Blob, knownImages: KnownImage[]) {
   }
 }
 
-function Step({
+export function Step({
   index,
   icon,
   title,
+  ai = false,
   children,
 }: {
   index: number;
   icon: ReactNode;
   title: string;
+  // Une étape lue par l'IA : pointillés, et masquée en mode Sans IA.
+  ai?: boolean;
   children: ReactNode;
 }) {
+  const heading = (
+    <h3 className="flex items-center gap-2 font-semibold">
+      {icon}
+      {index + 1}. {title}
+    </h3>
+  );
+  if (ai) {
+    return (
+      <AiReading
+        label={title}
+        showLabel={false}
+        className={cn('gap-2 [animation-delay:160ms]', ENTER)}
+      >
+        {heading}
+        {children}
+      </AiReading>
+    );
+  }
   return (
     <section
       className={cn('grid content-start gap-2 surface p-4', ENTER)}
       style={{ animationDelay: `${index * 80}ms` }}
     >
-      <h3 className="flex items-center gap-2 font-semibold">
-        {icon}
-        {index + 1}. {title}
-      </h3>
+      {heading}
       {children}
     </section>
   );
@@ -85,30 +112,81 @@ const REVERSE_SEARCH = [
   { name: 'Bing Visual Search', url: 'https://www.bing.com/visualsearch' },
 ];
 
-function ReverseSearchLinks() {
+function protectionSummary(copy: SafeCopyView): string {
+  const parts = [
+    copy.facesBlurred === 0
+      ? 'aucun visage repéré'
+      : `${copy.facesBlurred} visage${copy.facesBlurred > 1 ? 's floutés' : ' flouté'}`,
+    copy.metadataRemoved
+      ? 'informations cachées retirées (appareil, date, lieu)'
+      : 'aucune information cachée à retirer',
+  ];
+  if (copy.firstFrameOnly) parts.push('première image seulement');
+  return parts.join(', ');
+}
+
+function SafeCopyPanel({ copy, fileName }: { copy: SafeCopyView; fileName: string }) {
+  const base = fileName.replace(/\.[^.]+$/, '') || 'image';
   return (
-    <div className="grid gap-2 border-t pt-3">
-      <p className="text-muted-foreground text-sm text-pretty">
-        Chercher ailleurs sur le web : déposez la même image sur l’un de ces services. La page la
-        plus ancienne qui la montre dit souvent d’où elle vient. Aucun résultat ne prouve rien.
-      </p>
-      <ul className="flex flex-wrap gap-2">
-        {REVERSE_SEARCH.map((service) => (
-          <li key={service.name}>
-            <Button variant="outline" size="sm" asChild>
-              <a href={service.url} target="_blank" rel="noopener noreferrer">
-                {service.name}
-                <ExternalLink aria-hidden />
-              </a>
-            </Button>
-          </li>
-        ))}
-      </ul>
+    <div className="flex flex-wrap items-center gap-3 rounded-xl bg-muted p-3">
+      {/* biome-ignore lint/performance/noImgElement: data URL produite à la volée, rien à optimiser */}
+      <img
+        src={copy.dataUrl}
+        alt="Copie protégée de l’image"
+        className="size-20 shrink-0 rounded-lg object-cover"
+      />
+      <div className="grid min-w-0 flex-1 basis-56 gap-1.5">
+        <p className="flex items-center gap-1.5 font-semibold text-sm">
+          <ShieldCheck aria-hidden className="size-4 text-primary" />
+          Copie protégée
+        </p>
+        <p className="text-muted-foreground text-sm text-pretty">
+          {protectionSummary(copy)}. Déposez-la plutôt que l’original : les personnes de la photo ne
+          sont pas exposées, et votre téléphone ne se trahit pas.
+        </p>
+        <Button variant="outline" size="sm" className="justify-self-start" asChild>
+          <a href={copy.dataUrl} download={`${base}-copie-protegee.jpg`}>
+            <Download aria-hidden />
+            Télécharger la copie
+          </a>
+        </Button>
+      </div>
     </div>
   );
 }
 
-function AddToCase({ scan, caseOptions }: { scan: ScanView; caseOptions: CaseOption[] }) {
+export function ReverseSearchServices() {
+  return (
+    <ul className="flex flex-wrap gap-2">
+      {REVERSE_SEARCH.map((service) => (
+        <li key={service.name}>
+          <Button variant="outline" size="sm" asChild>
+            <a href={service.url} target="_blank" rel="noopener noreferrer">
+              {service.name}
+              <ExternalLink aria-hidden />
+            </a>
+          </Button>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function ReverseSearchLinks({ scan }: { scan: ScanView }) {
+  return (
+    <div className="grid gap-2 border-t pt-3">
+      <p className="text-muted-foreground text-sm text-pretty">
+        Chercher ailleurs sur le web : déposez {scan.safeCopy ? 'la copie protégée' : 'l’image'} sur
+        l’un de ces services. La page la plus ancienne qui la montre dit souvent d’où elle vient.
+        Aucun résultat ne prouve rien.
+      </p>
+      {scan.safeCopy && <SafeCopyPanel copy={scan.safeCopy} fileName={scan.fileName} />}
+      <ReverseSearchServices />
+    </div>
+  );
+}
+
+export function AddToCase({ scan, caseOptions }: { scan: ScanView; caseOptions: CaseOption[] }) {
   const [caseId, setCaseId] = useState(scan.alreadySeen?.caseId ?? caseOptions[0]?.id ?? '');
   const [pending, startTransition] = useTransition();
 
@@ -206,13 +284,14 @@ function ImageResult({ scan, caseOptions }: { scan: ScanView; caseOptions: CaseO
         ) : (
           <p className="text-muted-foreground">Pas retrouvée parmi les images de nos affaires.</p>
         )}
-        <ReverseSearchLinks />
+        <ReverseSearchLinks scan={scan} />
       </Step>
 
       <Step
         index={2}
         icon={<Sparkles aria-hidden className="size-5 text-primary" />}
         title="Lecture par l’IA"
+        ai
       >
         {reading?.description && <p className="text-pretty">{reading.description}</p>}
         {reading && reading.observations.length > 0 ? (
@@ -222,13 +301,20 @@ function ImageResult({ scan, caseOptions }: { scan: ScanView; caseOptions: CaseO
             ))}
           </ul>
         ) : (
-          <p className="text-muted-foreground">Aucune bizarrerie visible relevée.</p>
+          <p className="text-muted-foreground">
+            {reading ? 'Aucune bizarrerie visible relevée.' : 'L’IA n’a pas lu cette image.'}
+          </p>
         )}
         {reading?.textInImage && (
           <p className="text-sm">
             Texte dans l’image : <span className="italic">« {reading.textInImage} »</span>
           </p>
         )}
+        <p className="text-muted-foreground text-sm">
+          {scan.safeCopy
+            ? 'L’IA a lu la copie protégée, pas l’original.'
+            : 'Pas de copie protégée : l’image n’a pas été envoyée à l’IA.'}
+        </p>
         {scan.aiSource && <AiSourceBadge source={scan.aiSource} />}
       </Step>
 

@@ -48,6 +48,10 @@ export const ERRORS = defineErrors({
     code: 'FILE_NOT_SUPPORTED',
     message: 'Ce type de fichier n’est pas pris en charge.',
   },
+  VIDEO_FAILED: {
+    code: 'VIDEO_FAILED',
+    message: 'La vidéo n’a pas pu être examinée : fichier illisible, ou examen indisponible ici.',
+  },
   NOTHING_TO_ADD: {
     code: 'NOTHING_TO_ADD',
     message: 'Ce scan n’a relevé aucun indice à verser au dossier.',

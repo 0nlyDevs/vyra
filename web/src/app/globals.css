@@ -428,6 +428,16 @@
   border: 1px solid var(--border);
 }
 
+/* Lecture de l'IA : la même carte, en pointillés. Les faits gardent le trait plein de .surface. */
+@utility ai-reading {
+  display: grid;
+  align-content: start;
+  gap: 0.75rem;
+  padding: 1rem;
+  border-radius: var(--radius);
+  border: 1px dashed color-mix(in oklab, var(--foreground) 45%, transparent);
+}
+
 /* Ce qui flotte (barre du haut, panneaux) : le fond de la page, plein. */
 @utility glass {
   background: var(--background);
@@ -1042,9 +1052,28 @@ html:has([data-desk-bar]) {
   position: sticky;
   top: 0;
   z-index: 30;
-  background: color-mix(in srgb, var(--background) 88%, transparent);
-  -webkit-backdrop-filter: blur(14px);
-  backdrop-filter: blur(14px);
+  background: var(--background);
+}
+
+/* Les deux barres du haut : un aplat tant que la page est en haut, puis une vitre floutée avec
+   un filet dès qu'un contenu passe dessous (`data-scrolled`, posé par ScrollState). En mode éco,
+   sans flou, la barre reste opaque. */
+.desk-bar,
+.site-bar {
+  transition:
+    background-color 0.35s var(--ease-out),
+    box-shadow 0.35s var(--ease-out);
+}
+html[data-scrolled] .desk-bar,
+html[data-scrolled] .site-bar {
+  background: color-mix(in srgb, var(--background) 62%, transparent);
+  -webkit-backdrop-filter: blur(20px) saturate(1.8);
+  backdrop-filter: blur(20px) saturate(1.8);
+  box-shadow: 0 1px 0 var(--border);
+}
+html[data-eco="on"][data-scrolled] .desk-bar,
+html[data-eco="on"][data-scrolled] .site-bar {
+  background: var(--background);
 }
 .site-bar-in {
   display: flex;
@@ -1591,6 +1620,18 @@ html:has([data-desk-bar]) {
   }
 }
 
+/* Mode « Sans IA » : chaque lecture de l'IA laisse place à une ligne qui la signale. Hors couche,
+   comme le mode éco, pour passer devant les classes d'affichage de Tailwind. */
+.ai-reading-off {
+  display: none;
+}
+html[data-no-ai="on"] .ai-reading > :not(.ai-reading-off) {
+  display: none;
+}
+html[data-no-ai="on"] .ai-reading-off {
+  display: flex;
+}
+
 /* Mode éco : pas d'animation, pas de flou ni de grain, pas d'illustration décorative. Moins de
    calcul pour les petits téléphones, et rien d'inutile à charger. Hors couche (@layer) : ces
    règles passent devant Tailwind sans !important. */
@@ -1620,4 +1661,277 @@ html[data-eco="on"] .auth-video {
   .auth-video {
     display: none;
   }
+}
+
+/* ─── L'accueil connecté : flèche dessinée, vidéos inclinées, cartes des modules ─── */
+
+/* La flèche dessinée à la main, une par page, vers le geste à faire. */
+.doodle {
+  position: absolute;
+  pointer-events: none;
+  overflow: visible;
+  color: var(--foreground);
+}
+.doodle path {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: doodle-draw 1.1s var(--ease-theme) forwards;
+  animation-delay: var(--d, 0.7s);
+}
+.doodle path + path {
+  animation-duration: 0.35s;
+  animation-delay: calc(var(--d, 0.7s) + 1s);
+}
+@keyframes doodle-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+.doodle-note {
+  position: absolute;
+  white-space: nowrap;
+  pointer-events: none;
+  color: var(--foreground);
+  font-family: var(--font-quote);
+  font-style: italic;
+  font-weight: 500;
+  font-size: 1.3rem;
+  line-height: 1.1;
+  animation: rise 0.6s var(--ease-out) both;
+  animation-delay: var(--d, 0.5s);
+}
+@media (max-width: 1023px) {
+  .doodle,
+  .doodle-note {
+    display: none;
+  }
+}
+/* Sans animation, la flèche est déjà tracée. */
+html[data-eco="on"] .doodle path {
+  stroke-dashoffset: 0;
+}
+
+/* Le champ où l'on colle le message : une carte qui flotte et s'allume au focus. */
+.pub-prompt {
+  border-radius: 28px;
+  border: 1px solid var(--input);
+  background: var(--card);
+  box-shadow: var(--shadow-float);
+  transition:
+    border-color 0.25s,
+    box-shadow 0.25s;
+}
+.pub-prompt:focus-within {
+  border-color: var(--foreground);
+  box-shadow:
+    var(--shadow-float),
+    0 0 0 4px color-mix(in srgb, var(--foreground) 10%, transparent);
+}
+
+/* Trois vidéos muettes, inclinées ; elles s'écartent au survol. */
+.vreels-stage {
+  position: relative;
+  height: 470px;
+}
+.vreel {
+  position: absolute;
+  width: 34%;
+  aspect-ratio: 9 / 16;
+  overflow: hidden;
+  border-radius: 22px;
+  background: #0a0a0b;
+  box-shadow: var(--shadow-float);
+  transition: transform 0.7s var(--ease-out);
+}
+.vreel:nth-child(1) {
+  left: 2%;
+  top: 44px;
+  transform: rotate(-7deg);
+}
+.vreel:nth-child(2) {
+  left: 33%;
+  top: 0;
+  z-index: 2;
+  transform: rotate(2deg);
+}
+.vreel:nth-child(3) {
+  left: 64%;
+  top: 64px;
+  transform: rotate(8deg);
+}
+.vreels:hover .vreel:nth-child(1) {
+  transform: rotate(-10deg) translateX(-12px);
+}
+.vreels:hover .vreel:nth-child(2) {
+  transform: rotate(0deg) translateY(-8px);
+}
+.vreels:hover .vreel:nth-child(3) {
+  transform: rotate(11deg) translateX(12px);
+}
+.vreel video {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.vreel::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(10, 10, 11, 0) 45%, rgba(10, 10, 11, 0.88) 100%);
+}
+.vreel-badge {
+  position: absolute;
+  z-index: 1;
+  top: 12px;
+  left: 12px;
+}
+/* Papier fixe sur la vidéo assombrie, dans les deux thèmes. */
+.vreel-cap {
+  position: absolute;
+  z-index: 1;
+  left: 14px;
+  right: 14px;
+  bottom: 14px;
+  color: #f3f2ee;
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+/* Un module en carte : l'icône et son numéro, le nom, la phrase, puis « Ouvrir » et sa flèche
+   ronde. Au survol, la carte monte de 3 px et la flèche se remplit d'encre et file en diagonale. */
+.mcard-grid {
+  display: grid;
+  gap: 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+@media (min-width: 700px) {
+  .mcard-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (min-width: 1100px) {
+  .mcard-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+.mcard {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: 20px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--foreground);
+  outline: none;
+  transition:
+    border-color 0.25s,
+    box-shadow 0.4s var(--ease-out),
+    transform 0.4s var(--ease-out);
+}
+.mcard:hover {
+  border-color: var(--input);
+  box-shadow: var(--shadow-float);
+  transform: translateY(-3px);
+}
+.mcard:focus-visible {
+  outline: 2px solid var(--foreground);
+  outline-offset: 3px;
+}
+.mcard-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 20px 0;
+}
+.mcard-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 999px;
+  background: var(--raised);
+  transition:
+    background-color 0.3s,
+    color 0.3s;
+}
+.mcard-icon svg {
+  width: 20px;
+  height: 20px;
+}
+.mcard:hover .mcard-icon {
+  background: var(--primary);
+  color: var(--primary-foreground);
+}
+.mcard-index {
+  color: var(--muted-foreground);
+  font-family: var(--font-display);
+  font-size: 0.875rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.mcard-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 8px;
+  padding: 22px 20px 20px;
+}
+.mcard-word {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 800;
+  line-height: 1.05;
+  letter-spacing: -0.025em;
+}
+.mcard-text {
+  color: var(--muted-foreground);
+  line-height: 1.5;
+  text-wrap: pretty;
+}
+.mcard-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 20px;
+  padding: 14px 0 16px;
+  border-top: 1px solid var(--border);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+.mcard-go {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  transition:
+    background-color 0.25s,
+    color 0.25s,
+    border-color 0.25s;
+}
+.mcard-go svg {
+  width: 18px;
+  height: 18px;
+  transition: transform 0.35s var(--ease-out);
+}
+.mcard:hover .mcard-go {
+  border-color: var(--primary);
+  background: var(--primary);
+  color: var(--primary-foreground);
+}
+.mcard:hover .mcard-go svg {
+  transform: translate(2px, -2px);
 }

@@ -25,7 +25,7 @@ export function CaseCard({
   return (
     <Link
       href={href}
-      className="grid gap-2 surface p-4 outline-none transition-colors hover:border-foreground hover:bg-raised focus-visible:ring-3 focus-visible:ring-ring/50"
+      className="grid gap-2 surface p-5 outline-none transition-[transform,box-shadow,border-color] duration-400 ease-[cubic-bezier(.22,1,.36,1)] hover:-translate-y-[3px] hover:border-input hover:shadow-[var(--shadow-float)] focus-visible:ring-3 focus-visible:ring-ring/50"
     >
       <div className="flex flex-wrap items-center gap-2">
         <h3 className="mr-auto font-bold">{item.title}</h3>

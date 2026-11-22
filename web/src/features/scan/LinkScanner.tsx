@@ -2,6 +2,7 @@
 
 import { CalendarClock, ExternalLink, FileText, Link2, ShieldCheck, Waypoints } from 'lucide-react';
 import { type FormEvent, useState, useTransition } from 'react';
+import { AiReading } from '@/components/common/AiReading';
 import { AiSourceBadge } from '@/components/common/DomainBadges';
 import { ToneBadge } from '@/components/common/ToneBadge';
 import { FormMessage } from '@/components/form/FormField';
@@ -58,7 +59,11 @@ function LinkResult({ view }: { view: LinkView }) {
         </a>
       </section>
 
-      <section className="grid gap-2 surface p-4">
+      <AiReading
+        label="Ce que la page affirme, relevé par l’IA"
+        showLabel={false}
+        className="gap-2"
+      >
         <h3 className="flex items-center gap-2 font-semibold">
           <FileText aria-hidden className="size-5 text-primary" />
           Ce que la page affirme
@@ -76,7 +81,7 @@ function LinkResult({ view }: { view: LinkView }) {
           </p>
         )}
         <AiSourceBadge source={view.aiSource} />
-      </section>
+      </AiReading>
 
       <WarningSigns text={view.text} title="Signes d’alerte dans la page" />
 

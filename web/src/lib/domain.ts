@@ -294,7 +294,7 @@ export type HearingStatus = (typeof HEARING_STATUSES)[number];
 
 // ─── Scan d'image et de vocal ───────────────────────────────────────────────────────────────
 
-export const MEDIA_KINDS = ['image', 'audio'] as const;
+export const MEDIA_KINDS = ['image', 'audio', 'video'] as const;
 export type MediaKind = (typeof MEDIA_KINDS)[number];
 
 // Résultat global d'un scan d'image : jamais « c'est une IA », seulement ce qu'on a relevé.

@@ -9,6 +9,12 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1 \
     RUFF_CACHE_DIR=/tmp/ruff-cache
 
+# ffmpeg : examen des vidéos du scan (images clés, bande son). Sans lui, l'onglet Vidéo est
+# simplement indisponible.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ffmpeg \
+    && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /app
 COPY requirements.txt requirements-dev.txt ./
 RUN pip install -r requirements-dev.txt

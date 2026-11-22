@@ -35,7 +35,7 @@ const nextConfig: NextConfig = {
         source: '/api/v1/:path*',
         headers: [
           { key: 'Access-Control-Allow-Origin', value: apiCorsOrigin },
-          { key: 'Access-Control-Allow-Methods', value: 'GET, POST, OPTIONS' },
+          { key: 'Access-Control-Allow-Methods', value: 'GET, POST, DELETE, OPTIONS' },
           { key: 'Access-Control-Allow-Headers', value: 'Content-Type, Authorization' },
           { key: 'Access-Control-Max-Age', value: '86400' },
         ],

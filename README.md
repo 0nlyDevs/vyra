@@ -225,6 +225,47 @@ signature Ed25519 du texte exact de la conclusion. `/verifier/sceau` dit si une 
 - Rejuger une affaire change son sceau : l'ancienne carte s'affiche alors « ne correspond pas », avec
   la conclusion actuelle.
 
+### Le scan de vidéo
+
+Onglet « Vidéo » du Scan (MP4, MOV, WebM, 3GP, 8 Mo au plus). `processing` examine la vidéo avec
+**ffmpeg**, sans IA (`POST /v1/media/video`) :
+
+- ce que le fichier déclare : type de source IPTC « générée par IA », outil de génération (Sora,
+  Veo, Runway…), Content Credentials, appareil, date, position, réencodage (« Lavf ») ;
+- quatre **images clés**, passées par la copie protégée (visages floutés), à télécharger pour la
+  recherche inversée ;
+- la **bande son** (90 s au plus, WAV 16 kHz), transcrite par l'IA puis comparée aux affaires déjà
+  jugées, comme un vocal.
+
+L'IA ne reçoit jamais la vidéo d'origine : seulement les images protégées et le son. ffmpeg est
+installé dans l'image Docker de `processing` ; s'il manque sur un serveur, `/health` répond
+`video: false` et l'onglet le dit, sans rien casser. Démo : « Vidéo reçue par message »
+(`web/public/demo/video-coupure-eau.mp4`, réponses de secours `water-video`).
+
+### Faits et lectures de l'IA, et le mode « Sans IA »
+
+À l'écran, deux traits : un **trait plein** pour les faits (pièces du dossier, informations du
+fichier, image déjà vue, niveau de certitude calculé par une règle fixe sur les pièces), des
+**pointillés** pour ce que l'IA a lu ou formulé (plaidoiries, conclusion rédigée, lecture d'image,
+transcription d'un vocal, phrases relevées dans une page). Le composant `AiReading` pose les
+pointillés.
+
+Le bouton « Sans IA » (dock des préférences, menu du compte, barre publique) masque toutes ces
+lectures : il ne reste que les faits, et une ligne signale chaque bloc masqué. Réglage gardé sur
+l'appareil, comme le mode éco.
+
+### La copie protégée des images
+
+Avant qu'une image importée dans le Scan parte où que ce soit, `processing` en fait une copie
+(`POST /v1/media/safe-copy`, OpenCV et Pillow, sans IA) : redressée, réduite à 2 048 px, **visages
+floutés** (détecteurs de face et de profil), réencodée en JPEG **sans aucune information cachée**
+(appareil, date, GPS…), première image seulement pour un GIF animé.
+
+- L'IA (Gemini ou Gemma) ne lit que cette copie. Si la copie échoue, l'image n'est pas envoyée.
+- Les informations cachées sont lues sur l'original, sur place : la signature IA reste détectée.
+- L'étape « Déjà vue ? » montre la copie et la propose au téléchargement pour Google Lens, TinEye…
+- Le détecteur peut rater un visage petit, flou ou de trois quarts : la copie réduit le risque.
+
 ### « Est-ce bien eux ? » et l'annuaire officiel
 
 Onglet du module Scan. On colle un message qui se réclame d'une institution (et, si on l'a, son
