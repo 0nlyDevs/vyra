@@ -50,7 +50,7 @@ export const MODULE_ITEMS: NavItem[] = [
   {
     href: '/scan',
     label: 'Scan',
-    description: 'Examiner une image, un vocal, un lien ou l’expéditeur d’un message.',
+    description: 'Examiner une image, une vidéo, un vocal, un lien ou l’expéditeur d’un message.',
     icon: ScanSearch,
   },
   {

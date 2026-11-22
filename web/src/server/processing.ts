@@ -230,6 +230,35 @@ export async function makeSafeCopy(file: InlineFile): Promise<ActionResult<SafeC
   return data ? ok(data) : fail(ERRORS.INTERNAL);
 }
 
+const videoReportSchema = z.object({
+  report: mediaReportSchema,
+  duration: z.number(),
+  width: z.number().int().nullable(),
+  height: z.number().int().nullable(),
+  frames: z.array(
+    z.object({
+      second: z.number(),
+      mimeType: z.literal('image/jpeg'),
+      data: z.string().min(1),
+      facesBlurred: z.number().int().min(0),
+    }),
+  ),
+  audio: z
+    .object({ mimeType: z.literal('audio/wav'), data: z.string().min(1), seconds: z.number() })
+    .nullable(),
+});
+export type VideoReport = z.infer<typeof videoReportSchema>;
+
+// ffmpeg peut prendre quelques secondes sur une vidéo de 8 Mo.
+const VIDEO_TIMEOUT_MS = 60_000;
+
+// Ce qu'une vidéo déclare, quatre images clés déjà protégées (visages floutés, rien de caché) et sa
+// bande son en WAV. Sans IA. `null` côté processing (fichier illisible, ffmpeg absent) : VIDEO_FAILED.
+export async function inspectVideo(file: { mimeType: string; data: string }) {
+  const data = await post('/v1/media/video', file, videoReportSchema, VIDEO_TIMEOUT_MS);
+  return data ? ok(data) : fail(ERRORS.VIDEO_FAILED);
+}
+
 // Un vecteur par texte (recherche par le sens). Hors ligne : AI_UNAVAILABLE.
 export async function embedTexts(texts: string[]): Promise<ActionResult<number[][]>> {
   const schema = z.object({ vectors: z.array(z.array(z.number())) });
@@ -245,21 +274,33 @@ export async function embedTexts(texts: string[]): Promise<ActionResult<number[]
 const healthSchema = z.object({
   audio: z.boolean().default(false),
   voice: z.boolean().default(false),
+  video: z.boolean().default(false),
 });
+const HEALTH_DOWN = { audio: false, voice: false, video: false };
 
-export type VoiceCapabilities = { audio: boolean; voice: boolean };
-
-export async function voiceCapabilities(): Promise<VoiceCapabilities> {
+async function readHealth(): Promise<z.infer<typeof healthSchema>> {
   try {
     const response = await fetch(`${env.PROCESSING_URL}/health`, {
       signal: AbortSignal.timeout(3_000),
       cache: 'no-store',
     });
     const parsed = healthSchema.safeParse(await response.json());
-    return parsed.success ? parsed.data : { audio: false, voice: false };
+    return parsed.success ? parsed.data : HEALTH_DOWN;
   } catch {
-    return { audio: false, voice: false };
+    return HEALTH_DOWN;
   }
+}
+
+export type VoiceCapabilities = { audio: boolean; voice: boolean };
+
+export async function voiceCapabilities(): Promise<VoiceCapabilities> {
+  const { audio, voice } = await readHealth();
+  return { audio, voice };
+}
+
+// L'onglet Vidéo du scan : ffmpeg est-il installé à côté de processing ?
+export async function videoAvailable(): Promise<boolean> {
+  return (await readHealth()).video;
 }
 
 const VOICE_TIMEOUT_MS = 40_000;
