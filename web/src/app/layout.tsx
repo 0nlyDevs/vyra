@@ -13,7 +13,11 @@ import '@fontsource/cormorant-garamond/500-italic.css';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: publicEnv.NEXT_PUBLIC_APP_NAME,
+  // Chaque page donne son nom ; l'onglet du navigateur affiche « Enquêtes · Vyra ».
+  title: {
+    default: publicEnv.NEXT_PUBLIC_APP_NAME,
+    template: `%s · ${publicEnv.NEXT_PUBLIC_APP_NAME}`,
+  },
   description:
     'Vyra : voir d’où vient une information et la faire juger sur pièces. DevFest Antananarivo 2026.',
 };

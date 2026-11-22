@@ -8,6 +8,8 @@ import { GAME_GRADE_LABELS, GAME_GRADE_TONES, GAME_GRADES, gameGradeOf } from '@
 import { countScenarios, getPlayerRecord } from '@/server/dal/game';
 import { requireProfile } from '@/server/session';
 
+export const metadata = { title: 'Vrai ou fake ?' };
+
 const HOW_TO_PLAY = [
   'Lisez l’information, présentée comme dans un fil d’actualité.',
   'Retournez les indices un par un et dites ce que chacun vous inspire.',

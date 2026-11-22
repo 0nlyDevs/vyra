@@ -15,6 +15,8 @@ import {
 } from '@/server/dal/reports';
 import { requireProfile } from '@/server/session';
 
+export const metadata = { title: 'Alertes' };
+
 type SearchParams = Record<string, string | string[] | undefined>;
 
 function firstValue(value: string | string[] | undefined) {

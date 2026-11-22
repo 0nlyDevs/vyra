@@ -11,6 +11,8 @@ import { MODULE_ITEMS } from '@/lib/navigation';
 import { listCases } from '@/server/dal/cases';
 import { requireProfile } from '@/server/session';
 
+export const metadata = { title: 'Accueil' };
+
 // Accueil de l'espace connecté, mis en page comme un journal : un grand titre qui monte ligne à
 // ligne, le champ « collez le message reçu » montré par une flèche dessinée, trois vidéos de ce
 // qui circule ; puis les modules en cartes, puis les affaires en cours.

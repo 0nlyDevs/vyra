@@ -28,6 +28,8 @@ import {
 import { cn } from '@/lib/utils';
 import { getFeedFreshness, listFeedItems, listFeedPairs } from '@/server/dal/feed';
 
+export const metadata = { title: 'Fil d’actualité' };
+
 // Le fil d'actualité : ce qui circule vraiment (presse, télévisions, Facebook public, réseaux,
 // recherches qui montent), d'abord dans la région choisie, puis dans le monde.
 export default async function FeedPage({
