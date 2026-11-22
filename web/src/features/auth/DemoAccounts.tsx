@@ -8,7 +8,7 @@ import { DEMO_PROFILES } from '@/server/demo/seed-data';
 export function DemoAccounts() {
   return (
     <section id="demo" aria-labelledby="demo-title" className="grid gap-3">
-      <h2 id="demo-title" className="font-medium text-muted-foreground text-sm">
+      <h2 id="demo-title" className="font-bold text-foreground text-sm">
         Comptes de démo
       </h2>
       <div className="grid gap-2">
@@ -18,11 +18,11 @@ export function DemoAccounts() {
             <Button
               type="submit"
               variant="outline"
-              className="h-auto w-full justify-between gap-3 rounded-2xl px-4 py-3 text-left"
+              className="h-auto w-full justify-between gap-3 rounded-[20px] bg-card px-5 py-3.5 text-left hover:bg-raised"
             >
               <span className="grid">
-                <span className="font-medium">{profile.name}</span>
-                <span className="font-normal text-muted-foreground text-xs">
+                <span className="font-bold">{profile.name}</span>
+                <span className="whitespace-normal font-normal text-muted-foreground text-sm">
                   {PROFILE_ROLE_LABELS[profile.role]} · {profile.headline}
                 </span>
               </span>

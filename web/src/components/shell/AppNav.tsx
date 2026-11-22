@@ -1,83 +1,211 @@
 'use client';
 
+import { ChevronDown, Ellipsis } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Logo } from '@/components/brand/Logo';
-import { HOME_ITEM, KIT_ITEM, MODULE_ITEMS, type NavItem } from '@/lib/navigation';
-import { cn } from '@/lib/utils';
+import { useCallback, useLayoutEffect, useRef, useState } from 'react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { type NavItem, TAB_ITEMS } from '@/lib/navigation';
+import { foldTabs } from '@/lib/priority-nav';
+import { useSlidingPill } from '@/lib/use-sliding-pill';
 
-// Navigation de l'espace connecté : barre latérale sur PC, bandeau défilant sur petit écran.
-// Les entrées viennent de src/lib/navigation.ts. L'entrée active porte un trait rouge à gauche.
+// Navigation de l'espace connecté : l'île d'encre au centre de la barre, avec sa pilule papier
+// sous l'onglet en cours ; sous 640 px, la barre d'encre au pouce. Les entrées viennent de
+// src/lib/navigation.ts.
 
-function NavLink({ item, className }: { item: NavItem; className?: string }) {
+const MORE = 'Plus';
+const MORE_LABEL = 'Autres pages';
+
+/** L'onglet allumé : la page elle-même, ou une page en dessous. */
+function useActive(items: NavItem[]) {
   const pathname = usePathname();
-  const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
-  const Icon = item.icon;
-
-  return (
-    <Link
-      href={item.href}
-      aria-current={active ? 'page' : undefined}
-      className={cn(
-        'relative flex items-center gap-3 rounded-full px-3.5 py-2 text-[0.9rem] outline-none transition-[background-color,color] duration-200 focus-visible:ring-3 focus-visible:ring-ring/40',
-        active
-          ? 'bg-sidebar-active font-medium text-sidebar-active-foreground shadow-[inset_0_1px_0_var(--sheen)]'
-          : 'text-sidebar-foreground hover:bg-foreground/[0.05] hover:text-foreground',
-        className,
-      )}
-    >
-      {active && (
-        <span
-          aria-hidden
-          className="absolute top-1/2 left-0 h-4 w-[3px] -translate-y-1/2 rounded-full bg-primary shadow-[0_0_12px_var(--glow)]"
-        />
-      )}
-      <Icon aria-hidden className={cn('size-4 shrink-0', active && 'text-primary')} />
-      {item.label}
-    </Link>
-  );
+  return items.findIndex((item) => pathname === item.href || pathname.startsWith(`${item.href}/`));
 }
 
-export function AppSidebar({ appName }: { appName: string }) {
+/**
+ * L'île d'onglets. Priorité + : les onglets qui ne tiennent pas se replient dans « Plus » en
+ * partant de la fin ; un onglet en cours replié donne son nom et la pilule à « Plus ». Une rangée
+ * cachée mesure chaque onglet, pour que le repli ne devine jamais.
+ */
+export function TabIsland({ items = TAB_ITEMS }: { items?: NavItem[] }) {
+  const active = useActive(items);
+  const wrap = useRef<HTMLDivElement>(null);
+  const ghost = useRef<HTMLDivElement>(null);
+  const [visible, setVisible] = useState(items.length);
+  const { host: island, pill, place, handlers } = useSlidingPill<HTMLUListElement>(active);
+
+  const fit = useCallback(() => {
+    const room = wrap.current?.clientWidth ?? 0;
+    const cells = ghost.current ? (Array.from(ghost.current.children) as HTMLElement[]) : [];
+    if (!room || cells.length < items.length + 1) return;
+    const gap = 2;
+    const widths = cells.slice(0, items.length).map((c) => c.offsetWidth + gap);
+    const plain = cells[items.length].offsetWidth + gap;
+    // Le retrait de l'île (5 px de chaque côté) n'est pas de la place pour les onglets.
+    let fold = foldTabs(widths, room - 10, plain, active);
+    if (fold.activeFolded && cells[items.length + 1]) {
+      // « Plus » porte alors le nom de l'onglet en cours : on mesure ce libellé-là.
+      fold = foldTabs(widths, room - 10, cells[items.length + 1].offsetWidth + gap, active);
+    }
+    setVisible(fold.visible);
+    place();
+  }, [items.length, active, place]);
+
+  useLayoutEffect(() => {
+    fit();
+    const ro = new ResizeObserver(fit);
+    if (wrap.current) ro.observe(wrap.current);
+    document.fonts?.ready.then(fit);
+    return () => ro.disconnect();
+  }, [fit]);
+
+  // Le repli déplace les onglets (et peut-être l'onglet en cours dans « Plus ») : la pilule suit.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `visible` déclenche le placement.
+  useLayoutEffect(() => place(), [visible, place]);
+
+  const folded = items.slice(visible);
+  const holds = active >= visible;
+  const current = active >= 0 ? items[active] : undefined;
+  const HeldIcon = current?.icon;
+
   return (
-    <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col border-sidebar-border border-r bg-sidebar md:flex">
-      <Link
-        href="/dashboard"
-        className="mx-3 mt-4 mb-2 flex items-center rounded-full px-3 py-2 outline-none focus-visible:ring-3 focus-visible:ring-ring/40"
-      >
-        <Logo name={appName} />
-      </Link>
-      <nav aria-label="Navigation principale" className="flex flex-1 flex-col gap-1 px-3 py-2">
-        <NavLink item={HOME_ITEM} />
-        <p className="px-3.5 pt-5 pb-1.5 font-medium text-[0.62rem] text-muted-foreground uppercase tracking-[0.24em]">
-          Modules
-        </p>
-        {MODULE_ITEMS.map((item) => (
-          <NavLink key={item.href} item={item} />
-        ))}
-        <div className="mt-auto grid gap-3 pb-4">
-          <div className="mx-1 rounded-2xl bg-foreground/[0.035] p-3.5 shadow-[inset_0_0_0_1px_color-mix(in_oklch,var(--foreground)_6%,transparent)]">
-            <p className="font-medium text-[0.8rem]">Non vérifié ≠ faux</p>
-            <p className="mt-1 text-[0.75rem] text-muted-foreground leading-snug">
-              Vyra montre les preuves. C’est vous qui jugez.
-            </p>
-          </div>
-          <NavLink item={KIT_ITEM} />
-        </div>
+    <div ref={wrap} className="tab-wrap">
+      <nav aria-label="Navigation principale" className="tab-island">
+        <span ref={pill} className="tab-pill" aria-hidden />
+        <ul ref={island} className="tab-list" {...handlers}>
+          {items.slice(0, visible).map(({ label, icon: Icon, href }, i) => (
+            <li key={href}>
+              <Link
+                href={href}
+                className="tab"
+                data-pill-item
+                data-current={i === active || undefined}
+                aria-current={i === active ? 'page' : undefined}
+              >
+                <Icon className="tab-icon" aria-hidden />
+                {label}
+              </Link>
+            </li>
+          ))}
+          {folded.length > 0 && (
+            <li>
+              <DropdownMenu>
+                <DropdownMenuTrigger
+                  className="tab"
+                  data-pill-item
+                  data-current={holds || undefined}
+                  aria-label={holds && current ? `${current.label}, ${MORE}` : undefined}
+                >
+                  {holds && HeldIcon ? <HeldIcon className="tab-icon" aria-hidden /> : null}
+                  {holds && current ? current.label : MORE}
+                  <ChevronDown className="tab-caret" aria-hidden />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent
+                  align="end"
+                  sideOffset={10}
+                  className="tab-menu"
+                  aria-label={MORE_LABEL}
+                >
+                  {folded.map(({ label, icon: Icon, href }, i) => (
+                    <DropdownMenuItem key={href} asChild>
+                      <Link href={href} aria-current={visible + i === active ? 'page' : undefined}>
+                        <Icon aria-hidden />
+                        {label}
+                      </Link>
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </li>
+          )}
+        </ul>
       </nav>
-    </aside>
+      {/* La rangée de mesure : chaque onglet, « Plus », et « Plus » portant l'onglet en cours. */}
+      <div ref={ghost} className="tab-ghost" aria-hidden inert>
+        {items.map(({ label, icon: Icon, href }) => (
+          <span key={href} className="tab">
+            <Icon className="tab-icon" />
+            {label}
+          </span>
+        ))}
+        <span className="tab">
+          {MORE}
+          <ChevronDown className="tab-caret" />
+        </span>
+        {current && HeldIcon && (
+          <span className="tab">
+            <HeldIcon className="tab-icon" />
+            {current.label}
+            <ChevronDown className="tab-caret" />
+          </span>
+        )}
+      </div>
+    </div>
   );
 }
 
-export function AppTopNav() {
+/** Sous 640 px, l'île devient la barre d'encre au pouce : quatre entrées, puis « Plus ». */
+export function TabBar({ items = TAB_ITEMS }: { items?: NavItem[] }) {
+  const active = useActive(items);
+  const room = items.length > 5 ? 4 : items.length;
+  const folded = items.slice(room);
+  const holds = active >= room;
+  const current = active >= 0 ? items[active] : undefined;
   return (
-    <nav
-      aria-label="Navigation principale"
-      className="flex gap-1 overflow-x-auto border-sidebar-border border-b bg-sidebar px-3 py-2 md:hidden"
-    >
-      {[HOME_ITEM, ...MODULE_ITEMS, KIT_ITEM].map((item) => (
-        <NavLink key={item.href} item={item} className="shrink-0" />
-      ))}
+    <nav aria-label="Navigation principale" className="tab-bar">
+      <ul
+        style={{
+          gridTemplateColumns: `repeat(${room + (folded.length ? 1 : 0)}, minmax(0, 1fr))`,
+        }}
+      >
+        {items.slice(0, room).map(({ label, short, icon: Icon, href }, i) => (
+          <li key={href}>
+            <Link
+              href={href}
+              className="tab-bar-item"
+              aria-current={i === active ? 'page' : undefined}
+            >
+              <Icon className="size-[22px]" aria-hidden />
+              <span>{short ?? label}</span>
+            </Link>
+          </li>
+        ))}
+        {folded.length > 0 && (
+          <li>
+            <DropdownMenu>
+              <DropdownMenuTrigger className="tab-bar-item" data-current={holds || undefined}>
+                {holds && current ? (
+                  <current.icon className="size-[22px]" aria-hidden />
+                ) : (
+                  <Ellipsis className="size-[22px]" aria-hidden />
+                )}
+                <span>{holds && current ? (current.short ?? current.label) : MORE}</span>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                side="top"
+                align="end"
+                sideOffset={10}
+                className="tab-menu"
+                aria-label={MORE_LABEL}
+              >
+                {folded.map(({ label, icon: Icon, href }, i) => (
+                  <DropdownMenuItem key={href} asChild>
+                    <Link href={href} aria-current={room + i === active ? 'page' : undefined}>
+                      <Icon aria-hidden />
+                      {label}
+                    </Link>
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </li>
+        )}
+      </ul>
     </nav>
   );
 }

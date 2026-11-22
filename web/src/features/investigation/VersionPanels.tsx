@@ -20,7 +20,7 @@ export function VersionDetail({ version, action }: { version: Version; action?: 
   return (
     <section
       aria-label={`Version ${version.position}`}
-      className="grid gap-3 rounded-xl border bg-card p-5 shadow-sm"
+      className="grid gap-3 rounded-xl border bg-card p-5"
     >
       <VersionHeading version={version} />
       <blockquote className="max-w-[70ch] text-pretty text-lg leading-relaxed">
@@ -59,7 +59,7 @@ export function VersionComparison({
   return (
     <section
       aria-label={`Comparaison de la version ${before.position} et de la ${target}`}
-      className="grid gap-5 rounded-xl border bg-card p-5 shadow-sm"
+      className="grid gap-5 rounded-xl border bg-card p-5"
     >
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h3 className="font-semibold text-lg">

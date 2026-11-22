@@ -55,7 +55,7 @@ export function FormField({
 export function FormMessage({ message }: { message: string | null }) {
   if (!message) return null;
   return (
-    <p role="alert" className="rounded-md bg-destructive/10 px-3 py-2 text-destructive text-sm">
+    <p role="alert" className="rounded-[16px] bg-danger-soft px-4 py-3 text-danger text-sm">
       {message}
     </p>
   );

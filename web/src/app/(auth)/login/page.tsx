@@ -26,13 +26,12 @@ export default async function LoginPage({
 
   return (
     <div className="grid gap-8">
-      <header className="grid gap-2">
-        <h1 className="font-semibold text-3xl">Se connecter</h1>
-        <p className="text-muted-foreground">
-          Pas encore de compte ?{' '}
-          <Link href="/signup" className="text-primary underline-offset-4 hover:underline">
-            Créer un compte
-          </Link>
+      <header>
+        <h1 className="pub-h2 text-foreground">
+          Bon <em>retour</em>.
+        </h1>
+        <p className="mt-3 text-muted-foreground">
+          Reprenez vos enquêtes, vos audiences et vos alertes là où vous les avez laissées.
         </p>
       </header>
       {errorMessage && <ErrorState title={errorMessage} description="" />}
@@ -46,6 +45,15 @@ export default async function LoginPage({
         <LoginForm />
       </div>
       <DemoAccounts />
+      <p className="text-muted-foreground text-sm">
+        Pas encore de compte ?{' '}
+        <Link
+          href="/signup"
+          className="font-medium text-foreground underline decoration-border underline-offset-4 hover:decoration-foreground"
+        >
+          Créer un compte
+        </Link>
+      </p>
     </div>
   );
 }

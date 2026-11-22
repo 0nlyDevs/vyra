@@ -22,7 +22,7 @@ export function VerifyEmailBanner({ email }: { email: string }) {
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b bg-warning-soft px-6 py-2 text-sm">
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 bg-warning-soft px-(--inset) py-2 text-foreground text-sm">
       <MailWarning aria-hidden className="size-4 text-warning" />
       <span>
         Confirmez votre adresse <span className="font-medium">{email}</span> avec le lien reçu par

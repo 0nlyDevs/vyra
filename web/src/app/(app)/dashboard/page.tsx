@@ -21,7 +21,7 @@ export default async function DashboardPage() {
       />
 
       <section aria-labelledby="modules-title" className="grid gap-4">
-        <h2 id="modules-title" className="font-semibold text-xl">
+        <h2 id="modules-title" className="font-bold font-display text-xl">
           Modules
         </h2>
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
@@ -29,12 +29,12 @@ export default async function DashboardPage() {
             <Link
               key={item.href}
               href={item.href}
-              className="grid gap-3 surface p-5 outline-none transition-colors hover:border-primary/40 hover:bg-accent/40 focus-visible:ring-3 focus-visible:ring-ring/50"
+              className="grid gap-3 surface p-5 outline-none transition-colors hover:border-foreground hover:bg-raised focus-visible:ring-3 focus-visible:ring-ring/50"
             >
-              <span className="flex size-10 items-center justify-center rounded-lg bg-accent text-accent-foreground">
+              <span className="flex size-11 items-center justify-center rounded-full bg-raised text-foreground">
                 <item.icon aria-hidden className="size-5" />
               </span>
-              <span className="font-medium text-lg">{item.label}</span>
+              <span className="font-bold text-lg">{item.label}</span>
               <span className="text-muted-foreground text-sm">{item.description}</span>
             </Link>
           ))}
@@ -42,7 +42,7 @@ export default async function DashboardPage() {
       </section>
 
       <section aria-labelledby="cases-title" className="grid gap-4">
-        <h2 id="cases-title" className="font-semibold text-xl">
+        <h2 id="cases-title" className="font-bold font-display text-xl">
           Affaires en cours
         </h2>
         {caseList.length === 0 ? (
