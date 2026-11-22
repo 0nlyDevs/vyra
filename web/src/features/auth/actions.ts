@@ -27,7 +27,7 @@ import { forgotPasswordSchema, resetPasswordSchema, signInSchema, signUpSchema }
 // Crée le compte (e-mail et mot de passe) et envoie l'e-mail de confirmation, sans ouvrir de
 // session : le site (`signUp`) ouvre celle du cookie, l'application mobile reçoit un jeton.
 export async function registerAccount(formData: FormData) {
-  const parsed = signUpSchema.safeParse({
+  const parsed = await signUpSchema.safeParseAsync({
     name: formData.get('name'),
     email: formData.get('email'),
     password: formData.get('password'),
@@ -111,7 +111,7 @@ export async function resetPassword(
   _previous: ActionResult<null> | null,
   formData: FormData,
 ): Promise<ActionResult<null>> {
-  const parsed = resetPasswordSchema.safeParse({
+  const parsed = await resetPasswordSchema.safeParseAsync({
     token: formData.get('token'),
     password: formData.get('password'),
     confirm: formData.get('confirm'),

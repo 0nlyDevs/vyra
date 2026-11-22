@@ -41,7 +41,7 @@ export function SignupForm() {
         name="password"
         label="Mot de passe"
         autoComplete="new-password"
-        hint="8 caractères au moins."
+        hint="8 caractères au moins, difficile à deviner : une phrase de plusieurs mots marche bien."
         errors={errors?.password}
       />
       <FormMessage message={general} />
