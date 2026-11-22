@@ -8,6 +8,20 @@ Comptes de démo (mot de passe `mindstack-demo`) : `rasoa@mindstack.demo` (Véri
 `hery@mindstack.demo` (Citoyen). En ligne : https://vyra-mg.vercel.app. En local :
 http://localhost:3000.
 
+## Les données de démo
+
+`make seed` (ou le bouton « Réinitialiser la démo ») recrée un jeu cohérent, tout inventé :
+
+| | Contenu |
+|---|---|
+| Affaires | 13 : 9 jugées (Établi, Probable, Incertain, Contredit ×5, Informations insuffisantes) et 4 ouvertes à juger en direct (*La photo de l'inondation*, *Le recrutement à 500 postes*, *Le réseau mobile coupé trois jours*, *La bourse d'études*) |
+| Dossiers | 34 versions, 21 liens (ton durci, chiffre changé, reprise à l'identique…), 38 pièces, 9 audiences avec plaidoiries, constats et conclusion |
+| Autour | 8 signalements en 3 groupes, 5 scénarios du jeu, 3 institutions et leurs communiqués |
+| Comptes | `rasoa@mindstack.demo` (Vérificateur), `hery@mindstack.demo` (Citoyen) ; mot de passe `mindstack-demo` |
+
+Les données sont dans `web/src/server/demo/` (`seed-data.ts` pour le socle et `seed-archive.ts` pour
+les dossiers instruits). Les vecteurs de la recherche par le sens sont calculés au premier besoin.
+
 ## Le script
 
 | # | Écran | Ce qu'on fait | Ce que ça montre |
