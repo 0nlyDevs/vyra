@@ -32,6 +32,15 @@ function useActive(items: NavItem[]) {
  * partant de la fin ; un onglet en cours replié donne son nom et la pilule à « Plus ». Une rangée
  * cachée mesure chaque onglet, pour que le repli ne devine jamais.
  */
+/** Largeur occupée par le contenu d'un côté de la barre (ses enfants, de bord à bord). */
+function contentWidth(side: Element | null): number {
+  const boxes = Array.from(side?.children ?? [])
+    .map((child) => child.getBoundingClientRect())
+    .filter((box) => box.width > 0);
+  if (!boxes.length) return 0;
+  return Math.max(...boxes.map((b) => b.right)) - Math.min(...boxes.map((b) => b.left));
+}
+
 export function TabIsland({ items = TAB_ITEMS }: { items?: NavItem[] }) {
   const active = useActive(items);
   const wrap = useRef<HTMLDivElement>(null);
@@ -40,11 +49,20 @@ export function TabIsland({ items = TAB_ITEMS }: { items?: NavItem[] }) {
   const { host: island, pill, place, handlers } = useSlidingPill<HTMLUListElement>(active);
 
   const fit = useCallback(() => {
-    const room = wrap.current?.clientWidth ?? 0;
     const cells = ghost.current ? (Array.from(ghost.current.children) as HTMLElement[]) : [];
-    if (!room || cells.length < items.length + 1) return;
+    if (!wrap.current || cells.length < items.length + 1) return;
     const gap = 2;
     const widths = cells.slice(0, items.length).map((c) => c.offsetWidth + gap);
+    // La colonne du milieu prend la largeur de l'île dépliée : elle ne rétrécit que si l'écran
+    // manque de place, et la mesure ci-dessous reste la vraie place disponible.
+    const full = widths.reduce((sum, width) => sum + width, 10);
+    wrap.current.style.setProperty('--tabs-full', `${Math.ceil(full)}px`);
+    // Les deux côtés de la barre prennent la largeur du plus large : l'île reste au centre.
+    const bar = wrap.current.parentElement;
+    const sides = [wrap.current.previousElementSibling, wrap.current.nextElementSibling];
+    bar?.style.setProperty('--bar-side', `${Math.ceil(Math.max(...sides.map(contentWidth)))}px`);
+    const room = wrap.current.clientWidth;
+    if (!room) return;
     const plain = cells[items.length].offsetWidth + gap;
     // Le retrait de l'île (5 px de chaque côté) n'est pas de la place pour les onglets.
     let fold = foldTabs(widths, room - 10, plain, active);
@@ -60,6 +78,10 @@ export function TabIsland({ items = TAB_ITEMS }: { items?: NavItem[] }) {
     fit();
     const ro = new ResizeObserver(fit);
     if (wrap.current) ro.observe(wrap.current);
+    // Un côté qui change (bouton de démo, avatar) change aussi la place de l'île.
+    for (const side of [wrap.current?.previousElementSibling, wrap.current?.nextElementSibling]) {
+      for (const child of Array.from(side?.children ?? [])) ro.observe(child);
+    }
     document.fonts?.ready.then(fit);
     return () => ro.disconnect();
   }, [fit]);
