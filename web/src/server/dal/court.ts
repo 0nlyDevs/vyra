@@ -179,6 +179,18 @@ export async function listOpenRealCases() {
 }
 
 // Les affaires que l'assistant peut citer : les plus récentes, conclues ou non.
+// Les affaires les plus proches de la question par le sens (pgvector) : ce que l'assistant lit
+// d'abord. Vide si aucune affaire n'a de vecteur.
+export function listNearestCasesForAssistant(embedding: number[], limit = 6) {
+  const distance = sql<number>`${cosineDistance(cases.embedding, embedding)}`;
+  return db
+    .select({ ...judgedColumns, status: cases.status })
+    .from(cases)
+    .where(isNotNull(cases.embedding))
+    .orderBy(asc(distance))
+    .limit(limit);
+}
+
 export function listCasesForAssistant(limit = 12) {
   return db
     .select({ ...judgedColumns, status: cases.status })

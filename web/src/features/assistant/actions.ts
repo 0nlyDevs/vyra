@@ -4,9 +4,14 @@ import { type ActionResult, fail, ok } from '@/lib/action-result';
 import { CERTAINTY_LABELS, type CertaintyLevel } from '@/lib/domain';
 import { ERRORS } from '@/lib/errors';
 import { HOME_ITEM, KIT_ITEM, MODULE_ITEMS } from '@/lib/navigation';
-import { findJudgedCase, listCasesForAssistant } from '@/server/dal/court';
+import {
+  findJudgedCase,
+  listCasesForAssistant,
+  listNearestCasesForAssistant,
+} from '@/server/dal/court';
 import { type AiSource, embedTexts, runPrompt } from '@/server/processing';
 import { getCurrentProfile } from '@/server/session';
+import { pickAssistantCases } from './context';
 import { assistantAnswerSchema, assistantQuestionSchema } from './schema';
 
 // L'assistant : répond à partir des affaires du dossier, en les citant. Jamais de verdict nouveau.
@@ -34,7 +39,12 @@ function hrefOf(row: CaseRow) {
   return row.status === 'concluded' ? `/court/${row.id}` : `/cases/${row.id}`;
 }
 
-async function offlineAnswer(question: string, pathname: string, rows: CaseRow[]) {
+async function offlineAnswer(
+  question: string,
+  pathname: string,
+  rows: CaseRow[],
+  embedding: number[] | null,
+) {
   const open = rows.filter((row) => row.status !== 'concluded').slice(0, 4);
   if (/en cours|ouvert|enqu[eê]te/i.test(question) && open.length > 0) {
     const numbers = open.map((_, index) => `[${index + 1}]`).join(', ');
@@ -48,8 +58,7 @@ async function offlineAnswer(question: string, pathname: string, rows: CaseRow[]
       })),
     };
   }
-  const vectors = await embedTexts([question]);
-  const judged = await findJudgedCase(question, vectors.ok ? (vectors.data[0] ?? null) : null);
+  const judged = await findJudgedCase(question, embedding);
   if (judged?.certainty) {
     const level = CERTAINTY_LABELS[judged.certainty].toLowerCase();
     return {
@@ -82,7 +91,13 @@ export async function askAssistant(input: {
   if (!parsed.success) return fail(ERRORS.VALIDATION_FAILED, parsed.error);
   const { question, pathname, history } = parsed.data;
 
-  const rows = await listCasesForAssistant();
+  // Recherche par le sens : les affaires les plus proches de la question, puis les plus récentes.
+  const vectors = await embedTexts([question]);
+  const embedding = vectors.ok ? (vectors.data[0] ?? null) : null;
+  const rows = pickAssistantCases(
+    embedding ? await listNearestCasesForAssistant(embedding) : [],
+    await listCasesForAssistant(),
+  );
   const result = await runPrompt(
     'assistant',
     {
@@ -115,6 +130,6 @@ export async function askAssistant(input: {
     return ok({ answer: result.data.result.answer.trim(), citations, source: 'gemini' });
   }
 
-  const offline = await offlineAnswer(question, pathname, rows);
+  const offline = await offlineAnswer(question, pathname, rows, embedding);
   return ok({ answer: offline.answer, citations: offline.citations, source: 'fallback' });
 }

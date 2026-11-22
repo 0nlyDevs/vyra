@@ -85,6 +85,11 @@ Les affaires, les publications du fil et les infos retrouvées sont transformée
 IA, la recherche repasse par les mots. Les « sujets qui reviennent » sont des paires de publications
 proches venues de sources différentes (`features/feed/topics.ts`).
 
+**L'assistant fonctionne en RAG** (`features/assistant`) : la question est transformée en vecteur,
+la base renvoie les affaires les plus proches (`listNearestCasesForAssistant`), complétées par les
+plus récentes (`pickAssistantCases`), et l'IA ne répond qu'à partir de ces affaires, qu'elle cite
+par numéro. Une citation qui ne correspond à aucune affaire fournie est écartée.
+
 ## L'arborescence
 
 ```
