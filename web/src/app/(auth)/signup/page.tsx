@@ -11,13 +11,12 @@ export default async function SignupPage() {
 
   return (
     <div className="grid gap-8">
-      <header className="grid gap-2">
-        <h1 className="font-semibold text-3xl">Créer un compte</h1>
-        <p className="text-muted-foreground">
-          Déjà inscrit ?{' '}
-          <Link href="/login" className="text-primary underline-offset-4 hover:underline">
-            Se connecter
-          </Link>
+      <header>
+        <h1 className="pub-h2 text-foreground">
+          Votre <em>compte</em>.
+        </h1>
+        <p className="mt-3 text-muted-foreground">
+          Un nom, une adresse, un mot de passe : vous pouvez utiliser Vyra tout de suite.
         </p>
       </header>
       <div className="grid gap-5">
@@ -29,8 +28,14 @@ export default async function SignupPage() {
         )}
         <SignupForm />
       </div>
-      <p className="text-muted-foreground text-xs">
-        Un e-mail de confirmation vous est envoyé. Vous pouvez utiliser Vyra tout de suite.
+      <p className="text-muted-foreground text-sm">
+        Un e-mail de confirmation vous est envoyé. Déjà inscrit ?{' '}
+        <Link
+          href="/login"
+          className="font-medium text-foreground underline decoration-border underline-offset-4 hover:decoration-foreground"
+        >
+          Se connecter
+        </Link>
       </p>
     </div>
   );

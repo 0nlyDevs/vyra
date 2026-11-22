@@ -40,7 +40,7 @@ export function PasswordField({
           type={visible ? 'text' : 'password'}
           autoComplete={autoComplete}
           required
-          className="pr-10"
+          className="min-h-12 pr-14 pl-5"
           aria-invalid={hasError || undefined}
           aria-describedby={describedBy || undefined}
         />
@@ -49,12 +49,13 @@ export function PasswordField({
           onClick={() => setVisible((value) => !value)}
           aria-label={visible ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
           aria-pressed={visible}
-          className="absolute inset-y-0 right-0 flex w-10 items-center justify-center rounded-r-lg text-muted-foreground outline-none hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
+          aria-controls={name}
+          className="absolute inset-y-0 right-1.5 my-auto inline-flex size-9 items-center justify-center rounded-full text-muted-foreground outline-none transition-colors hover:bg-raised hover:text-foreground focus-visible:outline-2 focus-visible:outline-foreground focus-visible:outline-offset-2"
         >
           {visible ? (
-            <EyeOff aria-hidden className="size-4" />
+            <EyeOff aria-hidden className="size-5" />
           ) : (
-            <Eye aria-hidden className="size-4" />
+            <Eye aria-hidden className="size-5" />
           )}
         </button>
       </div>

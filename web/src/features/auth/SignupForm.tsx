@@ -15,12 +15,13 @@ export function SignupForm() {
   const general = state && !state.ok && !errors ? state.error.message : null;
 
   return (
-    <form action={action} className="grid gap-4" noValidate>
+    <form action={action} className="grid gap-5" noValidate>
       <FormField
         name="name"
         label="Votre nom"
         autoComplete="name"
         required
+        className="min-h-12 px-5"
         value={name}
         onChange={(event) => setName(event.target.value)}
         errors={errors?.name}
@@ -31,6 +32,7 @@ export function SignupForm() {
         type="email"
         autoComplete="email"
         required
+        className="min-h-12 px-5"
         value={email}
         onChange={(event) => setEmail(event.target.value)}
         errors={errors?.email}
@@ -43,7 +45,7 @@ export function SignupForm() {
         errors={errors?.password}
       />
       <FormMessage message={general} />
-      <Button type="submit" size="lg" disabled={pending} className="w-full">
+      <Button type="submit" size="xl" disabled={pending} className="w-full">
         {pending ? 'Création du compte…' : 'Créer un compte'}
       </Button>
     </form>

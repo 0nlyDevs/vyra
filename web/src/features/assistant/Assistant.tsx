@@ -1,6 +1,6 @@
 'use client';
 
-import { MessageCircleQuestion, Send, Volume2, VolumeX } from 'lucide-react';
+import { MessageCircleQuestion, Send, Volume2, VolumeX, X } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { type FormEvent, useEffect, useRef, useState, useTransition } from 'react';
@@ -9,6 +9,7 @@ import { SpeakButton } from '@/components/common/SpeakButton';
 import { Button } from '@/components/ui/button';
 import {
   Sheet,
+  SheetClose,
   SheetContent,
   SheetDescription,
   SheetHeader,
@@ -87,32 +88,55 @@ export function Assistant() {
 
   return (
     <Sheet>
-      <SheetTrigger asChild>
-        <Button size="lg" className="fixed right-5 bottom-5 z-40 rounded-full shadow-lg">
-          <MessageCircleQuestion aria-hidden />
-          Assistant
-        </Button>
+      {/* En bas à droite : une pilule d'encre de 60 px, son libellé sort
+          vers la gauche au survol et au focus. */}
+      <SheetTrigger className="assist-fab" aria-label="Ouvrir l’assistant">
+        <span className="assist-fab-label" aria-hidden>
+          <span>
+            <b>Assistant</b>
+          </span>
+        </span>
+        <span className="assist-fab-icon" aria-hidden>
+          <MessageCircleQuestion />
+        </span>
       </SheetTrigger>
-      <SheetContent className="flex w-full flex-col gap-0 sm:max-w-md">
-        <SheetHeader className="border-b">
-          <SheetTitle>Assistant</SheetTitle>
-          <SheetDescription>
+      {/* Le panneau sort du coin de l'assistant, au-dessus du bouton. */}
+      <SheetContent
+        showCloseButton={false}
+        className="gap-0 overflow-hidden rounded-[24px] border border-border p-0 data-[side=right]:top-auto data-[side=right]:right-(--corner-x) data-[side=right]:bottom-[calc(var(--corner-y)+72px)] data-[side=right]:h-[min(620px,calc(100dvh-var(--corner-y)-156px))] data-[side=right]:w-[min(420px,calc(100vw-2*var(--inset)))] data-[side=right]:border data-[side=right]:sm:max-w-none"
+      >
+        <SheetHeader className="gap-2 bg-live p-4 pr-3 text-live-foreground">
+          <div className="flex items-center gap-2">
+            <SheetTitle className="mr-auto font-extrabold text-live-foreground text-lg tracking-[-0.01em]">
+              Assistant
+            </SheetTitle>
+            <button
+              type="button"
+              aria-pressed={voice}
+              className="inline-flex h-[34px] items-center gap-2 rounded-full border border-live-foreground/50 px-3 font-bold text-[13px] text-live-foreground uppercase tracking-[0.04em] outline-none hover:bg-live-foreground/10 focus-visible:ring-2 focus-visible:ring-live-foreground aria-pressed:border-live-foreground aria-pressed:bg-live-foreground aria-pressed:text-live"
+              onClick={() => {
+                setVoice(!voice);
+                if (voice && 'speechSynthesis' in window) window.speechSynthesis.cancel();
+              }}
+            >
+              {voice ? (
+                <Volume2 aria-hidden className="size-4" />
+              ) : (
+                <VolumeX aria-hidden className="size-4" />
+              )}
+              Voix
+              <span className="sr-only">{voice ? ' : activée' : ' : désactivée'}</span>
+            </button>
+            <SheetClose
+              className="grid size-10 place-items-center rounded-full text-live-foreground outline-none hover:bg-live-foreground/10 focus-visible:ring-2 focus-visible:ring-live-foreground"
+              aria-label="Fermer l’assistant"
+            >
+              <X aria-hidden className="size-5" />
+            </SheetClose>
+          </div>
+          <SheetDescription className="text-live-muted">
             Il répond à partir des affaires du dossier et les cite. Il ne rend jamais de verdict.
           </SheetDescription>
-          <Button
-            type="button"
-            variant={voice ? 'default' : 'outline'}
-            size="sm"
-            aria-pressed={voice}
-            className="justify-self-start"
-            onClick={() => {
-              setVoice(!voice);
-              if (voice && 'speechSynthesis' in window) window.speechSynthesis.cancel();
-            }}
-          >
-            {voice ? <Volume2 aria-hidden /> : <VolumeX aria-hidden />}
-            {voice ? 'Mode vocal activé' : 'Mode vocal'}
-          </Button>
         </SheetHeader>
 
         <div className="grid flex-1 content-start gap-3 overflow-y-auto p-4" aria-live="polite">
@@ -120,15 +144,14 @@ export function Assistant() {
             <div className="grid gap-2">
               <p className="text-muted-foreground text-sm">Par exemple :</p>
               {SUGGESTIONS.map((suggestion) => (
-                <Button
+                <button
                   key={suggestion}
                   type="button"
-                  variant="outline"
-                  className="h-auto justify-start whitespace-normal py-2 text-left"
+                  className="justify-self-start rounded-full border border-border bg-card px-3.5 py-2 text-left text-sm outline-none hover:border-foreground focus-visible:ring-2 focus-visible:ring-ring"
                   onClick={() => ask(suggestion)}
                 >
                   {suggestion}
-                </Button>
+                </button>
               ))}
             </div>
           )}
@@ -136,21 +159,21 @@ export function Assistant() {
             message.role === 'user' ? (
               <p
                 key={message.id}
-                className="max-w-[85%] justify-self-end rounded-2xl rounded-br-sm bg-primary px-3 py-2 text-primary-foreground"
+                className="max-w-[85%] justify-self-end rounded-[10px_10px_2px_10px] bg-live px-3 py-2 text-live-foreground"
               >
                 {message.text}
               </p>
             ) : (
               <div
                 key={message.id}
-                className="grid max-w-[95%] gap-2 rounded-2xl rounded-bl-sm bg-muted p-3"
+                className="grid max-w-[95%] gap-2 rounded-[10px_10px_10px_2px] bg-muted p-3"
               >
                 <p className="text-pretty">{message.text}</p>
                 {message.citations.length > 0 && (
                   <ul className="grid gap-1.5">
                     {message.citations.map((citation) => (
                       <li key={citation.number} className="flex flex-wrap items-center gap-2">
-                        <span className="font-semibold text-primary text-sm">
+                        <span className="font-bold text-foreground text-sm tabular-nums">
                           [{citation.number}]
                         </span>
                         <Link
@@ -176,7 +199,7 @@ export function Assistant() {
           <div ref={endRef} />
         </div>
 
-        <form onSubmit={submit} className="grid gap-2 border-t p-4">
+        <form onSubmit={submit} className="grid gap-2 border-t px-3 pt-3 pb-3">
           <Textarea
             rows={2}
             value={question}

@@ -1,27 +1,48 @@
 import { cn } from '@/lib/utils';
 
-// La marque MindStack : trois couches empilées, celle du dessus en rouge. Une information se lit
-// couche par couche (le fil, l'enquête, le tribunal) avant qu'on la croie.
+// La marque, en encre et papier : un « V. » papier sur une tuile d'encre (l'initiale et son
+// point), puis le nom en Bricolage très gras, son point en Cormorant italique. La tuile s'inverse
+// en sombre : elle reste lisible sur les deux fonds.
 export function LogoMark({ className }: { className?: string }) {
   return (
     <svg
-      viewBox="0 0 32 32"
+      viewBox="0 0 64 64"
       aria-hidden
-      className={cn('size-7 shrink-0 text-primary', className)}
+      className={cn('size-7 shrink-0 text-foreground', className)}
       xmlns="http://www.w3.org/2000/svg"
     >
-      <path d="M16 15.5 28.5 21.75 16 28 3.5 21.75Z" fill="currentColor" opacity="0.28" />
-      <path d="M16 10 28.5 16.25 16 22.5 3.5 16.25Z" fill="currentColor" opacity="0.55" />
-      <path d="M16 4 28.5 10.25 16 16.5 3.5 10.25Z" fill="currentColor" />
+      <rect width="64" height="64" rx="14" fill="currentColor" />
+      <path
+        d="M17 19 30 45 43 19"
+        fill="none"
+        className="stroke-background"
+        strokeWidth="7.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <circle cx="48" cy="43" r="4.6" className="fill-background" />
     </svg>
   );
 }
 
-export function Logo({ name, className }: { name: string; className?: string }) {
+export function Logo({
+  name,
+  className,
+  mark = true,
+}: {
+  name: string;
+  className?: string;
+  mark?: boolean;
+}) {
   return (
     <span className={cn('inline-flex items-center gap-2.5', className)}>
-      <LogoMark />
-      <span className="display text-[1.15rem] leading-none tracking-[-0.03em]">{name}</span>
+      {mark && <LogoMark />}
+      <span className="font-display font-extrabold text-xl leading-none tracking-[-0.04em]">
+        {name}
+        <em className="quote font-medium" aria-hidden>
+          .
+        </em>
+      </span>
     </span>
   );
 }

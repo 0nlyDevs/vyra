@@ -15,13 +15,14 @@ export function LoginForm() {
   const general = state && !state.ok && !errors ? state.error.message : null;
 
   return (
-    <form action={action} className="grid gap-4" noValidate>
+    <form action={action} className="grid gap-5" noValidate>
       <FormField
         name="email"
         label="Adresse e-mail"
         type="email"
         autoComplete="email"
         required
+        className="min-h-12 px-5"
         value={email}
         onChange={(event) => setEmail(event.target.value)}
         errors={errors?.email}
@@ -34,14 +35,14 @@ export function LoginForm() {
         action={
           <Link
             href="/forgot-password"
-            className="text-primary text-sm underline-offset-4 hover:underline"
+            className="font-medium text-foreground text-sm underline decoration-border underline-offset-4 hover:decoration-foreground"
           >
             Mot de passe oublié ?
           </Link>
         }
       />
       <FormMessage message={general} />
-      <Button type="submit" size="lg" disabled={pending} className="w-full">
+      <Button type="submit" size="xl" disabled={pending} className="w-full">
         {pending ? 'Connexion…' : 'Se connecter'}
       </Button>
     </form>

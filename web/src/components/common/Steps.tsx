@@ -1,7 +1,9 @@
 import { Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-// Fil d'étapes (audience du tribunal, partie du détective, scan…). `current` commence à 0.
+// La ligne numérotée (audience du tribunal, partie du détective, scan…) :
+// en attente = disque cerclé, en cours = disque d'encre qui respire, fait = disque d'encre et une
+// coche papier. `current` commence à 0.
 export function Steps({ steps, current }: { steps: string[]; current: number }) {
   return (
     <ol className="flex flex-wrap items-center gap-x-2 gap-y-3">
@@ -16,18 +18,25 @@ export function Steps({ steps, current }: { steps: string[]; current: number }) 
           >
             <span
               className={cn(
-                'flex size-7 shrink-0 items-center justify-center rounded-full border font-medium text-xs tabular-nums',
-                done && 'border-primary bg-primary text-primary-foreground',
-                active && 'border-primary text-primary',
-                !done && !active && 'text-muted-foreground',
+                'grid size-8 shrink-0 place-items-center rounded-full font-bold font-display text-[0.72rem] tabular-nums',
+                done && 'bg-foreground text-background',
+                active && 'step-active bg-primary text-primary-foreground',
+                !done && !active && 'border border-input bg-card text-muted-foreground',
               )}
             >
-              {done ? <Check aria-hidden className="size-3.5" /> : index + 1}
+              {done ? <Check aria-hidden className="size-4" /> : String(index + 1).padStart(2, '0')}
             </span>
-            <span className={cn('text-sm', active ? 'font-medium' : 'text-muted-foreground')}>
+            <span
+              className={cn(
+                'text-sm',
+                active ? 'font-bold' : done ? 'text-foreground' : 'text-muted-foreground',
+              )}
+            >
               {step}
             </span>
-            {index < steps.length - 1 && <span aria-hidden className="h-px w-6 bg-border" />}
+            {index < steps.length - 1 && (
+              <span aria-hidden className={cn('h-px w-6', done ? 'bg-foreground' : 'bg-border')} />
+            )}
           </li>
         );
       })}
