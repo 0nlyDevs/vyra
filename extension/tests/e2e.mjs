@@ -49,6 +49,25 @@ try {
     assert.deepEqual(await page.locator('.tab').allInnerTexts(), ['Texte', 'Lien', 'Image']);
   });
 
+  await step('les onglets se parcourent au clavier', async () => {
+    const tabIndexes = () => page.locator('.tab').evaluateAll((tabs) => tabs.map((tab) => tab.tabIndex));
+    assert.deepEqual(await tabIndexes(), [0, -1, -1]);
+    await page.focus('#tab-text');
+    await page.keyboard.press('ArrowRight');
+    assert.equal(await page.getAttribute('#tab-link', 'aria-selected'), 'true');
+    assert.equal(await page.evaluate(() => document.activeElement.id), 'tab-link');
+    assert.equal(await page.isVisible('#panel-link'), true);
+    await page.keyboard.press('End');
+    assert.equal(await page.evaluate(() => document.activeElement.id), 'tab-image');
+    await page.keyboard.press('ArrowRight');
+    assert.equal(await page.evaluate(() => document.activeElement.id), 'tab-text');
+    await page.keyboard.press('ArrowLeft');
+    assert.equal(await page.evaluate(() => document.activeElement.id), 'tab-image');
+    await page.keyboard.press('Home');
+    assert.deepEqual(await tabIndexes(), [0, -1, -1]);
+    assert.equal(await page.isVisible('#panel-text'), true);
+  });
+
   await step('un texte trop court est refusé avant tout envoi', async () => {
     await page.fill('#paste', 'court');
     await page.click('#check');
