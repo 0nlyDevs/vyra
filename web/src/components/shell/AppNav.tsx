@@ -105,6 +105,7 @@ export function TabIsland({ items = TAB_ITEMS }: { items?: NavItem[] }) {
               <Link
                 href={href}
                 className="tab"
+                data-ripple
                 data-pill-item
                 data-current={i === active || undefined}
                 aria-current={i === active ? 'page' : undefined}
@@ -119,6 +120,7 @@ export function TabIsland({ items = TAB_ITEMS }: { items?: NavItem[] }) {
               <DropdownMenu>
                 <DropdownMenuTrigger
                   className="tab"
+                  data-ripple
                   data-pill-item
                   data-current={holds || undefined}
                   aria-label={holds && current ? `${current.label}, ${MORE}` : undefined}
@@ -190,6 +192,7 @@ export function TabBar({ items = TAB_ITEMS }: { items?: NavItem[] }) {
             <Link
               href={href}
               className="tab-bar-item"
+              data-ripple
               aria-current={i === active ? 'page' : undefined}
             >
               <Icon className="size-[22px]" aria-hidden />
@@ -200,7 +203,11 @@ export function TabBar({ items = TAB_ITEMS }: { items?: NavItem[] }) {
         {folded.length > 0 && (
           <li>
             <DropdownMenu>
-              <DropdownMenuTrigger className="tab-bar-item" data-current={holds || undefined}>
+              <DropdownMenuTrigger
+                className="tab-bar-item"
+                data-ripple
+                data-current={holds || undefined}
+              >
                 {holds && current ? (
                   <current.icon className="size-[22px]" aria-hidden />
                 ) : (

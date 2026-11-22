@@ -38,6 +38,7 @@ export function PublicNav() {
             <Link
               href={href}
               className="tab"
+              data-ripple
               data-pill-item
               data-current={i === current || undefined}
               aria-current={i === current ? 'page' : undefined}

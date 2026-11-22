@@ -48,7 +48,7 @@ export function UserMenu({
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger className="bar-avatar" aria-label={`Votre compte : ${name}`}>
+      <DropdownMenuTrigger className="bar-avatar" data-ripple aria-label={`Votre compte : ${name}`}>
         {initials(name)}
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" sideOffset={8} className="w-64 p-1.5">

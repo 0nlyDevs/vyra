@@ -3,6 +3,7 @@ import { GeistMono } from 'geist/font/mono';
 import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
 import { READING_PREFERENCES_SCRIPT } from '@/components/shell/ReadingControls';
+import { RippleListener } from '@/components/shell/Ripple';
 import { ThemeProvider } from '@/components/shell/ThemeProvider';
 import { Toaster } from '@/components/ui/sonner';
 import { publicEnv } from '@/lib/env';
@@ -29,6 +30,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <ThemeProvider>
           {children}
           <Toaster position="bottom-center" />
+          <RippleListener />
         </ThemeProvider>
         <Analytics />
       </body>
