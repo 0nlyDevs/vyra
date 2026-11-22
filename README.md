@@ -115,9 +115,8 @@ données de démo : `npm run db:seed`.
 
 **Ce qui change sans Docker** :
 
-- **E-mails** : Mailpit n'est pas lancé, donc les e-mails ne s'affichent nulle part (l'inscription
-  marche quand même ; les comptes de démo suffisent). Pour les voir : télécharger Mailpit (un seul
-  fichier, https://github.com/axllent/mailpit/releases), le lancer, puis http://localhost:8025.
+- **E-mails** : sans `RESEND_API_KEY`, aucun e-mail ne part (l'inscription marche quand même ; les
+  comptes de démo suffisent). Le message d'erreur s'écrit dans les journaux du serveur.
 - **Vérifications** : `make` n'existe pas sous Windows. À la place de `make check` :
   `npm run lint` et `npm run typecheck` dans `web`, puis
   `.venv\Scripts\python -m ruff check .`, `.venv\Scripts\python -m ruff format --check .` et
@@ -227,9 +226,9 @@ vecteurs des deux IA ne se comparent pas.
 - **Comptes de démo** : boutons « Comptes de démo » sur la page de connexion, sans mot de passe à
   taper sur scène. Leurs adresses (`rasoa@mindstack.demo`, `hery@mindstack.demo`) et leur mot de
   passe sont dans `web/src/server/demo/seed-data.ts`.
-- **E-mails** : tous les e-mails envoyés (confirmation d'adresse, mot de passe oublié) s'affichent
-  sur http://localhost:8025 (Mailpit, lancé par Docker). Aucun ne part vraiment. Pour un vrai envoi,
-  changer `SMTP_URL`.
+- **E-mails** : envoyés avec Resend (confirmation d'adresse, mot de passe oublié). Mettre
+  `RESEND_API_KEY` dans `web/.env.local` (ou dans l'environnement de Docker). `MAIL_FROM` doit être
+  une adresse d'un domaine vérifié dans Resend ; sans cela, seul le compte Resend reçoit les e-mails.
 - **Connexion avec Google** (facultative, demande le wifi) :
   1. Sur https://console.cloud.google.com : « API et services », « Identifiants », « Créer des
      identifiants », « ID client OAuth », type « Application Web ».

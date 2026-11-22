@@ -13,13 +13,11 @@ const serverSchema = z.object({
   PROCESSING_TOKEN: z.string().optional(),
   // Adresse de l'application, pour les liens des e-mails et le retour de Google.
   APP_URL: z.url().default('http://localhost:3000'),
-  // Serveur d'envoi des e-mails. Par défaut : Mailpit (docker-compose.yml), qui les affiche sur
-  // http://localhost:8025 sans les envoyer vraiment.
-  SMTP_URL: z
-    .string()
-    .startsWith('smtp', 'doit commencer par smtp:// ou smtps://')
-    .default('smtp://127.0.0.1:1025'),
-  MAIL_FROM: z.string().default('Vyra <no-reply@mindstack.local>'),
+  // E-mails envoyés avec Resend (le même en local et en ligne). Absente : aucun e-mail ne part.
+  RESEND_API_KEY: z.string().optional(),
+  // Expéditeur : une adresse d'un domaine vérifié dans Resend. Par défaut, celle de test de Resend,
+  // qui n'envoie qu'à l'adresse du compte Resend.
+  MAIL_FROM: z.string().default('Vyra <onboarding@resend.dev>'),
   // Connexion avec Google (facultative) : identifiants OAuth créés dans la console Google Cloud.
   // Absents : le bouton « Continuer avec Google » n'apparaît pas.
   GOOGLE_CLIENT_ID: z.string().optional(),

@@ -1,20 +1,25 @@
 import 'server-only';
-import nodemailer, { type Transporter } from 'nodemailer';
 import { env } from '@/lib/env';
 import { logger } from '@/lib/logger';
 
-// Envoi des e-mails. Par défaut vers Mailpit (docker-compose.yml) : les e-mails n'arrivent chez
-// personne, ils s'affichent sur http://localhost:8025. Un vrai serveur : changer SMTP_URL.
-// Un e-mail qui ne part pas ne bloque jamais l'action : on l'écrit dans les journaux.
-
-let transport: Transporter | null = null;
+// Envoi des e-mails avec Resend, le même service en local et en ligne. Sans RESEND_API_KEY, rien
+// ne part : l'erreur est écrite dans les journaux. Un e-mail qui ne part pas ne bloque jamais l'action.
 
 export type Mail = { to: string; subject: string; text: string; html: string };
 
 export async function sendMail(mail: Mail) {
   try {
-    transport ??= nodemailer.createTransport(env.SMTP_URL);
-    await transport.sendMail({ from: env.MAIL_FROM, ...mail });
+    if (!env.RESEND_API_KEY) throw new Error('RESEND_API_KEY absente');
+    const response = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${env.RESEND_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ from: env.MAIL_FROM, ...mail }),
+      signal: AbortSignal.timeout(10_000),
+    });
+    if (!response.ok) throw new Error(`Resend a répondu ${response.status}`);
     return true;
   } catch (error) {
     logger.warn('e-mail : envoi impossible', {
