@@ -5,6 +5,7 @@ import { type ActionResult, fail, ok } from '@/lib/action-result';
 import { ERRORS } from '@/lib/errors';
 import { AFTER_SIGN_IN_PATH } from '@/lib/navigation';
 import { dummyPasswordHash, hashPassword, verifyPassword } from '@/server/auth/password';
+import { upgradePasswordHash } from '@/server/auth/rehash';
 import {
   consumeAuthToken,
   createAccount,
@@ -82,6 +83,7 @@ export async function signIn(
     found?.account.passwordHash ?? (await dummyPasswordHash()),
   );
   if (!found || !valid) return fail(ERRORS.INVALID_CREDENTIALS);
+  await upgradePasswordHash(found.profile.id, parsed.data.password, found.account.passwordHash);
 
   await startSession(found.profile.id);
   redirect(AFTER_SIGN_IN_PATH);
