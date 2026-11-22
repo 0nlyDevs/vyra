@@ -10,6 +10,7 @@ import {
   findAccountByGoogleSub,
   linkGoogle,
 } from '@/server/dal/accounts';
+import { isUniqueViolation } from '@/server/db';
 import { sendMail } from '@/server/mail';
 import { welcomeMail } from '@/server/mail-templates';
 import { startSession } from '@/server/session';
@@ -60,7 +61,12 @@ export async function GET(request: NextRequest) {
       email: user.email,
       googleSub: user.sub,
       emailVerified: user.email_verified,
+    }).catch((error: unknown) => {
+      // Une inscription par e-mail a pris l'adresse entre-temps.
+      if (isUniqueViolation(error)) return null;
+      throw error;
     });
+    if (!profile) return back('/login?error=google-email-taken');
     profileId = profile.id;
     await sendMail(
       welcomeMail(user.email, name, new URL(AFTER_SIGN_IN_PATH, env.APP_URL).toString()),

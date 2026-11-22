@@ -11,6 +11,12 @@ const client = globalForDb.mindstackSql ?? postgres(env.DATABASE_URL, { max: 5 }
 if (env.NODE_ENV !== 'production') globalForDb.mindstackSql = client;
 
 export const db = drizzle({ client, schema });
+
+// Violation d'une contrainte d'unicité (Postgres 23505), que Drizzle range dans `cause`.
+export function isUniqueViolation(error: unknown) {
+  const code = (value: unknown) => (value as { code?: string } | undefined)?.code;
+  return code(error) === '23505' || code((error as { cause?: unknown })?.cause) === '23505';
+}
 export type Database = typeof db;
 
 // Ferme la connexion (scripts lancés hors de Next.js, comme le seed).
