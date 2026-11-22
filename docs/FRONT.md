@@ -13,7 +13,11 @@ Pour tout voir d’un coup : lancer `next dev` (`make up` en local), se connecte
   un mot. Tout le reste est à l'encre sur du papier.
 - **Une page lisible d'un coup d'œil** : une chose en grand, le reste en second ; peu de défilement
   sur téléphone (rangées qui défilent de côté plutôt qu'une longue pile).
-- **Accessibilité à vérifier** : tests de contrastes des jetons côté mobile, objectif de cibles de 44 px et jamais la couleur seule. Ces tests ne certifient pas toutes les pages du site.
+- **Accessibilité à vérifier** : tests de contrastes des jetons côté mobile, jamais la couleur
+  seule, un seul titre de premier niveau par page et des niveaux sans saut. Sur écran tactile
+  (`pointer-coarse`), boutons et onglets du kit atteignent 44 px ; un composant fait main doit le
+  prévoir lui-même. Avec le mouvement réduit, animations et transitions CSS sont ramenées à
+  0,01 ms dans `globals.css`. Ces règles ne certifient pas toutes les pages du site.
 
 ## Ce qui existe
 
@@ -52,8 +56,9 @@ Les briques du langage visuel, toutes dans `globals.css` :
 
 Boutons : des pilules. `default` (l'encre) pour l'action principale d'un écran, `solid` réservé
 à l'accueil, `secondary`, `outline`, `ghost` pour le reste. Les animations passent par
-`motion` (`src/components/motion/Reveal.tsx` : `Reveal` au défilement, `MaskLines` pour un titre
-ligne par ligne) avec les courbes de `src/lib/motion.ts`.
+`motion` (`motion/react`), GSAP restant réservé à l’accueil. `src/components/motion/Reveal.tsx`
+(`Reveal` au défilement, `MaskLines` pour un titre ligne par ligne) et les courbes de
+`src/lib/motion.ts` sont prêts à servir, mais aucun écran ne les utilise encore.
 
 Dans une page, on écrit le rôle, pas la couleur : `bg-primary`, `text-muted-foreground`,
 `bg-success-soft text-success`. Changer la palette de toute l'application se fait à un seul
@@ -62,6 +67,7 @@ endroit : les jetons de `globals.css`.
 ## Ajouter un écran
 
 1. Créer `web/src/app/(app)/<nom>/page.tsx` : l’en-tête, les onglets et les préférences arrivent seuls.
+   Y exporter `metadata = { title: '…' }` : l’onglet du navigateur affiche « … · Vyra ».
 2. Commencer la page par `PageHeader`.
 3. Ajouter l'entrée du menu dans `web/src/lib/navigation.ts` si c'est un écran principal.
 4. Mettre la logique dans `web/src/features/<nom>/`, comme `whatif`.

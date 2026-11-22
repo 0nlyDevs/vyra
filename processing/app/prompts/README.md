@@ -27,6 +27,8 @@ La consigne commune `_guardrails.md` est ajoutée à chaque prompt. Le JSON est 
 par le schéma Zod ; les sources et les actions de l’assistant sont ensuite filtrées côté serveur.
 Le niveau de certitude du tribunal est calculé par `features/court/certainty.ts`, pas choisi par
 le prompt `judge`. La signature d’une carte relève du serveur web (Ed25519), pas d’un modèle.
+Exception : la réponse de secours de `court-relevance` est vide et le web la traite comme une
+indisponibilité ; un filtre de pertinence préparé d’avance laisserait passer des dossiers hors sujet.
 
 `source: "gemini"` est un libellé historique : il indique qu’un modèle a répondu (Groq, Gemini,
 DeepSeek ou modèle local), pas que la clé Gemini fonctionne. `fallback` désigne une réponse sans

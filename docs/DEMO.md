@@ -48,7 +48,9 @@ Autres variantes à répéter si elles sont présentées :
 - Assistant : « Cherche des sources sur la peste à Madagascar » montre les liens et les dates
   disponibles. Sans recherche réelle, montrer le message d’indisponibilité.
 - Tribunal : « Poutine et Donald Trump », ou « Trump », peut retrouver le dossier du pape et de
-  Trump par les vecteurs. Le résultat est un sujet proche, pas un verdict sur Poutine.
+  Trump : les vecteurs présélectionnent, puis l’IA ne garde que les dossiers vraiment liés, avec
+  leur raison. Le résultat est un sujet proche, pas un verdict sur Poutine. Sans IA, la recherche
+  se dit indisponible.
 - Jeu : les cartes 2D sont la solution de secours sans WebGL ou sur téléphone ; la rue 3D et ses
   panneaux se vérifient aussi à la résolution du projecteur.
 

@@ -57,14 +57,14 @@ C'est le cœur de la confiance : **aucune IA ne conclut seule.**
 3. **Le tribunal conclut** après le vote. Le niveau de certitude est calculé par la règle `features/court/certainty.ts` à partir des pièces solides ; l’IA rédige l’explication. Le vote est enregistré, il ne choisit pas le niveau.
 4. **Un sceau Ed25519** (`server/seal.ts`, graine `SEAL_SECRET`) authentifie le contenu signé de la carte, pas la vérité du fait rapporté.
 
-Sans IA, les réponses de secours, les dossiers préparés et le flash radio restent utilisables si les services et la base répondent. Sans internet, il faut la version Docker locale déjà prête : les moteurs externes ne répondent plus. La recherche thématique du tribunal signale l’indisponibilité des embeddings ; la vérification rapide publique garde son repli par mots.
+Sans IA, les réponses de secours, les dossiers préparés et le flash radio restent utilisables si les services et la base répondent. Sans internet, il faut la version Docker locale déjà prête : les moteurs externes ne répondent plus. La recherche thématique du tribunal signale l’indisponibilité des embeddings ou de son filtre IA ; la vérification rapide publique garde son repli par mots.
 
 ## Sécurité
 
 | Risque | Mesure |
 |---|---|
 | Accès aux données d'autrui | Rôles vérifiés côté serveur à chaque action (`isVerifier`), jamais côté client |
-| Mots de passe | scrypt (`N=2^17`, `r=8`, `p=1`), anciennes empreintes mises à niveau après connexion réussie ; nouveaux mots de passe contrôlés par Zod et liste de mots courants (`server/auth/password.ts`, `features/auth/schema.ts`) |
+| Mots de passe | scrypt (`N=2^17`, `r=8`, `p=1`), anciennes empreintes mises à niveau après connexion réussie ; nouveaux mots de passe contrôlés par Zod et par une estimation zxcvbn de leur solidité, 3 sur 4 au minimum (`server/auth/password.ts`, `features/auth/schema.ts`, `features/auth/password-strength.ts`) |
 | Abus des routes publiques | Limites par adresse en base (`server/rate-limit.ts`) : connexion, signalements (10/jour), vérifications (60/h), examens d'image (30/h) |
 | Lecture de pages vers une adresse interne (SSRF) | `processing/app/services/safe_url.py` refuse les adresses privées |
 | Image personnelle envoyée à une IA | Copie protégée : visages floutés, informations cachées retirées ; l’original n’est pas envoyé au modèle d’IA |
@@ -90,6 +90,7 @@ pas d'être sage, on vérifie ce qu'il fait.
 | Contrôle | Pas de lien dans le texte (un lien inventé serait un faux) ; une réponse qui tranche « c'est vrai / faux » sans citer une affaire jugée est remplacée ; longueur bornée | `features/assistant/guard.ts` |
 | Sources | Seules les affaires et les sources extérieures fournies au modèle peuvent être citées ; une citation hors liste est écartée | `features/assistant/actions.ts` |
 | Plaidoiries | Contrôle des plaidoiries du tribunal avant affichage | `features/court/pleading-guard.ts` |
+| Recherche du tribunal | Les voisins vectoriels sont relus par un prompt de pertinence ; une décision par candidat, sans numéro inventé, sinon la recherche se déclare indisponible | `features/court/relevance.ts`, prompt `court-relevance` |
 | Verdict | La règle des pièces calcule le niveau ; le vote est conservé, l’IA rédige l’explication | voir « Ce qui est jugé par qui » |
 
 ### L'agent : navigation immédiate, formulaires à confirmer
@@ -133,9 +134,13 @@ tribunal. Une recherche indisponible est signalée ; sans IA, les liens retrouv�
 `checkAlreadyJudged` accepte un nom ou une demande d’au moins deux caractères. `courtSearchQueries`
 vectorise la demande entière et jusqu’à quatre sujets séparés par « et », « ou », « avec », une
 virgule ou un point-virgule. La DAL classe jusqu’à huit affaires conclues par le minimum de leurs
-distances cosinus pgvector (seuil thématique 0,5). Ainsi « Poutine et Donald Trump » peut retrouver
-le dossier du pape et de Trump même sans mention de Poutine. Aucune recherche `contains`, `LIKE`
-ou par sous-chaîne n’intervient dans ce parcours. Sans embeddings, il renvoie une indisponibilité.
+distances cosinus pgvector (seuil thématique 0,5). Ces voisins ne sont qu’une présélection : le
+prompt `court-relevance` décide, pour chacun, s’il concerne vraiment au moins un sujet demandé
+(noms, alias, traductions usuelles), et seuls ceux-là s’affichent, avec la raison en une phrase
+(`features/court/relevance.ts`). Ainsi « Poutine et Donald Trump » peut retrouver le dossier du
+pape et de Trump, alors que « Poutine » seul ne le retrouve pas. Aucune recherche `contains`,
+`LIKE` ou par sous-chaîne n’intervient dans ce parcours. Sans embeddings, ou si le filtre IA ne
+répond pas (la réponse de secours ne laisse rien passer), il renvoie une indisponibilité.
 
 C’est distinct de `findJudgedCase`, utilisé pour la vérification rapide publique et l’extension :
 un seul rapprochement d’affirmation, seuil plus strict 0,25, puis repli par mots si nécessaire.

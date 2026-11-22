@@ -43,7 +43,7 @@ Du JavaScript en modules, sans build :
 |---|---|
 | `manifest.json`, `background.js` | Manifest V3 ; le menu du clic droit |
 | `sidepanel.html`, `sidepanel.css` | Le panneau et son style « encre et papier » |
-| `sidepanel.js` | L'état et les gestes (onglets, image, vérification) |
+| `sidepanel.js` | L'état et les gestes (onglets, flèches/Début/Fin du clavier, image, vérification) |
 | `view.js` | L'affichage : étapes, messages, résultats |
 | `api.js` | Les appels à la plateforme : adresse, délai, erreurs lisibles |
 | `dom.js`, `config.js` | Outils de construction du DOM ; réglages fixes |
@@ -60,7 +60,7 @@ icônes Phosphor (licence MIT) sont dans `sidepanel.html`.
 ## Tester
 
 `tests/e2e.mjs` charge l'extension dans un vrai Chromium et joue les gestes du panneau
-(onglets, texte, lien, image, refus avant envoi) : `npm i --no-save playwright-core && npx
+(onglets à la souris et au clavier, texte, lien, image, refus avant envoi) : `npm i --no-save playwright-core && npx
 playwright-core install chromium`, puis `node extension/tests/e2e.mjs` (`VYRA_URL=http://localhost:3000`
 pour la plateforme locale).
 
@@ -83,7 +83,8 @@ plateforme arrêtée, chacun avec le résultat attendu. Pour l'ouvrir depuis le 
 
 La vérification rapide publique de l’extension cherche une affaire déjà conclue par le sens,
 avec un repli par mots si les embeddings sont indisponibles. Elle n’est pas la nouvelle recherche
-thématique du tribunal, qui classe plusieurs affaires via pgvector sans repli textuel.
+thématique du tribunal, qui classe plusieurs affaires via pgvector, les fait relire par l’IA
+et n’a pas de repli textuel.
 Les vérifications publiées renvoient des liens consultables ; un résultat absent ne prouve rien.
 
 L’extension nécessite un serveur joignable : le site hébergé n’est pas accessible hors ligne.

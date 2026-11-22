@@ -17,7 +17,7 @@ le site, e-mail de confirmation envoyé) et renvoie la même session que `login`
 prise). `POST /api/v1/auth/forgot-password` avec `{ "email": "vous@example.org" }` envoie le lien de réinitialisation
 (il s'ouvre sur le site) et répond toujours `{ "sent": true }`.
 
-À l’inscription : nom de 2 à 60 caractères ; mot de passe de 8 à 128 caractères, absent de la liste de mots courants et ne reprenant pas le nom ou l’e-mail. La connexion vérifie aussi les anciennes empreintes et les met à niveau si nécessaire ; elle n’applique pas rétroactivement ces règles de création au mot de passe saisi.
+À l’inscription : nom de 2 à 60 caractères ; mot de passe de 8 à 128 caractères, jugé assez difficile à deviner par zxcvbn (3 sur 4 au minimum, nom et e-mail comptés parmi les mots devinables) ; un refus renvoie la raison dans `fieldErrors.password`. La connexion vérifie aussi les anciennes empreintes et les met à niveau si nécessaire ; elle n’applique pas rétroactivement ces règles de création au mot de passe saisi.
 
 Comptes de démo (mode démo seulement) : `GET /api/v1/auth/demo` liste les profils (vide hors démo),
 `POST /api/v1/auth/demo` avec `{ "profileId" }` renvoie leur session.
@@ -68,4 +68,4 @@ illisible, 429 trop de demandes, 503 IA ou recherche indisponible.
 
 ## Périmètre du client
 
-Le tribunal interactif (audience et vote) et le jeu n’ont pas de routes mobiles dédiées et restent sur le site. Le client mobile `main`, relu après mise à jour sur `2548e7e`, contient Fil, Enquêtes, Scan, Alertes et Compte, avec un assistant flottant. Ses scans couvrent image, vidéo, vocal, lien, texte, institution et sceau ; il propose les outils d’enquête et l’annuaire. Les nouveaux champs `references`, `autorun`, `searchNotice` de l’assistant et la conversation vocale continue du site nécessitent encore leur prise en charge dans ce client. Consulter son README pour la version effectivement présentée.
+Le tribunal interactif (audience et vote) et le jeu n’ont pas de routes mobiles dédiées et restent sur le site. Le client mobile `main`, relu le 22 novembre 2026, contient Fil, Enquêtes, Scan, Alertes et Compte, avec un assistant flottant. Ses scans couvrent image, vidéo, vocal, lien, texte, institution et sceau ; il propose les outils d’enquête et l’annuaire. Les nouveaux champs `references`, `autorun`, `searchNotice` de l’assistant et la conversation vocale continue du site nécessitent encore leur prise en charge dans ce client. Consulter son README pour la version effectivement présentée.
