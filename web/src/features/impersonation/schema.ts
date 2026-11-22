@@ -48,7 +48,7 @@ export const noticeSchema = z.object({
   title: z.string().trim().min(3, 'Titre trop court.').max(160),
   content: z.string().trim().min(20, 'Recopiez le communiqué en entier.').max(4000),
   sourceUrl: z
-    .union([z.literal(''), z.url('Adresse invalide (https://…).')])
+    .union([z.literal(''), z.url({ protocol: /^https?$/, error: 'Adresse invalide (https://…).' })])
     .default('')
     .transform((value) => value || null),
   publishedAt: z
