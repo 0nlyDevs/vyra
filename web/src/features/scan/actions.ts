@@ -18,7 +18,7 @@ import {
 import type { Scan } from '@/server/db/schema';
 import { demoVariantForMedia } from '@/server/demo/media';
 import { demoVariantForCase } from '@/server/demo/variants';
-import { embedTexts, inspectMedia, runPrompt } from '@/server/processing';
+import { embedTexts, inspectMedia, makeSafeCopy, runPrompt } from '@/server/processing';
 import { getCurrentProfile } from '@/server/session';
 import {
   AUDIO_TYPES,
@@ -49,6 +49,15 @@ export type ScanView = Pick<
 > & {
   // Vocal : l'affaire déjà jugée qui ressemble au message, s'il y en a une.
   judged?: { id: string; title: string; certainty: CertaintyLevel | null } | null;
+  // Image : la copie protégée lue par l'IA et proposée pour la recherche inversée. Pas gardée en base.
+  safeCopy?: SafeCopyView | null;
+};
+
+export type SafeCopyView = {
+  dataUrl: string;
+  facesBlurred: number;
+  metadataRemoved: boolean;
+  firstFrameOnly: boolean;
 };
 
 function toView(scan: Scan): ScanView {
@@ -107,13 +116,15 @@ export async function analyzeImage(formData: FormData): Promise<ActionResult<Sca
     (alreadySeen ? demoVariantForCase(alreadySeen.caseId) : undefined);
   const inline = { mimeType: upload.file.type, data: upload.bytes.toString('base64') };
 
-  const [report, reading] = await Promise.all([
-    inspectMedia(inline),
-    runPrompt('read-image', { fileName: upload.file.name }, readingSchema, {
-      files: [inline],
-      fallbackVariant,
-    }),
-  ]);
+  // L'original reste ici : seuls ses octets sont lus sur place (informations cachées). L'IA ne
+  // reçoit que la copie protégée ; sans copie, pas de lecture par l'IA.
+  const [report, copy] = await Promise.all([inspectMedia(inline), makeSafeCopy(inline)]);
+  const reading = copy.ok
+    ? await runPrompt('read-image', { fileName: upload.file.name }, readingSchema, {
+        files: [{ mimeType: copy.data.mimeType, data: copy.data.data }],
+        fallbackVariant,
+      })
+    : copy;
   const readingData = reading.ok ? reading.data.result : null;
   const scan = await createScan({
     profileId: profile.id,
@@ -132,7 +143,17 @@ export async function analyzeImage(formData: FormData): Promise<ActionResult<Sca
     aiSource: reading.ok ? reading.data.source : 'fallback',
   });
   if (!scan) return fail(ERRORS.INTERNAL);
-  return ok(toView(scan));
+  return ok({
+    ...toView(scan),
+    safeCopy: copy.ok
+      ? {
+          dataUrl: `data:${copy.data.mimeType};base64,${copy.data.data}`,
+          facesBlurred: copy.data.facesBlurred,
+          metadataRemoved: copy.data.metadataRemoved,
+          firstFrameOnly: copy.data.firstFrameOnly,
+        }
+      : null,
+  });
 }
 
 export async function transcribeAudio(formData: FormData): Promise<ActionResult<ScanView>> {

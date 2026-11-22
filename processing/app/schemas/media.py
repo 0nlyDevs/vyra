@@ -28,3 +28,13 @@ class MediaReportResponse(_CamelModel):
     software: str | None
     gps: bool
     findings: list[str]
+
+
+class SafeCopyResponse(_CamelModel):
+    mime_type: str
+    data: str
+    width: int
+    height: int
+    faces_blurred: int
+    metadata_removed: bool
+    first_frame_only: bool

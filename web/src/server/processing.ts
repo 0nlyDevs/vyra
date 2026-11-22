@@ -212,6 +212,24 @@ export async function inspectMedia(
   return data ? ok(data) : fail(ERRORS.INTERNAL);
 }
 
+const safeCopySchema = z.object({
+  mimeType: z.literal('image/jpeg'),
+  data: z.string().min(1),
+  width: z.number().int(),
+  height: z.number().int(),
+  facesBlurred: z.number().int().min(0),
+  metadataRemoved: z.boolean(),
+  firstFrameOnly: z.boolean(),
+});
+export type SafeCopy = z.infer<typeof safeCopySchema>;
+
+// La copie à envoyer à la place de l'original : visages floutés, informations cachées retirées.
+// Sans IA. En cas d'échec, l'original ne doit partir nulle part.
+export async function makeSafeCopy(file: InlineFile): Promise<ActionResult<SafeCopy>> {
+  const data = await post('/v1/media/safe-copy', file, safeCopySchema);
+  return data ? ok(data) : fail(ERRORS.INTERNAL);
+}
+
 // Un vecteur par texte (recherche par le sens). Hors ligne : AI_UNAVAILABLE.
 export async function embedTexts(texts: string[]): Promise<ActionResult<number[][]>> {
   const schema = z.object({ vectors: z.array(z.array(z.number())) });
