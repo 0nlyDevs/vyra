@@ -14,10 +14,13 @@ services:
     envVars:
       - key: PYTHON_VERSION
         value: 3.12.8
-      - key: AI_MODE
-        value: gemini
       # Demandées à la création du Blueprint (jamais écrites dans le dépôt).
-      - key: GEMINI_API_KEY
+      # Les clés des IA (plusieurs par fournisseur possible, séparées par des virgules).
+      - key: GROQ_API_KEYS
+        sync: false
+      - key: GEMINI_API_KEYS
+        sync: false
+      - key: DEEPSEEK_API_KEYS
         sync: false
       - key: PROCESSING_TOKEN
         sync: false
