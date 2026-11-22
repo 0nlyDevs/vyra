@@ -1,0 +1,94 @@
+name: Vérifier l’application
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: check-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  processing:
+    name: Tests et style Python
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: processing
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: processing/requirements*.txt
+      - name: Installer les dépendances existantes
+        run: python -m pip install -r requirements-dev.txt
+      - name: Vérifier le style
+        run: |
+          ruff check .
+          ruff format --check .
+      - name: Exécuter tous les tests, rotation comprise
+        run: python -m pytest
+
+  web:
+    name: Contrôles et build web avec PostgreSQL
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      db:
+        image: pgvector/pgvector:pg17
+        env:
+          POSTGRES_USER: mindstack
+          POSTGRES_PASSWORD: mindstack
+          POSTGRES_DB: mindstack
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U mindstack -d mindstack"
+          --health-interval 2s
+          --health-timeout 3s
+          --health-retries 30
+    env:
+      # Base éphémère du job, aucun accès aux données ni aux secrets de production.
+      DATABASE_URL: postgres://mindstack:mindstack@127.0.0.1:5432/mindstack
+      NEXT_TELEMETRY_DISABLED: '1'
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - name: Installer les dépendances verrouillées
+        run: npm ci --no-audit --no-fund
+      - name: Vérifier le style et les types
+        run: |
+          npm run lint
+          npm run typecheck
+      - name: Initialiser la base de test
+        run: |
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f ../docker/initdb/01-extensions.sql
+          npm run db:push
+      - name: Construire toutes les pages
+        run: npm run build
+      - name: Vérifier que l’accueil et une page pré-rendue répondent
+        run: |
+          npm run start -- --hostname 127.0.0.1 --port 3000 > "$RUNNER_TEMP/vyra-web.log" 2>&1 &
+          web_pid=$!
+          trap 'kill "$web_pid" 2>/dev/null || true' EXIT
+          curl --fail --silent --show-error --retry 15 --retry-connrefused --retry-delay 2 \
+            --max-time 30 --output /dev/null http://127.0.0.1:3000/
+          curl --fail --silent --show-error --max-time 30 --output /dev/null \
+            http://127.0.0.1:3000/verifier/flash
+      - name: Afficher les journaux en cas d’échec
+        if: failure()
+        run: cat "$RUNNER_TEMP/vyra-web.log" 2>/dev/null || true
