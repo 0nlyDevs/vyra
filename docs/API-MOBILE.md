@@ -18,8 +18,8 @@ ces routes appellent les mêmes fonctions.
 |---|---|
 | `GET /me` | le profil connecté |
 | `GET /feed?region=mg\|world` | le fil, 7 derniers jours (`mg` : Madagascar et monde, par défaut) |
-| `GET /cases` | les affaires, de la plus récente à la plus ancienne |
-| `GET /cases/:id` | le dossier : `versions`, `links`, `evidence` |
+| `GET /cases` | les affaires, de la plus récente à la plus ancienne ; chacune porte `imageUrl` (chemin du site, ex. `/demo/inondation-2019.png`, ou adresse complète) ou `null` |
+| `GET /cases/:id` | le dossier : `versions` (chacune avec son `imagePath` éventuel), `links`, `evidence` |
 | `POST /cases/:id/what-if` | What If ? : `{ kind, versions[], takeaway, source }` |
 | `POST /assistant` | `{ question, pathname?, history? }` renvoie `{ answer, citations[], source }` |
 | `POST /check` | vérification rapide d'un texte ou d'un lien (`{ text }` ou `{ url }`), sans compte |
