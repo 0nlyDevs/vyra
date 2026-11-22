@@ -62,6 +62,16 @@ démarrent en quelques secondes. `Ctrl+C` arrête tout ; les données sont gard�
 
 Une modification du code est prise en compte toute seule, sans relancer.
 
+### Si `web` s'arrête tout seul
+
+Symptôme : `web-1 exited with code 0` juste après « Ready », ou `Bus error` pendant
+`npm run typecheck`. Sur Linux, regarder qui possède `web/node_modules` et `web/.next` : si c'est
+`root` (Docker les crée ainsi quand ils n'existent pas), un `npm install` hors Docker échoue aussi
+(`EACCES`). Les rendre à son compte : `sudo chown -R $USER: web/node_modules web/.next`. Si le
+problème reste, `docker compose down`, supprimer les volumes `vyra_web-next` et
+`vyra_web-node-modules` (le cache seulement, pas la base), puis `make up`. Le disque presque plein
+donne les mêmes symptômes. Hors Docker, `make web-local` demande Node 22 (`fnm use 22`).
+
 ### Windows : cloner dans WSL
 
 Sous Windows, ouvrir un terminal **Ubuntu (WSL 2)** et cloner le dépôt **dans WSL**
@@ -237,6 +247,11 @@ postes restent sur les IA distantes. Les vecteurs doivent venir du même modèle
 - **Comptes de démo** : boutons « Comptes de démo » sur la page de connexion, sans mot de passe à
   taper sur scène. Leurs adresses (`rasoa@vyra.demo`, `hery@vyra.demo`) et leur mot de
   passe sont dans `web/src/server/demo/seed-data.ts`.
+- **`DEMO_MODE`** (dans `web/.env.local`, facultative) : active les comptes de démo en un clic (dont un
+  administrateur) et le bouton « Réinitialiser la démo ». Absente, elle est active sur le PC et coupée
+  en production. Ne mettre `true` en ligne que le temps d'une présentation, puis la retirer : tant
+  qu'elle est active, n'importe qui entre en un clic comme vérificateur. La remise à zéro, elle, ne
+  marche jamais en production, car elle efface toutes les affaires et tous les comptes.
 - **E-mails** : envoyés avec Resend (confirmation d'adresse, mot de passe oublié). Mettre
   `RESEND_API_KEY` dans `web/.env.local` hors Docker, ou dans `.env` à la racine pour Docker Compose. Docker transmet explicitement cette variable ; une valeur vide dans Compose ne se remplace pas par celle de `web/.env.local`. `MAIL_FROM` doit être
   une adresse d'un domaine vérifié dans Resend ; sans cela, seul le compte Resend reçoit les e-mails.
@@ -362,7 +377,9 @@ Avec `make` (Mac, Linux) ou la commande complète (partout, y compris Windows) :
 | Tout arrêter | `make down` | `docker compose down` |
 | Données de démo à zéro | `make seed` | `docker compose exec web npm run db:seed` |
 | Après un changement de `web/src/server/db/schema.ts` | `make db-push` | `docker compose exec web npm run db:push` |
-| Puis, avant de pousser : écrire la migration (à committer) | `cd web && npm run db:generate` | idem |
+| Puis, avant de pousser : écrire la migration (à committer) | `make db-generate` | `docker compose exec web npm run db:generate` |
+| Voir les journaux | `make logs` | `docker compose logs -f` |
+| Relancer web (après un changement de `.env`, ou si le rechargement bloque) | `make restart-web` | `docker compose restart web` |
 | Voir les données | `make studio` | `docker compose exec web npm run db:studio` |
 | Contrôles de style, types et tests Python | `make check` | voir le `Makefile` (cible `check`) |
 | Lancer les tests du site | `cd web && npm test` | idem, ou `docker compose exec web npm test` |
