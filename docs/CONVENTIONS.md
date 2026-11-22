@@ -29,7 +29,10 @@
 - `git pull origin main` souvent : plusieurs personnes travaillent sur le dépôt.
 - Messages de commit en français, courts : `feat: ajoute la carte des trajets`.
 - `make check` et `docker compose exec web npm test` avant de pousser. La CI ajoute le build, les migrations et une vérification HTTP.
-- Avant chaque PR : `git fetch origin`, puis `git merge origin/main` ; pas de rebase d’une branche déjà poussée. Les PR récentes utilisent un commit de merge.
+- Avant chaque PR : `git fetch origin`, puis `git merge origin/main` ; pas de rebase d’une branche déjà poussée.
+- Une PR se fusionne par un commit de merge, jamais en squash ni en rebase : le dépôt n’autorise
+  plus que ce mode. Le titre de la PR devient celui du commit de merge, il suit donc le même
+  format (`fix(web): …`) ; ne pas garder « Merge pull request #… ». Pas de push direct sur `main`.
 - Un changement de `web/src/server/db/schema.ts` : `make db-push` pour tester, puis `make db-generate` et committer `web/drizzle/`.
 - Mettre à jour les documents concernés dans la même modification (README, architecture, API, démo). Ne pas annoncer un contrôle non exécuté ou une capacité non présente dans le client livré.
 - Fins de ligne Unix (LF) partout : `.gitattributes` s'en charge, ne pas le modifier.
