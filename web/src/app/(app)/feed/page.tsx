@@ -105,7 +105,12 @@ export default async function FeedPage({
                       : 'text-muted-foreground hover:text-foreground',
                   )}
                 >
-                  {option === 'local' ? FEED_REGION_LABELS[region] : FEED_VIEW_LABELS[option]}
+                  {/* « Local » et « International » : pas les mots de la région juste à côté. */}
+                  {option === 'local'
+                    ? 'Local'
+                    : option === 'world'
+                      ? 'International'
+                      : FEED_VIEW_LABELS[option]}
                 </Link>
               ))}
             </nav>
