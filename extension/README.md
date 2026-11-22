@@ -22,6 +22,15 @@ Jamais de verdict nouveau : seules les conclusions du tribunal sont affichées.
 
 Pas de build ni de dépendance : JavaScript, HTML et CSS tels quels (Manifest V3, Chrome 116+).
 
+## Design
+
+Le même « encre et papier » que la plateforme et que l'extension Checky : papier et encre (le
+sombre les inverse, selon le réglage du système), couleur réservée aux verdicts, toujours avec une
+icône et un mot. Une ligne numérotée suit les vraies étapes : 01 contenu, 02 recherche,
+03 résultat. Bricolage Grotesque porte le texte ; Cormorant Garamond italique, seulement les
+passages cités. Les polices sont dans `fonts/` (aucun appel réseau) avec leur licence OFL ; les
+icônes Phosphor (licence MIT) sont dans `sidepanel.html`.
+
 ## Vie privée
 
 - Aucun script injecté dans les pages, aucun accès à toutes les pages, ni à l'historique ni aux
