@@ -3,6 +3,7 @@
 import { ArrowRight, Gavel } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState, useTransition } from 'react';
+import { AiReading } from '@/components/common/AiReading';
 import { AiSourceBadge, CertaintyBadge } from '@/components/common/DomainBadges';
 import { FileDrop } from '@/components/common/FileDrop';
 import { SpeechBubble } from '@/components/common/SpeechBubble';
@@ -31,18 +32,19 @@ function AudioResult({ scan }: { scan: ScanView }) {
   }
   return (
     <div className="grid gap-4" aria-live="polite">
-      <div className={ENTER}>
+      <AiReading label="Transcription par l’IA" className={ENTER}>
         <SpeechBubble speaker="Message vocal" caption={transcript.language || undefined}>
           {transcript.transcript}
         </SpeechBubble>
-      </div>
-      {transcript.translation && (
-        <p className="text-pretty text-muted-foreground">Traduction : {transcript.translation}</p>
-      )}
-      <div className={cn('grid gap-1 rounded-xl bg-muted p-4 [animation-delay:80ms]', ENTER)}>
-        <p className="font-semibold">L’information à vérifier</p>
-        <p className="text-pretty">{transcript.claim || transcript.transcript}</p>
-      </div>
+        {transcript.translation && (
+          <p className="text-pretty text-muted-foreground">Traduction : {transcript.translation}</p>
+        )}
+        <div className="grid gap-1 rounded-xl bg-muted p-4">
+          <p className="font-semibold">L’information à vérifier</p>
+          <p className="text-pretty">{transcript.claim || transcript.transcript}</p>
+        </div>
+        {scan.aiSource && <AiSourceBadge source={scan.aiSource} />}
+      </AiReading>
       {judged && (
         <div
           className={cn(
@@ -71,7 +73,6 @@ function AudioResult({ scan }: { scan: ScanView }) {
             <ArrowRight aria-hidden data-icon="inline-end" />
           </Button>
         </form>
-        {scan.aiSource && <AiSourceBadge source={scan.aiSource} />}
       </div>
     </div>
   );

@@ -12,6 +12,7 @@ import {
 import Link from 'next/link';
 import { type ReactNode, useEffect, useState, useTransition } from 'react';
 import { toast } from 'sonner';
+import { AiReading } from '@/components/common/AiReading';
 import { AiSourceBadge } from '@/components/common/DomainBadges';
 import { FileDrop } from '@/components/common/FileDrop';
 import { ToneBadge } from '@/components/common/ToneBadge';
@@ -63,22 +64,40 @@ function Step({
   index,
   icon,
   title,
+  ai = false,
   children,
 }: {
   index: number;
   icon: ReactNode;
   title: string;
+  // Une étape lue par l'IA : pointillés, et masquée en mode Sans IA.
+  ai?: boolean;
   children: ReactNode;
 }) {
+  const heading = (
+    <h3 className="flex items-center gap-2 font-semibold">
+      {icon}
+      {index + 1}. {title}
+    </h3>
+  );
+  if (ai) {
+    return (
+      <AiReading
+        label={title}
+        showLabel={false}
+        className={cn('gap-2 [animation-delay:160ms]', ENTER)}
+      >
+        {heading}
+        {children}
+      </AiReading>
+    );
+  }
   return (
     <section
       className={cn('grid content-start gap-2 surface p-4', ENTER)}
       style={{ animationDelay: `${index * 80}ms` }}
     >
-      <h3 className="flex items-center gap-2 font-semibold">
-        {icon}
-        {index + 1}. {title}
-      </h3>
+      {heading}
       {children}
     </section>
   );
@@ -266,6 +285,7 @@ function ImageResult({ scan, caseOptions }: { scan: ScanView; caseOptions: CaseO
         index={2}
         icon={<Sparkles aria-hidden className="size-5 text-primary" />}
         title="Lecture par l’IA"
+        ai
       >
         {reading?.description && <p className="text-pretty">{reading.description}</p>}
         {reading && reading.observations.length > 0 ? (
