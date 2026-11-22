@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
-// Fichiers acceptés par le scan, et formes des réponses des prompts `read-image` et `transcribe`.
+// Fichiers acceptés par le scan, et formes des réponses des prompts `read-image`, `read-video`
+// et `transcribe`.
 
 export const MAX_FILE_BYTES = 8 * 1024 * 1024;
 
@@ -16,6 +17,8 @@ export const AUDIO_TYPES = [
   'audio/mp4',
   'audio/x-m4a',
 ];
+
+export const VIDEO_TYPES = ['video/mp4', 'video/quicktime', 'video/webm', 'video/3gpp'];
 
 // Distance maximale entre deux empreintes d'image (sur 64) pour dire « c'est la même image ».
 // Mesuré sur la démo : même photo recompressée et recadrée 5, images sans rapport 28 à 34.

@@ -28,7 +28,7 @@ import { fingerprintDistance, imageFingerprint } from './fingerprint';
 import styles from './scan.module.css';
 import { IMAGE_TYPES, MAX_IMAGE_DISTANCE } from './schema';
 
-const ENTER =
+export const ENTER =
   'animate-in fade-in slide-in-from-bottom-2 fill-mode-both duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] motion-reduce:slide-in-from-bottom-0';
 
 // Fichiers prêts pour la démo sur scène : pas besoin d'ouvrir un sélecteur de fichiers.
@@ -60,7 +60,7 @@ async function findMatches(file: Blob, knownImages: KnownImage[]) {
   }
 }
 
-function Step({
+export function Step({
   index,
   icon,
   title,
@@ -155,6 +155,23 @@ function SafeCopyPanel({ copy, fileName }: { copy: SafeCopyView; fileName: strin
   );
 }
 
+export function ReverseSearchServices() {
+  return (
+    <ul className="flex flex-wrap gap-2">
+      {REVERSE_SEARCH.map((service) => (
+        <li key={service.name}>
+          <Button variant="outline" size="sm" asChild>
+            <a href={service.url} target="_blank" rel="noopener noreferrer">
+              {service.name}
+              <ExternalLink aria-hidden />
+            </a>
+          </Button>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 function ReverseSearchLinks({ scan }: { scan: ScanView }) {
   return (
     <div className="grid gap-2 border-t pt-3">
@@ -164,23 +181,12 @@ function ReverseSearchLinks({ scan }: { scan: ScanView }) {
         Aucun résultat ne prouve rien.
       </p>
       {scan.safeCopy && <SafeCopyPanel copy={scan.safeCopy} fileName={scan.fileName} />}
-      <ul className="flex flex-wrap gap-2">
-        {REVERSE_SEARCH.map((service) => (
-          <li key={service.name}>
-            <Button variant="outline" size="sm" asChild>
-              <a href={service.url} target="_blank" rel="noopener noreferrer">
-                {service.name}
-                <ExternalLink aria-hidden />
-              </a>
-            </Button>
-          </li>
-        ))}
-      </ul>
+      <ReverseSearchServices />
     </div>
   );
 }
 
-function AddToCase({ scan, caseOptions }: { scan: ScanView; caseOptions: CaseOption[] }) {
+export function AddToCase({ scan, caseOptions }: { scan: ScanView; caseOptions: CaseOption[] }) {
   const [caseId, setCaseId] = useState(scan.alreadySeen?.caseId ?? caseOptions[0]?.id ?? '');
   const [pending, startTransition] = useTransition();
 
