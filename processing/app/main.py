@@ -12,7 +12,7 @@ from fastapi import Depends, FastAPI, Header
 from app.core.config import Settings, SettingsDep, get_settings
 from app.core.errors import AppError, register_error_handlers
 from app.core.logging import configure_logging
-from app.routers import ai, feed, health, media, web
+from app.routers import ai, feed, health, media, voice, web
 
 
 def require_token(
@@ -47,6 +47,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     application.include_router(media.router, dependencies=protected)
     application.include_router(web.router, dependencies=protected)
     application.include_router(feed.router, dependencies=protected)
+    application.include_router(voice.router, dependencies=protected)
     return application
 
 

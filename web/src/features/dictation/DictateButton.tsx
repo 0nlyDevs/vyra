@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { canDictate, dictate } from './actions';
+import { dictate, voiceStatus } from './actions';
 import { toWav } from './wav';
 
 // Seuil de volume au-dessus duquel on considère que la personne parle (0 à 1).
@@ -16,7 +16,8 @@ const SILENCE_MS = 1_200;
 const NO_SPEECH_MS = 8_000;
 const MAX_MS = 60_000;
 
-const UNAVAILABLE = 'Dictée indisponible : aucune IA ne peut lire le son (il faut une clé Gemini).';
+const UNAVAILABLE =
+  'Dictée indisponible : il faut une clé Groq (ou Gemini) pour transcrire la voix.';
 
 type Phase = 'idle' | 'listening' | 'transcribing';
 
@@ -37,7 +38,7 @@ export function DictateButton({
   useEffect(() => () => stopRef.current?.(), []);
   useEffect(() => {
     let alive = true;
-    canDictate().then((ok) => alive && setAvailable(ok));
+    voiceStatus().then((status) => alive && setAvailable(status.dictate));
     return () => {
       alive = false;
     };
