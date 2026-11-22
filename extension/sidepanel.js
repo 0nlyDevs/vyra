@@ -10,8 +10,27 @@ const REVERSE_SEARCH = [
   ['Bing', (url) => `https://www.bing.com/images/search?view=detailv2&iss=sbi&q=imgurl:${encodeURIComponent(url)}`],
 ];
 
+// Les tons de la plateforme, rangés dans les familles de verdict de Checky (icône et mot, jamais
+// la couleur seule).
+const FAMILIES = {
+  success: { family: 'true', icon: 'seal-check' },
+  danger: { family: 'false', icon: 'x' },
+  warning: { family: 'misleading', icon: 'warning' },
+  info: { family: 'unverifiable', icon: 'question' },
+  neutral: { family: 'neutral', icon: 'info' },
+};
+const KINDS = {
+  text: { label: 'Texte sélectionné', icon: 'text-align-left' },
+  link: { label: 'Lien', icon: 'link' },
+  image: { label: 'Image', icon: 'image' },
+};
+const STEPS = ['Contenu', 'Recherche', 'Résultat'];
+
 const $ = (id) => document.getElementById(id);
 let current = null;
+// Un contenu collé se vérifie tout de suite, une fois affiché (sinon l'affichage efface le message
+// « Recherche… » qui vient d'apparaître).
+let checkWhenShown = null;
 
 function el(tag, props = {}, ...children) {
   const node = document.createElement(tag);
@@ -25,12 +44,30 @@ function el(tag, props = {}, ...children) {
   return node;
 }
 
-function badge(label, tone) {
-  return el('span', { class: `badge tone-${tone}` }, label);
+/** Une icône du sprite de sidepanel.html. */
+function icon(name) {
+  const ns = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(ns, 'svg');
+  svg.setAttribute('aria-hidden', 'true');
+  const use = document.createElementNS(ns, 'use');
+  use.setAttribute('href', `#ph-${name}`);
+  svg.append(use);
+  return svg;
 }
 
-function externalLink(href, label) {
-  return el('a', { href, target: '_blank', rel: 'noopener noreferrer' }, label);
+function family(tone) {
+  return FAMILIES[tone] ?? FAMILIES.neutral;
+}
+
+function tag(label, tone) {
+  const { family: name, icon: glyph } = family(tone);
+  return el('span', { class: `tag ${name}` }, icon(glyph), label);
+}
+
+function externalLink(href, label, className) {
+  const props = { href, target: '_blank', rel: 'noopener noreferrer' };
+  if (className) props.class = className;
+  return el('a', props, label, icon('arrow-square-out'));
 }
 
 async function baseUrl() {
@@ -38,8 +75,26 @@ async function baseUrl() {
   return (stored || DEFAULT_BASE_URL).replace(/\/+$/, '');
 }
 
-function setStatus(text) {
-  $('status').textContent = text;
+/** Message sous le contenu : en cours, ou une erreur (cadre d'encre). */
+function setStatus(text, kind = 'info') {
+  const node = $('status');
+  node.className = kind === 'error' ? 'notice error' : 'notice';
+  node.replaceChildren(...(text ? [icon(kind === 'error' ? 'wifi-slash' : 'magnifying-glass'), text] : []));
+}
+
+/**
+ * La ligne numérotée : 01 contenu, 02 recherche, 03 résultat. `stage` est l'étape en cours
+ * (0 à 2) ; 3 veut dire tout est fait ; `failed` marque l'étape en cours comme échouée.
+ */
+function setSteps(stage, failed = false) {
+  const items = STEPS.map((label, i) => {
+    const state = i < stage ? 'done' : i === stage ? (failed ? 'failed' : 'active') : 'waiting';
+    const mark = state === 'done' ? icon('check') : state === 'failed' ? icon('x') : String(i + 1).padStart(2, '0');
+    const props = { class: state };
+    if (state === 'active') props['aria-current'] = 'step';
+    return el('li', props, el('span', { class: 'disc' }, mark), el('span', {}, label));
+  });
+  $('steps').replaceChildren(...items);
 }
 
 function showPending(pending) {
@@ -48,97 +103,118 @@ function showPending(pending) {
   setStatus('');
   $('empty').hidden = Boolean(pending);
   $('preview').hidden = !pending;
+  setSteps(pending ? 1 : 0);
   if (!pending) return;
-  const labels = { text: 'Texte sélectionné', link: 'Lien', image: 'Image' };
-  $('preview-kind').textContent = labels[pending.kind];
+  const kind = KINDS[pending.kind];
+  $('preview-kind').replaceChildren(icon(kind.icon), kind.label);
   $('preview-text').textContent = pending.kind === 'text' ? pending.text : pending.url;
   $('preview-text').hidden = pending.kind === 'image';
+  $('preview-text').classList.toggle('passage', pending.kind === 'text');
   $('preview-image').hidden = pending.kind !== 'image';
   if (pending.kind === 'image') $('preview-image').src = pending.url;
-  $('check').textContent = pending.kind === 'image' ? 'Chercher sa première publication' : 'Vérifier ce contenu';
+  $('check').replaceChildren(
+    icon(pending.kind === 'image' ? 'image' : 'magnifying-glass'),
+    pending.kind === 'image' ? 'Chercher sa première publication' : 'Vérifier ce contenu',
+  );
+  if (checkWhenShown !== null && pending.at === checkWhenShown) {
+    checkWhenShown = null;
+    check(pending);
+  }
 }
 
 function renderImage(url) {
-  const links = el('div', { class: 'links' });
-  for (const [name, build] of REVERSE_SEARCH) links.append(externalLink(build(url), name));
+  const links = el('div', { class: 'reverse-links' });
+  for (const [name, build] of REVERSE_SEARCH) links.append(externalLink(build(url), name, 'button'));
   $('result').replaceChildren(
-    el(
-      'div',
-      { class: 'card' },
-      el('h2', {}, 'Déjà vue ailleurs ?'),
-      el('p', { class: 'muted' }, 'Une photo vraie peut dater d’il y a dix ans. Cherchez sa première publication :'),
-      links,
-      el('p', { class: 'muted' }, 'Aucun outil ne dit avec certitude si une image est générée par IA.'),
-    ),
+    el('h2', { class: 'section-title' }, icon('image'), 'Déjà vue ailleurs ?'),
+    el('p', { class: 'muted' }, 'Une photo vraie peut dater d’il y a dix ans. Cherchez sa première publication :'),
+    links,
+    el('p', { class: 'notice' }, icon('info'), 'Aucun outil ne dit avec certitude si une image est générée par IA.'),
   );
+  setSteps(3);
 }
 
 function renderResult(data, base, pending) {
-  const cards = [];
-  if (data.title) cards.push(el('p', { class: 'muted' }, `Page lue : ${data.title}`));
+  const blocks = [];
+  if (data.title) blocks.push(el('p', { class: 'muted page-read' }, `Page lue : ${data.title}`));
 
   if (data.judged) {
-    cards.push(
+    const { family: name, icon: glyph } = family(data.judged.tone);
+    blocks.push(
       el(
         'div',
-        { class: 'card' },
-        el('p', { class: 'eyebrow' }, 'Déjà jugée'),
-        el('h2', {}, data.judged.title, ' ', badge(data.judged.label, data.judged.tone)),
+        { class: `verdict ${name}` },
+        el('p', { class: 'eyebrow' }, 'Déjà jugée par le tribunal'),
+        el('p', { class: 'published-word' }, icon(glyph), data.judged.label),
+        el('h3', {}, data.judged.title),
         data.judged.conclusion ? el('p', {}, data.judged.conclusion) : null,
-        externalLink(`${base}${data.judged.url}`, 'Voir les preuves'),
+        el('p', {}, externalLink(`${base}${data.judged.url}`, 'Voir les preuves')),
       ),
     );
   } else {
-    cards.push(
+    blocks.push(
       el(
         'div',
-        { class: 'card' },
-        el('h2', {}, 'Pas encore jugée'),
-        el('p', { class: 'muted' }, 'Aucune affaire jugée ne ressemble à ce contenu. Cela ne veut pas dire qu’il est vrai.'),
+        { class: 'no-conclusion' },
+        el('h2', {}, icon('question'), 'Pas encore jugée'),
+        el('p', {}, 'Aucune affaire jugée ne ressemble à ce contenu. Cela ne veut pas dire qu’il est vrai.'),
       ),
     );
   }
 
+  blocks.push(el('h2', { class: 'section-title' }, icon('warning'), 'Signes d’alerte'));
   for (const signal of data.signals) {
     const list = el('ul');
-    for (const sign of signal.signs) list.append(el('li', {}, `${sign.label} : « ${sign.quote} »`));
-    cards.push(
+    for (const sign of signal.signs) {
+      list.append(el('li', {}, `${sign.label} :`, el('span', { class: 'passage' }, `« ${sign.quote} »`)));
+    }
+    blocks.push(
       el(
         'div',
-        { class: 'card' },
-        el('h2', {}, badge(signal.label, signal.tone)),
+        { class: 'signal' },
+        tag(signal.label, signal.tone),
         signal.signs.length ? list : el('p', { class: 'muted' }, 'Aucun signe relevé dans les mots.'),
       ),
     );
   }
 
   if (data.factChecks.length) {
-    const list = el('ul');
+    blocks.push(el('h2', { class: 'section-title' }, icon('seal-check'), 'Déjà vérifiée ailleurs'));
     for (const check of data.factChecks) {
-      list.append(
+      blocks.push(
         el(
-          'li',
-          {},
-          `${check.publisher}${check.rating ? ` (« ${check.rating} »)` : ''} : `,
-          externalLink(check.url, check.title || 'Lire la vérification'),
+          'div',
+          { class: 'source' },
+          el(
+            'p',
+            { class: 'source-meta' },
+            check.publisher,
+            check.rating ? el('span', { class: 'tag neutral' }, `« ${check.rating} »`) : null,
+          ),
+          el('h3', {}, externalLink(check.url, check.title || 'Lire la vérification')),
         ),
       );
     }
-    cards.push(el('div', { class: 'card' }, el('h2', {}, 'Déjà vérifiée ailleurs'), list));
   }
 
   const params = new URLSearchParams({ information: (pending.text || data.text || '').slice(0, 1500) });
   const source = pending.kind === 'link' ? pending.url : pending.pageUrl;
   if (source?.startsWith('http')) params.set('lien', source);
-  cards.push(
+  blocks.push(
     el(
       'div',
-      { class: 'card' },
-      el('p', { class: 'muted' }, 'Vous voulez aller plus loin ? L’enquête retrace ses versions, le tribunal conclut.'),
-      externalLink(`${base}/cases?${params.toString()}`, 'Ouvrir une enquête dans la plateforme'),
+      { class: 'save-section' },
+      el('p', {}, 'Vous voulez aller plus loin ? L’enquête retrace ses versions, le tribunal conclut.'),
+      el(
+        'a',
+        { class: 'button ink', href: `${base}/cases?${params.toString()}`, target: '_blank', rel: 'noopener noreferrer' },
+        icon('folder-open'),
+        'Ouvrir une enquête dans la plateforme',
+      ),
     ),
   );
-  $('result').replaceChildren(...cards);
+  $('result').replaceChildren(...blocks);
+  setSteps(3);
 }
 
 async function check(pending) {
@@ -149,6 +225,8 @@ async function check(pending) {
   const base = await baseUrl();
   const button = $('check');
   button.disabled = true;
+  $('paste-check').disabled = true;
+  setSteps(1);
   setStatus('Recherche dans les affaires jugées et chez les vérificateurs…');
   try {
     const response = await fetch(`${base}/api/check`, {
@@ -158,15 +236,18 @@ async function check(pending) {
     });
     const data = await response.json();
     if (!response.ok) {
-      setStatus(data.error || 'Vérification impossible.');
+      setSteps(1, true);
+      setStatus(data.error || 'Vérification impossible.', 'error');
       return;
     }
     setStatus('');
     renderResult(data, base, pending);
   } catch {
-    setStatus(`Plateforme injoignable à ${base}. Vérifiez qu’elle tourne, ou changez son adresse dans Réglages.`);
+    setSteps(1, true);
+    setStatus(`Plateforme injoignable à ${base}. Vérifiez qu’elle tourne, ou changez son adresse dans Réglages.`, 'error');
   } finally {
     button.disabled = false;
+    $('paste-check').disabled = false;
   }
 }
 
@@ -181,13 +262,16 @@ chrome.storage.session.onChanged.addListener((changes) => {
 
 $('check').addEventListener('click', () => current && check(current));
 $('clear').addEventListener('click', () => chrome.storage.session.remove('pending'));
+$('paste-check').prepend(icon('magnifying-glass'));
 $('paste-check').addEventListener('click', () => {
   const value = $('paste').value.trim();
   if (!value) return;
   const pending = /^https?:\/\/\S+$/.test(value)
     ? { kind: 'link', url: value, pageUrl: '' }
     : { kind: 'text', text: value.slice(0, 3000), pageUrl: '' };
-  chrome.storage.session.set({ pending: { ...pending, at: Date.now() } }).then(() => check(pending));
+  const at = Date.now();
+  checkWhenShown = at;
+  chrome.storage.session.set({ pending: { ...pending, at } });
 });
 
 $('settings-toggle').addEventListener('click', async () => {
@@ -216,4 +300,5 @@ $('settings').addEventListener('submit', async (event) => {
   $('settings-status').textContent = `Enregistré : ${origin}`;
 });
 
+setSteps(0);
 loadPending();
