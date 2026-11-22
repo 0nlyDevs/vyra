@@ -225,6 +225,18 @@ signature Ed25519 du texte exact de la conclusion. `/verifier/sceau` dit si une 
 - Rejuger une affaire change son sceau : l'ancienne carte s'affiche alors « ne correspond pas », avec
   la conclusion actuelle.
 
+### Faits et lectures de l'IA, et le mode « Sans IA »
+
+À l'écran, deux traits : un **trait plein** pour les faits (pièces du dossier, informations du
+fichier, image déjà vue, niveau de certitude calculé par une règle fixe sur les pièces), des
+**pointillés** pour ce que l'IA a lu ou formulé (plaidoiries, conclusion rédigée, lecture d'image,
+transcription d'un vocal, phrases relevées dans une page). Le composant `AiReading` pose les
+pointillés.
+
+Le bouton « Sans IA » (dock des préférences, menu du compte, barre publique) masque toutes ces
+lectures : il ne reste que les faits, et une ligne signale chaque bloc masqué. Réglage gardé sur
+l'appareil, comme le mode éco.
+
 ### La copie protégée des images
 
 Avant qu'une image importée dans le Scan parte où que ce soit, `processing` en fait une copie
