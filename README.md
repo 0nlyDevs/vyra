@@ -1,7 +1,36 @@
-# Vyra · DevFest Antananarivo 2026
+# Vyra · vérifier avant de croire
 
-Projet **Vyra** (issu du travail de l’équipe MindStack) au hackathon du DevFest Antananarivo (21 et 22 novembre 2026).
-Tout tourne en local sur un PC : le jury juge la **démo en direct** et la présentation.
+**Vyra aide chacun à savoir si une information qui circule est fiable, sans jamais lui dire quoi
+croire.** Projet du hackathon du DevFest Antananarivo 2026 (21 et 22 novembre), thème *Fight the
+misinformation*, pour Madagascar : fausses alertes et rumeurs partagées sur Facebook et WhatsApp,
+fausses photos d'inondation, faux communiqués, vocaux et vidéos trafiqués.
+
+Vyra ne donne **jamais de verdict d'IA seule**. Une information devient une *affaire* ; un
+**tribunal** l'examine (deux IA plaident, les pièces témoignent, le public vote, un juge conclut) et
+rend une conclusion avec un **niveau de certitude** : Établi, Probable, Incertain, Contredit,
+Informations insuffisantes. « Insuffisant » est une réponse honnête, pas un échec.
+
+## Ce que fait Vyra
+
+| Pour | Comment |
+|---|---|
+| **Savoir si c'est déjà vérifié** | Coller un message : Vyra retrouve l'affaire jugée qui lui ressemble (par le sens, sinon par les mots). Sans compte. |
+| **Voir ce qui circule** | Un fil d'actualité (presse, télévisions, Facebook public, réseaux) avec l'état de vérification de chaque publication, et les sujets repris par plusieurs sources. |
+| **Retracer une rumeur** | Les *enquêtes* : les versions retrouvées d'une information et ce qui a changé de l'une à l'autre, en arbre. |
+| **Examiner une image, une vidéo, un vocal, un lien** | Ce que le fichier déclare sur lui-même (outil de génération, Content Credentials, appareil, date), déjà vu ailleurs ?, et « est-ce bien eux ? » pour un message qui cite une institution. Seule une copie protégée (visages floutés, informations cachées retirées) est lue par l'IA. |
+| **Juger** | Le tribunal, puis *What If ?* : la même histoire racontée calmement. |
+| **Faire confiance à une conclusion** | Un **sceau** signé (QR + code) sur la carte de conclusion : n'importe qui peut en vérifier l'authenticité sans compte. |
+| **Informer** | Le flash radio du jour, un texte prêt à lire à l'antenne, écrit sans IA à partir des affaires conclues. |
+| **S'entraîner** | *Vrai ou fake ?*, une série d'informations, avec un bonus « groupe famille ». |
+| **Poser une question** | L'assistant, qui ne répond qu'avec des affaires jugées (et qui écoute et parle). |
+| **Vérifier là où on lit** | Une **extension** de navigateur ([`extension/`](extension/README.md)) et une **application mobile** (dépôt [`vyra-mobile`](https://github.com/0nlyDevs/vyra-mobile)). |
+
+Deux rôles : **Citoyen** (lit, signale, vote) et **Vérificateur** (ouvre une affaire sans attendre,
+tient l'annuaire officiel). Détails dans [docs/ROLES.md](docs/ROLES.md).
+Tout le détail technique : [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+
+**Essayer en ligne :** https://vyra-mg.vercel.app (compte de démo `rasoa@mindstack.demo`, mot de
+passe `mindstack-demo`).
 
 ## Démarrer : une seule commande, sur Mac, Linux et Windows
 
@@ -10,8 +39,8 @@ Python et Postgres tournent dans Docker. Pas de Docker (Windows surtout) : voir
 [Sans Docker](#sans-docker-windows-mac-ou-linux).
 
 ```bash
-git clone git@github.com:mahery-oniniaina/mindstack-devfest-2026.git
-cd mindstack-devfest-2026
+git clone https://github.com/0nlyDevs/vyra.git
+cd vyra
 docker compose up --build
 ```
 
@@ -314,6 +343,8 @@ Avec `make` (Mac, Linux) ou la commande complète (partout, y compris Windows) :
 | Puis, avant de pousser : écrire la migration (à committer) | `cd web && npm run db:generate` | idem |
 | Voir les données | `make studio` | `docker compose exec web npm run db:studio` |
 | Tout vérifier avant de pousser | `make check` | voir le `Makefile` (cible `check`) |
+| Lancer les tests du site (24) | `cd web && npm test` | idem, ou `docker compose exec web npm test` |
+| Lancer les tests de processing | `cd processing && python -m pytest` | idem |
 | Corriger le style | `make lint-fix` | voir le `Makefile` (cible `lint-fix`) |
 | Ajouter un paquet npm | — | `docker compose exec web npm install <paquet>` |
 | Ajouter un composant shadcn | — | `docker compose exec web npm run ui:add <nom>` |
@@ -351,9 +382,11 @@ Pas de `rebase` sur une branche déjà poussée.
 
 ## Où lire quoi
 
-- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) : qui fait quoi, comment ajouter une fonctionnalité.
+- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) : l'architecture, la sécurité, comment ajouter une fonctionnalité.
+- [`docs/ROLES.md`](docs/ROLES.md) : les rôles dans l'application et dans l'équipe.
+- [`docs/API-MOBILE.md`](docs/API-MOBILE.md) : l'API utilisée par l'application mobile.
+- [`extension/README.md`](extension/README.md) : l'extension du navigateur (installation, vie privée, tests).
 - [`docs/CONVENTIONS.md`](docs/CONVENTIONS.md) : les règles de code (courtes).
-- [`docs/DEMO.md`](docs/DEMO.md) : le script de la démo et la liste à vérifier avant la scène.
-- [`docs/PITCH.md`](docs/PITCH.md) : le plan de la présentation.
-- [`docs/ROLES.md`](docs/ROLES.md) : qui fait quoi dans l'équipe.
-- [`docs/DEVFEST.md`](docs/DEVFEST.md) : ce qu'on sait du hackathon.
+- [`docs/DEMO.md`](docs/DEMO.md) et [`docs/PITCH.md`](docs/PITCH.md) : la démo et la présentation.
+- [`docs/DEVFEST.md`](docs/DEVFEST.md) : le règlement du hackathon et le barème.
+- [`docs/CREDITS.md`](docs/CREDITS.md) : sources, polices et licences.
