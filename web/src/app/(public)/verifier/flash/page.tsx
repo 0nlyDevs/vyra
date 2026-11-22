@@ -10,6 +10,10 @@ import { listConcludedCases, listOpenRealCases } from '@/server/dal/court';
 
 export const metadata = { title: 'Flash radio du jour' };
 
+// Lu à chaque visite : le flash dépend du jour et des affaires du moment, et le site doit se
+// construire même quand la base n'a pas encore de tables (aperçus, base neuve).
+export const dynamic = 'force-dynamic';
+
 const DAY_MS = 86_400_000;
 
 // Le flash radio du jour, pour les radios locales : un texte à lire à l'antenne, à partir des

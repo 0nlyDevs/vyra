@@ -18,6 +18,7 @@ import {
   versionLinks,
 } from '@/server/db/schema';
 import { archiveRows } from './seed-archive';
+import { WORLD } from './seed-world';
 
 // Données de démo : ce que le jury voit au début de la démo. Elles sont recréées à l'identique par
 // `make seed` et par le bouton « Réinitialiser la démo ».
@@ -812,11 +813,13 @@ export async function resetDemoData(database: Database) {
     // Les affaires déjà instruites : des dossiers complets à tous les niveaux de certitude, huit
     // jugés (avec leur audience) et deux ouverts, pour que « Enquêtes » et « Tribunal » soient fournis.
     const archive = archiveRows(id, 'rasoa');
-    await tx.insert(cases).values(archive.caseRows);
-    await tx.insert(caseVersions).values(archive.versionRows);
-    await tx.insert(versionLinks).values(archive.linkRows);
-    await tx.insert(evidence).values(archive.evidenceRows);
-    await tx.insert(hearings).values(archive.hearingRows);
+    // Des affaires réelles, à Madagascar et dans le monde (voir seed-world.ts).
+    const world = archiveRows(id, 'rasoa', WORLD, 20);
+    await tx.insert(cases).values([...archive.caseRows, ...world.caseRows]);
+    await tx.insert(caseVersions).values([...archive.versionRows, ...world.versionRows]);
+    await tx.insert(versionLinks).values([...archive.linkRows, ...world.linkRows]);
+    await tx.insert(evidence).values([...archive.evidenceRows, ...world.evidenceRows]);
+    await tx.insert(hearings).values([...archive.hearingRows, ...world.hearingRows]);
 
     // Données des modules : chacun ajoute les siennes ici.
 

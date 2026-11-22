@@ -6,7 +6,8 @@ import type { cases, caseVersions, evidence, hearings, versionLinks } from '@/se
 // ouvertes pour être jugées en direct. Comme le reste de la démo, tous les lieux, médias et
 // organismes cités sont INVENTÉS.
 
-type Version = { content: string; source: string; daysAgo: number; hour?: number };
+// `date` (ISO) fixe une date réelle ; sinon `daysAgo` donne une date relative à aujourd'hui.
+type Version = { content: string; source: string; daysAgo?: number; date?: string; hour?: number };
 type Link = {
   from: number;
   to: number;
@@ -18,7 +19,9 @@ type Piece = {
   title: string;
   content: string;
   source: string;
-  daysAgo: number;
+  daysAgo?: number;
+  // null : date inconnue.
+  date?: string | null;
   stance: EvidenceStance;
   strength: 'solid' | 'weak';
 };
@@ -33,7 +36,7 @@ type Verdict = {
   conclusion: string;
   whatToCheck: string;
 };
-type ArchiveCase = {
+export type ArchiveCase = {
   title: string;
   claim: string;
   kind: 'real' | 'fictional';
@@ -45,7 +48,7 @@ type ArchiveCase = {
   verdict?: Verdict;
 };
 
-const ARCHIVE: ArchiveCase[] = [
+export const ARCHIVE: ArchiveCase[] = [
   {
     title: 'La vaccination à l’école',
     claim:
@@ -855,14 +858,20 @@ const at = (days: number, hour = 9) => {
   return date;
 };
 
-export function archiveRows(id: (n: number) => string, reviewerId: string) {
+export function archiveRows(
+  id: (n: number) => string,
+  reviewerId: string,
+  items: ArchiveCase[] = ARCHIVE,
+  offset = 0,
+) {
   const caseRows: (typeof cases.$inferInsert)[] = [];
   const versionRows: (typeof caseVersions.$inferInsert)[] = [];
   const linkRows: (typeof versionLinks.$inferInsert)[] = [];
   const evidenceRows: (typeof evidence.$inferInsert)[] = [];
   const hearingRows: (typeof hearings.$inferInsert)[] = [];
 
-  ARCHIVE.forEach((item, index) => {
+  items.forEach((item, position0) => {
+    const index = position0 + offset;
     const caseId = id(20 + index);
     const versionId = (position: number) => id(2000 + index * 10 + position);
     caseRows.push({
@@ -882,7 +891,9 @@ export function archiveRows(id: (n: number) => string, reviewerId: string) {
         position: position + 1,
         content: version.content,
         sourceName: version.source,
-        publishedAt: at(version.daysAgo, version.hour ?? 9),
+        publishedAt: version.date
+          ? new Date(version.date)
+          : at(version.daysAgo ?? 0, version.hour ?? 9),
       });
     });
     for (const link of item.links) {
@@ -902,7 +913,12 @@ export function archiveRows(id: (n: number) => string, reviewerId: string) {
         title: piece.title,
         content: piece.content,
         sourceName: piece.source,
-        publishedAt: at(piece.daysAgo, 10),
+        publishedAt:
+          piece.date === null
+            ? null
+            : piece.date
+              ? new Date(piece.date)
+              : at(piece.daysAgo ?? 0, 10),
         stance: piece.stance,
         strength: piece.strength,
       });
