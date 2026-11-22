@@ -222,6 +222,8 @@ blockquote {
   border-radius: var(--radius-tag); font-size: .875rem; font-weight: 700;
 }
 .tag svg { width: 18px; height: 18px; }
+.tag.signal-alert { background: var(--paper); color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink); }
+.tag.signal-calm { background: var(--soft); color: var(--muted); }
 .signal { padding: 16px 0; border-bottom: 1px solid var(--rule); }
 .signal ul { display: grid; gap: 8px; margin-top: 12px; padding-left: 0; list-style: none; }
 .signal li { font-size: .9375rem; }

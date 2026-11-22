@@ -59,9 +59,11 @@ function family(tone) {
   return FAMILIES[tone] ?? FAMILIES.neutral;
 }
 
-function tag(label, tone) {
-  const { family: name, icon: glyph } = family(tone);
-  return el('span', { class: `tag ${name}` }, icon(glyph), label);
+/** Le niveau d'un signe d'alerte : à l'encre, jamais une couleur ni une icône de verdict (il ne
+ * dit rien de la vérité). Comme sur le site (SignalBadge) et dans l'application mobile. */
+function signalTag(label, tone) {
+  const alert = tone === 'warning' || tone === 'danger';
+  return el('span', { class: `tag ${alert ? 'signal-alert' : 'signal-calm'}` }, icon(alert ? 'warning' : 'circle-dashed'), label);
 }
 
 function externalLink(href, label, className) {
@@ -162,7 +164,7 @@ function renderResult(data, base, pending) {
     );
   }
 
-  blocks.push(el('h2', { class: 'section-title' }, icon('warning'), 'Signes d’alerte'));
+  blocks.push(el('h2', { class: 'section-title' }, icon('warning'), 'Signes d’alerte dans le message'));
   for (const signal of data.signals) {
     const list = el('ul');
     for (const sign of signal.signs) {
@@ -172,7 +174,7 @@ function renderResult(data, base, pending) {
       el(
         'div',
         { class: 'signal' },
-        tag(signal.label, signal.tone),
+        signalTag(signal.label, signal.tone),
         signal.signs.length ? list : el('p', { class: 'muted' }, 'Aucun signe relevé dans les mots.'),
       ),
     );
