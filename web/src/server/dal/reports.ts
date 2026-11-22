@@ -176,8 +176,13 @@ export async function addReport(input: {
   reason: ReportReason;
   description: string;
 }) {
-  const [report] = await db.insert(reports).values(input).returning({ id: reports.id });
-  return report;
+  // Double envoi : la contrainte d'unicité tranche, le second ne fait rien (au lieu d'une erreur).
+  const [report] = await db
+    .insert(reports)
+    .values(input)
+    .onConflictDoNothing({ target: [reports.groupId, reports.reporterId] })
+    .returning({ id: reports.id });
+  return report ?? null;
 }
 
 // Donne au groupe le vecteur d'un de ses signalements s'il n'en a pas encore (groupe créé sans IA,

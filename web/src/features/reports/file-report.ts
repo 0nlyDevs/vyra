@@ -60,7 +60,7 @@ export async function fileReport(input: {
     groupId = group.id;
   }
 
-  await addReport({ ...input, groupId });
+  if (!(await addReport({ ...input, groupId }))) return null;
 
   const reporterCount = await countGroupReporters(groupId);
   const caseId = reporterCount >= REPORT_CASE_THRESHOLD ? await openCaseForGroup(groupId) : null;
