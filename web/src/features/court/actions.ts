@@ -26,6 +26,7 @@ import { getCurrentProfile } from '@/server/session';
 import { computeCertainty } from './certainty';
 import { embedMissingCases } from './embeddings';
 import { guardPleading } from './pleading-guard';
+import { courtRelevanceSchema, keepRelevantCourtCases } from './relevance';
 import {
   judgedSearchSchema,
   openHearingSchema,
@@ -179,6 +180,7 @@ export type JudgedMatch = {
     title: string;
     certainty: CertaintyLevel | null;
     conclusion: string | null;
+    reason: string;
   }[];
 };
 
@@ -196,12 +198,29 @@ export async function checkAlreadyJudged(
   const vectors = await embedTexts(courtSearchQueries(parsed.data.query));
   if (!vectors.ok) return fail(ERRORS.AI_UNAVAILABLE);
   const found = await searchJudgedCasesByMeaning(vectors.data);
+  if (found.length === 0) return ok({ items: [] });
+  const relevance = await runPrompt(
+    'court-relevance',
+    {
+      query: parsed.data.query,
+      candidates: found.map((item, index) => ({
+        number: index + 1,
+        title: item.title,
+        claim: item.claim,
+      })),
+    },
+    courtRelevanceSchema,
+  );
+  if (!relevance.ok || relevance.data.source === 'fallback') return fail(ERRORS.AI_UNAVAILABLE);
+  const kept = keepRelevantCourtCases(relevance.data.result, found);
+  if (!kept) return fail(ERRORS.AI_UNAVAILABLE);
   return ok({
-    items: found.map((item) => ({
+    items: kept.map(({ item, reason }) => ({
       id: item.id,
       title: item.title,
       certainty: item.certainty,
       conclusion: item.conclusion,
+      reason,
     })),
   });
 }

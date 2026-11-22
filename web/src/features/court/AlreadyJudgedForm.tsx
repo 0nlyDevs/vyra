@@ -62,7 +62,7 @@ export function AlreadyJudgedForm() {
           {result.items.length > 0 ? (
             <div className="grid gap-3">
               <p className="text-muted-foreground text-sm">
-                Affaires sur des sujets proches. Chaque conclusion concerne l’affaire citée.
+                Affaires liées à votre recherche. Chaque conclusion concerne l’affaire citée.
               </p>
               {result.items.map((item) => (
                 <div
@@ -70,10 +70,11 @@ export function AlreadyJudgedForm() {
                   className="grid gap-3 rounded-xl border border-foreground bg-raised p-4"
                 >
                   <div className="flex flex-wrap items-center gap-2">
-                    <ToneBadge tone="info">Déjà jugé</ToneBadge>
+                    <ToneBadge tone="info">Affaire jugée</ToneBadge>
                     <span className="font-medium">{item.title}</span>
                     {item.certainty && <CertaintyBadge level={item.certainty} />}
                   </div>
+                  <p className="text-muted-foreground text-sm">{item.reason}</p>
                   {item.conclusion && <p className="text-pretty">{item.conclusion}</p>}
                   <div className="flex flex-wrap items-center gap-3">
                     <Button asChild size="sm">
