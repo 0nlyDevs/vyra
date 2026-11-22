@@ -230,6 +230,13 @@ export async function makeSafeCopy(file: InlineFile): Promise<ActionResult<SafeC
   return data ? ok(data) : fail(ERRORS.INTERNAL);
 }
 
+// L'empreinte « dHash » d'une image, calculée par processing (l'application mobile n'a pas le
+// canvas du navigateur). Sans IA.
+export async function serverImageFingerprint(file: InlineFile): Promise<string | null> {
+  const data = await post('/v1/media/fingerprint', file, z.object({ fingerprint: z.string() }));
+  return data?.fingerprint ?? null;
+}
+
 const videoReportSchema = z.object({
   report: mediaReportSchema,
   duration: z.number(),
