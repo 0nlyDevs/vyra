@@ -115,7 +115,7 @@ function VersionHeading({ version }: { version: Version }) {
   );
 }
 
-function DiffText({ parts }: { parts: DiffPart[] }) {
+export function DiffText({ parts }: { parts: DiffPart[] }) {
   return (
     <p className="text-pretty text-lg leading-relaxed">
       {parts.map((part, index) =>

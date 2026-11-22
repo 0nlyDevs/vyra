@@ -225,6 +225,23 @@ signature Ed25519 du texte exact de la conclusion. `/verifier/sceau` dit si une 
 - Rejuger une affaire change son sceau : l'ancienne carte s'affiche alors « ne correspond pas », avec
   la conclusion actuelle.
 
+### « Est-ce bien eux ? » et l'annuaire officiel
+
+Onglet du module Scan. On colle un message qui se réclame d'une institution (et, si on l'a, son
+expéditeur) : Vyra le compare, par du code et sans IA, à l'**annuaire officiel**. Il dit qui le
+message prétend être, si chaque lien, numéro ou page est officiel, **imite** une adresse officielle
+(autre extension, mot ajouté, lettres qui se ressemblent) ou est inconnu, s'il demande de l'argent
+ou un code, et montre mot à mot l'écart avec le communiqué d'origine. Jamais de verdict.
+
+- L'annuaire est lisible par tous ; seul un vérificateur ajoute ou retire une institution (sites,
+  numéros, pages, noms d'expéditeur SMS, ce qu'elle ne fait jamais) et ses communiqués.
+- Démo : trois organismes inventés d'Ambohitsoa. Message à coller (dans
+  `web/src/server/demo/seed-data.ts`, `DEMO_IMPERSONATION_MESSAGE`) : « Régie des eaux : suite aux
+  travaux, coupure de 10 jours dans toute la ville à partir de lundi. Pour rester prioritaire, payez
+  5 000 Ar via MVola au 034 12 345 67 et suivez regie-eaux-ambohitsoa.com/priorite ».
+- Nouvelles tables `institutions` et `institution_notices` : `make db-push` en local (fait tout seul
+  au démarrage de Docker), `npm run db:push` sur la base en ligne.
+
 ### Le fil d'actualité : uniquement du réel
 
 Le fil (`/feed`) ne contient aucune publication inventée. Il lit des sources publiques, sans compte,
