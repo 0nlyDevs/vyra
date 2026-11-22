@@ -12,6 +12,8 @@ class HealthResponse(BaseModel):
     status: str
     service: str
     ai: str
+    # Une IA peut-elle lire un son (dictée, scan vocal) ? Seul Gemini, ou l'IA locale, le lit.
+    audio: bool
 
 
 @router.get("/health", operation_id="getHealth")
@@ -28,4 +30,8 @@ def get_health(settings: SettingsDep) -> HealthResponse:
         ai = "not-configured"
     else:
         ai = "+".join(configured)
-    return HealthResponse(status="ok", service="vyra-processing", ai=ai)
+    # Groq et DeepSeek ne lisent pas le son : il faut une clé Gemini, ou l'IA locale (Gemma 4).
+    audio = not settings.demo_offline and (
+        settings.ai_mode != "gemini" or bool(settings.keys_for("gemini"))
+    )
+    return HealthResponse(status="ok", service="vyra-processing", ai=ai, audio=audio)
