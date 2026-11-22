@@ -23,18 +23,11 @@ const FAMILIES = {
   info: { family: 'unverifiable', icon: 'question' },
   neutral: { family: 'neutral', icon: 'info' },
 };
-const KINDS = {
-  text: { label: 'Texte sélectionné', icon: 'text-align-left' },
-  link: { label: 'Lien', icon: 'link' },
-  image: { label: 'Image', icon: 'image' },
-};
+const MAX_IMAGE_BYTES = 4 * 1024 * 1024;
+const IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 const STEPS = ['Contenu', 'Recherche', 'Résultat'];
 
 const $ = (id) => document.getElementById(id);
-let current = null;
-// Un contenu collé se vérifie tout de suite, une fois affiché (sinon l'affichage efface le message
-// « Recherche… » qui vient d'apparaître).
-let checkWhenShown = null;
 
 function el(tag, props = {}, ...children) {
   const node = document.createElement(tag);
@@ -103,41 +96,183 @@ function setSteps(stage, failed = false) {
   $('steps').replaceChildren(...items);
 }
 
-function showPending(pending) {
-  current = pending;
-  $('result').replaceChildren();
-  setStatus('');
-  $('empty').hidden = Boolean(pending);
-  $('preview').hidden = !pending;
-  setSteps(pending ? 1 : 0);
-  if (!pending) return;
-  const kind = KINDS[pending.kind];
-  $('preview-kind').replaceChildren(icon(kind.icon), kind.label);
-  $('preview-text').textContent = pending.kind === 'text' ? pending.text : pending.url;
-  $('preview-text').hidden = pending.kind === 'image';
-  $('preview-text').classList.toggle('passage', pending.kind === 'text');
-  $('preview-image').hidden = pending.kind !== 'image';
-  if (pending.kind === 'image') $('preview-image').src = pending.url;
-  $('check').replaceChildren(
-    icon(pending.kind === 'image' ? 'image' : 'magnifying-glass'),
-    pending.kind === 'image' ? 'Chercher sa première publication' : 'Vérifier ce contenu',
-  );
-  if (checkWhenShown !== null && pending.at === checkWhenShown) {
-    checkWhenShown = null;
-    check(pending);
+// Ce que le panneau a à vérifier : le type choisi, l'image (fichier en mémoire, ou adresse venue du
+// clic droit) et la page d'où vient le contenu.
+let mode = 'text';
+let imageFile = null;
+let imageUrl = '';
+let pageUrl = '';
+
+function setMode(next) {
+  mode = next;
+  for (const tab of document.querySelectorAll('.tab')) {
+    tab.setAttribute('aria-selected', String(tab.dataset.mode === next));
   }
+  $('panel-text').hidden = next !== 'text';
+  $('panel-link').hidden = next !== 'link';
+  $('panel-image').hidden = next !== 'image';
+  $('privacy').hidden = next === 'image';
+  updateAction();
 }
 
-function renderImage(url) {
+function updateAction() {
+  const examine = mode === 'image' && imageFile;
+  $('check').replaceChildren(
+    icon(mode === 'image' ? 'image' : 'magnifying-glass'),
+    mode === 'image' ? (examine ? 'Examiner cette image' : 'Chercher sa première publication') : 'Vérifier ce contenu',
+  );
+  $('check').disabled = mode === 'image' && !imageFile && !imageUrl;
+}
+
+function setImage(file, url = '') {
+  imageFile = file;
+  imageUrl = url;
+  const shown = file ? URL.createObjectURL(file) : url;
+  $('image-preview').hidden = !shown;
+  if (shown) $('image-preview').src = shown;
+  $('drop-hint').hidden = Boolean(shown);
+  $('image-url').hidden = !url;
+  $('image-url').textContent = url ? `Image de la page : ${new URL(url).hostname}` : '';
+  updateAction();
+}
+
+function clearAll() {
+  $('paste').value = '';
+  $('link-input').value = '';
+  setImage(null);
+  pageUrl = '';
+  $('result').replaceChildren();
+  setStatus('');
+  setSteps(0);
+  chrome.storage.session.remove('pending');
+}
+
+/** Un contenu venu du clic droit : il remplit le bon onglet, l'envoi attend le clic. */
+function showPending(pending) {
+  $('result').replaceChildren();
+  setStatus('');
+  if (!pending) return;
+  pageUrl = pending.pageUrl ?? '';
+  if (pending.kind === 'text') {
+    $('paste').value = pending.text;
+    setMode('text');
+  } else if (pending.kind === 'link') {
+    $('link-input').value = pending.url;
+    setMode('link');
+  } else {
+    setImage(null, pending.url);
+    setMode('image');
+  }
+  setSteps(1);
+}
+
+/** Les liens de recherche inversée, pour une image qui a une adresse. */
+function reverseLinks(url) {
   const links = el('div', { class: 'reverse-links' });
   for (const [name, build] of REVERSE_SEARCH) links.append(externalLink(build(url), name, 'button'));
+  return links;
+}
+
+function renderImageLinks(url) {
+  const examine = el('button', { class: 'button', type: 'button' }, icon('sparkle'), 'Examiner ses informations cachées');
+  examine.addEventListener('click', () => examineFromUrl(url));
   $('result').replaceChildren(
     el('h2', { class: 'section-title' }, icon('image'), 'Déjà vue ailleurs ?'),
     el('p', { class: 'muted' }, 'Une photo vraie peut dater d’il y a dix ans. Cherchez sa première publication :'),
-    links,
+    reverseLinks(url),
+    el('h2', { class: 'section-title' }, icon('sparkle'), 'Ce que le fichier déclare'),
+    el('p', { class: 'muted' }, 'Outil de génération, appareil, date : lus sur le fichier, qui part vers la plateforme. Votre navigateur vous demandera d’autoriser l’accès à ce site.'),
+    examine,
     el('p', { class: 'notice' }, icon('info'), 'Aucun outil ne dit avec certitude si une image est générée par IA.'),
   );
   setSteps(3);
+}
+
+const IMAGE_LEVELS = {
+  detected: { icon: 'sparkle', label: 'Marqueur d’image générée trouvé' },
+  inconclusive: { icon: 'magnifying-glass', label: 'Rien à en conclure' },
+  none: { icon: 'image', label: 'Aucun marqueur trouvé' },
+};
+
+function renderImageReport(report, url) {
+  const level = IMAGE_LEVELS[report.level] ?? IMAGE_LEVELS.none;
+  const list = el('ul');
+  for (const finding of report.findings) list.append(el('li', {}, finding));
+  const blocks = [
+    el(
+      'div',
+      { class: `image-result level-${report.level}` },
+      el('p', { class: 'eyebrow' }, 'Ce que le fichier déclare'),
+      el('p', { class: 'published-word' }, icon(level.icon), level.label),
+      report.findings.length ? list : null,
+      el('p', { class: 'muted' }, 'Aucun marqueur ne veut pas dire « authentique » : une capture ou un réseau social les efface.'),
+    ),
+  ];
+  if (url) {
+    blocks.push(el('h2', { class: 'section-title' }, icon('image'), 'Déjà vue ailleurs ?'), reverseLinks(url));
+  }
+  $('result').replaceChildren(...blocks);
+  setSteps(3);
+}
+
+async function examineFile(file, url = '') {
+  if (!IMAGE_TYPES.includes(file.type)) {
+    setStatus('Formats acceptés : JPEG, PNG ou WebP.', 'error');
+    return;
+  }
+  if (file.size > MAX_IMAGE_BYTES) {
+    setStatus('Cette image dépasse 4 Mo.', 'error');
+    return;
+  }
+  const base = await baseUrl();
+  setBusy(true);
+  setSteps(1);
+  setStatus('Lecture des informations du fichier…');
+  try {
+    const form = new FormData();
+    form.set('file', file);
+    const response = await fetch(`${base}/api/check/image`, { method: 'POST', body: form, signal: AbortSignal.timeout(CHECK_TIMEOUT_MS) });
+    const data = await response.json().catch(() => null);
+    if (!response.ok || !data) {
+      setSteps(1, true);
+      setStatus(data?.error || `La plateforme a répondu une erreur (${response.status}). Réessayez dans un instant.`, 'error');
+      return;
+    }
+    setStatus('');
+    renderImageReport(data, url);
+  } catch (error) {
+    setSteps(1, true);
+    setStatus(
+      error?.name === 'TimeoutError'
+        ? 'La plateforme met trop de temps à répondre. Réessayez dans un instant.'
+        : `Plateforme injoignable à ${base}. Vérifiez votre connexion, ou changez son adresse dans Réglages.`,
+      'error',
+    );
+  } finally {
+    setBusy(false);
+  }
+}
+
+/** Une image de page : le fichier doit être lu, ce qui demande l'accord de la personne pour ce site. */
+async function examineFromUrl(url) {
+  try {
+    const origin = new URL(url).origin;
+    const granted = await chrome.permissions.request({ origins: [`${origin}/*`] });
+    if (!granted) {
+      setStatus('Accès refusé : l’image n’a pas été lue.', 'error');
+      return;
+    }
+    const response = await fetch(url);
+    if (!response.ok) throw new Error(String(response.status));
+    const blob = await response.blob();
+    await examineFile(new File([blob], 'image', { type: blob.type }), url);
+  } catch {
+    setStatus('Impossible de lire cette image depuis la page. Enregistrez-la, puis choisissez le fichier.', 'error');
+  }
+}
+
+function setBusy(busy) {
+  $('check').disabled = busy;
 }
 
 function renderResult(data, base, pending) {
@@ -223,15 +358,30 @@ function renderResult(data, base, pending) {
   setSteps(3);
 }
 
-async function check(pending) {
-  if (pending.kind === 'image') {
-    renderImage(pending.url);
+async function check() {
+  if (mode === 'image') {
+    if (imageFile) await examineFile(imageFile);
+    else if (imageUrl) renderImageLinks(imageUrl);
     return;
   }
+  let pending;
+  if (mode === 'text') {
+    const text = $('paste').value.trim();
+    if (text.length < 10) {
+      setStatus('Un texte de 10 caractères au moins.', 'error');
+      return;
+    }
+    pending = { kind: 'text', text: text.slice(0, 3000), pageUrl };
+  } else {
+    const url = $('link-input').value.trim();
+    if (!/^https?:\/\/\S+$/.test(url)) {
+      setStatus('Collez une adresse qui commence par http:// ou https://.', 'error');
+      return;
+    }
+    pending = { kind: 'link', url, pageUrl };
+  }
   const base = await baseUrl();
-  const button = $('check');
-  button.disabled = true;
-  $('paste-check').disabled = true;
+  setBusy(true);
   setSteps(1);
   setStatus('Recherche dans les affaires jugées et chez les vérificateurs… La première demande peut prendre quelques secondes.');
   try {
@@ -245,10 +395,7 @@ async function check(pending) {
     const data = await response.json().catch(() => null);
     if (!response.ok || !data) {
       setSteps(1, true);
-      setStatus(
-        data?.error || `La plateforme a répondu une erreur (${response.status}). Réessayez dans un instant.`,
-        'error',
-      );
+      setStatus(data?.error || `La plateforme a répondu une erreur (${response.status}). Réessayez dans un instant.`, 'error');
       return;
     }
     setStatus('');
@@ -262,8 +409,7 @@ async function check(pending) {
       'error',
     );
   } finally {
-    button.disabled = false;
-    $('paste-check').disabled = false;
+    setBusy(false);
   }
 }
 
@@ -273,21 +419,48 @@ async function loadPending() {
 }
 
 chrome.storage.session.onChanged.addListener((changes) => {
-  if (changes.pending) showPending(changes.pending.newValue ?? null);
+  if (changes.pending?.newValue) showPending(changes.pending.newValue);
 });
 
-$('check').addEventListener('click', () => current && check(current));
-$('clear').addEventListener('click', () => chrome.storage.session.remove('pending'));
-$('paste-check').prepend(icon('magnifying-glass'));
-$('paste-check').addEventListener('click', () => {
-  const value = $('paste').value.trim();
-  if (!value) return;
-  const pending = /^https?:\/\/\S+$/.test(value)
-    ? { kind: 'link', url: value, pageUrl: '' }
-    : { kind: 'text', text: value.slice(0, 3000), pageUrl: '' };
-  const at = Date.now();
-  checkWhenShown = at;
-  chrome.storage.session.set({ pending: { ...pending, at } });
+for (const tab of document.querySelectorAll('.tab')) tab.addEventListener('click', () => setMode(tab.dataset.mode));
+$('check').addEventListener('click', check);
+$('clear').addEventListener('click', clearAll);
+
+// Une image : choisie, déposée sur le panneau ou collée. Les contrôles de type et de taille se font
+// avant tout envoi.
+function takeImage(file) {
+  setMode('image');
+  setImage(file);
+  $('result').replaceChildren();
+  setStatus('');
+}
+$('pick').addEventListener('click', () => $('file').click());
+$('file').addEventListener('change', () => {
+  const file = $('file').files?.[0];
+  if (file) takeImage(file);
+  $('file').value = '';
+});
+document.addEventListener('dragover', (event) => {
+  if ([...(event.dataTransfer?.types ?? [])].includes('Files')) {
+    event.preventDefault();
+    $('drop').classList.add('over');
+  }
+});
+document.addEventListener('dragleave', (event) => {
+  if (!event.relatedTarget) $('drop').classList.remove('over');
+});
+document.addEventListener('drop', (event) => {
+  const file = [...(event.dataTransfer?.files ?? [])].find((f) => f.type.startsWith('image/'));
+  $('drop').classList.remove('over');
+  if (!file) return;
+  event.preventDefault();
+  takeImage(file);
+});
+document.addEventListener('paste', (event) => {
+  const file = [...(event.clipboardData?.files ?? [])].find((f) => f.type.startsWith('image/'));
+  if (!file) return;
+  event.preventDefault();
+  takeImage(file);
 });
 
 $('settings-toggle').addEventListener('click', async () => {
@@ -323,4 +496,5 @@ $('settings-reset').addEventListener('click', async () => {
 });
 
 setSteps(0);
+setMode('text');
 loadPending();

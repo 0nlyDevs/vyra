@@ -253,6 +253,30 @@
           </ul>
         </div>
       </section>
+
+      <section class="case">
+        <header><span class="num">13</span><h3>Image sans lien</h3></header>
+        <p class="do">Onglet « Image », puis choisir, glisser ou coller (Ctrl+V) une photo ou une capture d’écran. Cliquer « Examiner cette image ». Essayer ensuite un fichier de plus de 4 Mo et un PDF.</p>
+        <div class="expect">
+          <b>Attendu</b>
+          <ul>
+            <li>Une miniature, puis un encadré teal : « Marqueur d’image générée trouvé », « Rien à en conclure » (fichier nettoyé par un réseau social) ou « Aucun marqueur trouvé ». Jamais « vraie » ni « fausse ».</li>
+            <li>Plus de 4 Mo ou un autre format : message d’erreur avant tout envoi, aucune requête.</li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="case">
+        <header><span class="num">14</span><h3>Image d’une page</h3></header>
+        <p class="do">Clic droit sur une image d’un site, « Examiner cette image ». Cliquer « Chercher sa première publication », puis « Examiner ses informations cachées ».</p>
+        <div class="expect">
+          <b>Attendu</b>
+          <ul>
+            <li>Quatre liens de recherche inversée s’ouvrent dans un nouvel onglet ; rien n’est envoyé à la plateforme avant le second bouton.</li>
+            <li>Le second bouton demande d’autoriser l’accès au site de l’image, puis affiche le même encadré teal. Un refus ou un site qui bloque la lecture donne un message clair.</li>
+          </ul>
+        </div>
+      </section>
     </main>
   </body>
 </html>

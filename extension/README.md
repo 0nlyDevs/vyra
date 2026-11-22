@@ -7,7 +7,12 @@ panneau latéral et interroge la plateforme en ligne (`https://vyra-mg.vercel.ap
   relevés dans les mots (sans IA) et vérifications déjà publiées.
 - **Clic droit sur un lien** : la plateforme lit la page, puis même analyse.
 - **Clic droit sur une image** : liens de recherche inversée (Google Lens, TinEye, Yandex, Bing)
-  pour retrouver sa première publication. L'image n'est envoyée nulle part.
+  pour retrouver sa première publication. Rien n'est envoyé ; « Examiner ses informations cachées »
+  lit le fichier après votre accord pour ce site.
+- **Une image sans lien** (photo WhatsApp, capture) : onglet **Image**, choisie, glissée sur le
+  panneau ou collée (Ctrl+V). JPEG, PNG ou WebP, 4 Mo au plus, contrôlés avant l'envoi. La
+  plateforme lit ce que le fichier déclare (outil de génération, Content Credentials, appareil,
+  date) sans rien garder. Jamais « authentique » ni « fausse » : aucun marqueur ne prouve rien.
 - **Ouvrir une enquête** : un lien ouvre le module Enquêtes avec le texte et le lien pré-remplis.
 
 Jamais de verdict nouveau : seules les conclusions du tribunal sont affichées.
@@ -41,7 +46,7 @@ icônes Phosphor (licence MIT) sont dans `sidepanel.html`.
 
 ## Tester
 
-`scenarios.html` (à glisser dans Chrome) : douze scénarios réels, texte, lien, image, panneau et
+`scenarios.html` (à glisser dans Chrome) : quatorze scénarios réels, texte, lien, image, panneau et
 plateforme arrêtée, chacun avec le résultat attendu. Pour l'ouvrir depuis le disque, activer
 « Autoriser l'accès aux URL de fichier » dans les détails de l'extension.
 
@@ -50,7 +55,8 @@ plateforme arrêtée, chacun avec le résultat attendu. Pour l'ouvrir depuis le 
 - Aucun script injecté dans les pages, aucun accès à toutes les pages, ni à l'historique ni aux
   cookies. Permissions : menu du clic droit, panneau latéral, stockage.
 - Rien ne part avant le clic sur « Vérifier ce contenu ». Un texte sélectionné est envoyé comme
-  texte seul.
+  texte seul. Une image n'est envoyée que par un clic sur « Examiner cette image », et n'est pas
+  conservée.
 - Le contenu en attente reste en mémoire de session. Seule l'adresse de la plateforme est gardée.
 - Une adresse autre que `vyra-mg.vercel.app` et `localhost` se règle dans **Réglages** et demande
   votre accord.
