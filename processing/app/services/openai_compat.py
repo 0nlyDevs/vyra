@@ -21,11 +21,6 @@ from app.services.llm_common import AiUnavailableError, extract_json
 
 logger = logging.getLogger(__name__)
 
-URLS = {
-    "groq": "https://api.groq.com/openai/v1/chat/completions",
-    "deepseek": "https://api.deepseek.com/chat/completions",
-}
-
 
 def _model(settings: Settings, provider: str) -> str:
     return settings.groq_model if provider == "groq" else settings.deepseek_model
@@ -61,7 +56,7 @@ def generate_json(
         with httpx.Client(transport=transport) as client:
             response = call_with_connect_retry(
                 lambda: client.post(
-                    URLS[provider],
+                    f"{settings.base_url_for(provider)}/chat/completions",
                     json=body,
                     headers={"authorization": f"Bearer {key}"},
                     timeout=deadline - time.monotonic(),

@@ -223,3 +223,25 @@ def test_health_names_the_configured_providers() -> None:
     settings = make_settings(groq_api_keys="g1", gemini_api_keys="m1,m2")
     client = TestClient(create_app(settings))
     assert client.get("/health").json()["ai"] == "groq+gemini"
+
+
+def test_api_addresses_come_from_the_settings() -> None:
+    hosts: list[str] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        hosts.append(f"{request.url.host}{request.url.path}")
+        return httpx.Response(200, json=OK_CHAT if "chat" in request.url.path else OK_GEMINI)
+
+    transport = httpx.MockTransport(handler)
+    settings = make_settings(
+        groq_api_keys="g",
+        gemini_api_keys="m",
+        groq_base_url="https://groq.example.test/v9/",  # le « / » final est retiré
+        gemini_base_url="https://gem.example.test/models",
+        gemini_fallback_models=[],
+    )
+    openai_compat.generate_json(settings, "groq", "c", {}, transport=transport)
+    gemini.generate_json(settings, "c", {}, transport=transport)
+    assert hosts[0] == "groq.example.test/v9/chat/completions"
+    assert hosts[1].startswith("gem.example.test/models/")
+    assert make_settings().base_url_for("deepseek") == "https://api.deepseek.com"
