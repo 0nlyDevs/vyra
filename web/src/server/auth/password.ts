@@ -43,6 +43,6 @@ export async function verifyPassword(password: string, stored: string) {
 // Empreinte factice : vérifier un mot de passe prend le même temps, que le compte existe ou non.
 let dummyHash: Promise<string> | null = null;
 export function dummyPasswordHash() {
-  dummyHash ??= hashPassword('mindstack-dummy-password');
+  dummyHash ??= hashPassword('vyra-dummy-password');
   return dummyHash;
 }

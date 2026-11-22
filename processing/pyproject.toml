@@ -1,9 +1,9 @@
 # Configuration des outils Python de processing/ (dépendances : requirements.txt).
 
 [project]
-name = "mindstack-processing"
+name = "vyra-processing"
 version = "0.1.0"
-description = "IA et traitements de l'équipe MindStack — hackathon DevFest Antananarivo 2026"
+description = "IA et traitements de Vyra — hackathon DevFest Antananarivo 2026"
 requires-python = ">=3.12,<3.13"
 
 [tool.ruff]

@@ -772,13 +772,13 @@ export const DEMO_IMPERSONATION_MESSAGE =
 
 // Mot de passe des comptes de démo : une valeur de test, pour ce poste seulement. Sur scène, on
 // entre avec les boutons « Comptes de démo » de la page de connexion.
-export const DEMO_PASSWORD = 'mindstack-demo';
+export const DEMO_PASSWORD = 'vyra-demo';
 
 async function demoAccounts(): Promise<(typeof accounts.$inferInsert)[]> {
   const passwordHash = await hashPassword(DEMO_PASSWORD);
   return DEMO_PROFILES.map((profile) => ({
     profileId: profile.id,
-    email: `${profile.id}@mindstack.demo`,
+    email: `${profile.id}@vyra.demo`,
     passwordHash,
     emailVerifiedAt: new Date(),
   }));
