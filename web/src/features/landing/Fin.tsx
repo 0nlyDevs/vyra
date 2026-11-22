@@ -74,8 +74,10 @@ export function Fin({ signedIn }: { signedIn: boolean }) {
         </div>
       </div>
       <div className="fin-wordmark" aria-hidden>
-        <svg viewBox="0 0 1000 300" role="presentation" focusable="false">
-          <text x="500" y="270" textAnchor="middle">
+        {/* Le nom tient toute la largeur : textLength cale les quatre lettres d'un bord à l'autre,
+            en n'ajustant que l'espace entre elles. */}
+        <svg viewBox="0 0 1000 330" role="presentation" focusable="false">
+          <text x="4" y="318" textLength="992" lengthAdjust="spacing">
             VYRA
           </text>
         </svg>

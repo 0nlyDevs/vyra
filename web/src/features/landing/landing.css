@@ -757,8 +757,8 @@ html.lenis body {
 .landing .fin-wordmark text {
   font-family: var(--font-sans);
   font-weight: 800;
-  font-size: 290px;
-  letter-spacing: -0.06em;
+  font-size: 410px;
+  letter-spacing: 0;
   fill: #fff;
   filter: drop-shadow(0 0 6px rgb(255 255 255 / 0.35)) drop-shadow(0 0 24px rgb(255 120 100 / 0.3));
 }
