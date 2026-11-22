@@ -62,7 +62,7 @@ export function WebSearchPanel({
     return (
       <section
         aria-live="polite"
-        className="grid gap-4 rounded-xl border border-primary/30 bg-primary/5 p-5"
+        className="grid gap-4 rounded-xl border border-foreground bg-raised p-5"
       >
         <p className="flex items-center gap-2 font-medium">
           <LoaderCircle className="size-5 animate-spin text-primary" aria-hidden />

@@ -46,7 +46,7 @@ function AudioResult({ scan }: { scan: ScanView }) {
       {judged && (
         <div
           className={cn(
-            'grid gap-2 rounded-xl border border-primary/30 bg-accent/50 p-4 [animation-delay:160ms]',
+            'grid gap-2 rounded-xl border border-foreground bg-raised p-4 [animation-delay:160ms]',
             ENTER,
           )}
         >

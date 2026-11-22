@@ -1,6 +1,8 @@
 import type { ReactNode } from 'react';
+import { cn } from '@/lib/utils';
 
 // États communs d'une page ou d'une liste : vide, chargement, erreur. Jamais de détail technique.
+// Une page vide invite à agir ; une erreur dit ce qui s'est passé et quoi faire.
 
 type StateProps = { title: string; description?: ReactNode; action?: ReactNode };
 
@@ -8,10 +10,24 @@ function StateBox({ title, description, action, role }: StateProps & { role?: 'a
   return (
     <div
       role={role}
-      className="flex flex-col items-center gap-2 rounded-lg border border-dashed px-6 py-10 text-center"
+      className={cn(
+        'flex flex-col items-center gap-2 rounded-[20px] border border-dashed px-6 py-10 text-center',
+        role === 'alert'
+          ? 'border-danger/50 bg-danger-soft text-danger'
+          : 'border-input bg-card text-foreground',
+      )}
     >
-      <p className="font-medium">{title}</p>
-      {description && <p className="max-w-prose text-muted-foreground text-sm">{description}</p>}
+      <p className="font-bold">{title}</p>
+      {description && (
+        <p
+          className={cn(
+            'max-w-prose text-sm',
+            role === 'alert' ? 'text-danger' : 'text-muted-foreground',
+          )}
+        >
+          {description}
+        </p>
+      )}
       {action && <div className="mt-2">{action}</div>}
     </div>
   );

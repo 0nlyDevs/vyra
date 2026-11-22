@@ -29,6 +29,8 @@ export default async function HomePage() {
         <Comparison />
       </main>
       <Fin signedIn={signedIn} />
+      {/* Le grain de « Nuit rouge » ne couvre que l'accueil. */}
+      <div className="grain" aria-hidden />
     </div>
   );
 }

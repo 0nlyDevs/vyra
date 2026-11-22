@@ -2,7 +2,6 @@
 
 import { Leaf } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
 // Confort de lecture, gardé sur cet appareil : taille du texte (A− / A+) et mode éco (moins
@@ -16,6 +15,12 @@ const ECO_KEY = 'reading-eco';
 
 export const READING_PREFERENCES_SCRIPT = `try{var d=document.documentElement,t=localStorage.getItem('${TEXT_KEY}');if(t)d.dataset.text=t;if(localStorage.getItem('${ECO_KEY}')==='on')d.dataset.eco='on'}catch(e){}`;
 
+export const READING_LABELS = {
+  smaller: 'Réduire la taille du texte',
+  larger: 'Agrandir la taille du texte',
+  eco: 'Mode éco : moins d’animations et d’effets',
+} as const;
+
 function save(key: string, value: string | null) {
   try {
     if (value === null) localStorage.removeItem(key);
@@ -25,7 +30,8 @@ function save(key: string, value: string | null) {
   }
 }
 
-export function ReadingControls({ className }: { className?: string }) {
+/** La taille du texte et le mode éco de cet appareil, et de quoi les changer. */
+export function useReadingPreferences() {
   const [size, setSize] = useState<TextSize>('normal');
   const [eco, setEco] = useState(false);
 
@@ -52,42 +58,49 @@ export function ReadingControls({ className }: { className?: string }) {
     save(ECO_KEY, next ? 'on' : null);
   }
 
+  return {
+    eco,
+    canShrink: size !== TEXT_SIZES[0],
+    canGrow: size !== TEXT_SIZES[TEXT_SIZES.length - 1],
+    changeSize,
+    toggleEco,
+  };
+}
+
+/** A− A+ et le mode éco, en un groupe de boutons ronds (barre publique, pages de compte). */
+export function ReadingControls({ className }: { className?: string }) {
+  const { eco, canShrink, canGrow, changeSize, toggleEco } = useReadingPreferences();
+
   return (
-    <div className={cn('flex items-center gap-0.5', className)}>
-      <Button
+    <div className={cn('site-round-group', className)}>
+      <button
         type="button"
-        variant="ghost"
-        size="icon"
-        aria-label="Réduire la taille du texte"
-        disabled={size === TEXT_SIZES[0]}
+        className="site-round"
+        aria-label={READING_LABELS.smaller}
+        disabled={!canShrink}
         onClick={() => changeSize(-1)}
-        className="font-semibold text-xs"
       >
         A−
-      </Button>
-      <Button
+      </button>
+      <button
         type="button"
-        variant="ghost"
-        size="icon"
-        aria-label="Agrandir la taille du texte"
-        disabled={size === TEXT_SIZES[TEXT_SIZES.length - 1]}
+        className="site-round"
+        aria-label={READING_LABELS.larger}
+        disabled={!canGrow}
         onClick={() => changeSize(1)}
-        className="font-semibold"
       >
         A+
-      </Button>
-      <Button
+      </button>
+      <button
         type="button"
-        variant="ghost"
-        size="icon"
-        aria-label="Mode éco : moins d’animations et d’effets"
+        className="site-round"
+        aria-label={READING_LABELS.eco}
         aria-pressed={eco}
-        title="Mode éco : moins d’animations et d’effets"
+        title={READING_LABELS.eco}
         onClick={toggleEco}
-        className={cn(eco && 'bg-success-soft text-success')}
       >
-        <Leaf aria-hidden />
-      </Button>
+        <Leaf aria-hidden className="size-4" />
+      </button>
     </div>
   );
 }

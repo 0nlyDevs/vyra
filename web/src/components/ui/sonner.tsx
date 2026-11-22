@@ -10,6 +10,7 @@ import {
 import { useTheme } from 'next-themes';
 import { Toaster as Sonner, type ToasterProps } from 'sonner';
 
+// Le toast « encre et papier » : une pilule d'encre (papier en sombre), avec son propre texte.
 const Toaster = ({ ...props }: ToasterProps) => {
   const { theme = 'system' } = useTheme();
 
@@ -26,15 +27,24 @@ const Toaster = ({ ...props }: ToasterProps) => {
       }}
       style={
         {
-          '--normal-bg': 'var(--popover)',
-          '--normal-text': 'var(--popover-foreground)',
-          '--normal-border': 'var(--border)',
-          '--border-radius': 'var(--radius)',
+          '--normal-bg': 'var(--toast)',
+          '--normal-text': 'var(--toast-foreground)',
+          '--normal-border': 'var(--toast)',
+          '--success-bg': 'var(--toast)',
+          '--success-text': 'var(--toast-foreground)',
+          '--success-border': 'var(--toast)',
+          '--error-bg': 'var(--toast)',
+          '--error-text': 'var(--toast-foreground)',
+          '--error-border': 'var(--toast)',
+          '--border-radius': '18px',
         } as React.CSSProperties
       }
       toastOptions={{
         classNames: {
           toast: 'cn-toast',
+          description: '!text-current',
+          actionButton:
+            '!h-[34px] !rounded-full !border !border-current !bg-transparent !px-3.5 !font-medium !text-current hover:!bg-transparent',
         },
       }}
       {...props}

@@ -66,7 +66,7 @@ export default async function TipFollowPage({
                 key={state}
                 className={cn(
                   'flex items-center gap-2 rounded-lg border p-3 text-sm',
-                  index <= reached ? 'border-primary/40 bg-accent' : 'text-muted-foreground',
+                  index <= reached ? 'border-foreground bg-raised' : 'text-muted-foreground',
                 )}
                 aria-current={index === reached ? 'step' : undefined}
               >
