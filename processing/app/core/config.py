@@ -52,11 +52,13 @@ class Settings(BaseSettings):
     # Clés des fournisseurs, une ou plusieurs séparées par des virgules : `GROQ_API_KEYS=cle1,cle2`.
     # Quand une clé atteint son quota (erreur 429), la suivante prend le relais toute seule ; la clé
     # épuisée est mise de côté le temps de se rétablir (`key_cooldown_seconds`).
+    # Limites par projet (Gemini), par organisation (Groq) ou par compte (DeepSeek), pas par clé :
+    # plusieurs clés d'un même projet ne donnent pas plus de quota.
     groq_api_keys: CsvSecrets = []
     gemini_api_keys: CsvSecrets = []
     deepseek_api_keys: CsvSecrets = []
-    groq_model: str = "llama-3.3-70b-versatile"
-    deepseek_model: str = "deepseek-chat"
+    groq_model: str = "openai/gpt-oss-120b"
+    deepseek_model: str = "deepseek-flash"
     # Mise de côté d'une clé : limite de débit (429 sans autre précision), puis quota du jour,
     # solde épuisé ou clé refusée (rétablissement long).
     key_cooldown_seconds: float = 60.0

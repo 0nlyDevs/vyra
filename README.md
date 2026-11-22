@@ -154,6 +154,12 @@ la demande en cours. La clé épuisée est mise de côté 60 secondes (limite de
 fournisseur sont épuisées, on passe au fournisseur suivant. Les clés n'apparaissent jamais dans
 les journaux. (`GEMINI_API_KEY`, une seule clé, marche toujours.)
 
+**Attention aux quotas** : ils sont comptés par projet (Gemini), par organisation (Groq) ou par
+compte (DeepSeek), pas par clé. Plusieurs clés d'un même projet ne donnent pas plus de quota : il
+faut des clés de projets ou de comptes différents. DeepSeek n'a pas de palier gratuit (il faut un
+solde). Modèles par défaut : `openai/gpt-oss-120b` (Groq, `GROQ_MODEL`) et `deepseek-flash`
+(DeepSeek, `DEEPSEEK_MODEL`).
+
 Groq et DeepSeek ne lisent pas les images ni le son : ces demandes (scan) vont à Gemini. Les
 vecteurs de la recherche par le sens viennent aussi de Gemini, avec rotation de ses clés.
 
