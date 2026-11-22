@@ -220,3 +220,20 @@ export async function embedTexts(texts: string[]): Promise<ActionResult<number[]
     ? ok(data.vectors)
     : fail(ERRORS.AI_UNAVAILABLE);
 }
+
+// Ce que l'IA sait faire en ce moment, lu sur /health : `audio` dit si une IA peut lire un son
+// (dictée). Panne ou réponse inattendue : `false`, la dictée est alors proposée comme indisponible.
+const healthSchema = z.object({ audio: z.boolean().default(false) });
+
+export async function aiCanReadAudio(): Promise<boolean> {
+  try {
+    const response = await fetch(`${env.PROCESSING_URL}/health`, {
+      signal: AbortSignal.timeout(3_000),
+      cache: 'no-store',
+    });
+    const parsed = healthSchema.safeParse(await response.json());
+    return parsed.success ? parsed.data.audio : false;
+  } catch {
+    return false;
+  }
+}
