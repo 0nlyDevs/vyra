@@ -199,28 +199,6 @@ html.lenis body {
   font-variant-numeric: tabular-nums;
 }
 
-.landing .parcours-bar {
-  display: none;
-}
-
-.landing .parcours.is-pinned .parcours-bar {
-  display: block;
-  position: absolute;
-  left: var(--gutter);
-  width: calc(100vw - 2 * var(--gutter) - var(--rail-w));
-  bottom: 28px;
-  height: 1px;
-  background: var(--line);
-}
-
-.landing .parcours-bar i {
-  position: absolute;
-  inset: 0;
-  background: var(--foreground);
-  transform-origin: left;
-  transform: scaleX(0);
-}
-
 /* Première case : la promesse, et la carte que la torche du hero vient poser. */
 
 .landing .slide.is-head {
@@ -405,18 +383,6 @@ html.lenis body {
   font-weight: 400;
   letter-spacing: 0.08em;
   color: var(--muted-foreground);
-}
-
-/* ---------- Sources : un bandeau de mots, sans cadre ---------- */
-
-.landing .sources {
-  padding-block: clamp(40px, 7vh, 80px);
-  border-block: 1px solid var(--line);
-}
-
-.landing .sources-label {
-  padding-inline: var(--gutter) calc(var(--gutter) + var(--rail-w));
-  margin-bottom: 28px;
 }
 
 /* ---------- Scène des conclusions (épinglée, le fond change de teinte) ---------- */
