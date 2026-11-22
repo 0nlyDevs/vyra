@@ -49,6 +49,27 @@ export const profiles = pgTable('profiles', {
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 });
 
+// Table héritée de l'ancien exemple du gabarit : plus aucun code ne s'en sert. Elle reste déclarée
+// tant que la production n'a pas appliqué la migration qui la retire, pour que le schéma et les
+// migrations (web/drizzle) restent identiques.
+export const notes = pgTable(
+  'notes',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    profileId: varchar('profile_id', { length: 40 })
+      .notNull()
+      .references(() => profiles.id, { onDelete: 'cascade' }),
+    content: text('content').notNull(),
+    // Vide quand l'IA était indisponible : la note reste trouvable par mots.
+    embedding: vector('embedding', { dimensions: EMBEDDING_DIMENSIONS }),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index('notes_profile_idx').on(table.profileId),
+    index('notes_embedding_idx').using('hnsw', table.embedding.op('vector_cosine_ops')),
+  ],
+);
+
 // ─── Comptes et sessions ─────────────────────────────────────────────────────────────────────
 // Un compte donne un moyen de se connecter à un profil : e-mail et mot de passe, ou Google.
 // Les autres modules ne lisent que `profiles`, avec getCurrentProfile() (src/server/session.ts).
@@ -518,6 +539,7 @@ export type InstitutionNotice = typeof institutionNotices.$inferSelect;
 export type Profile = typeof profiles.$inferSelect;
 export type FeedPost = typeof feedPosts.$inferSelect;
 export type Account = typeof accounts.$inferSelect;
+export type Note = typeof notes.$inferSelect;
 export type Case = typeof cases.$inferSelect;
 export type CaseVersion = typeof caseVersions.$inferSelect;
 export type VersionLink = typeof versionLinks.$inferSelect;
