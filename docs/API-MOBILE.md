@@ -21,7 +21,7 @@ ces routes appellent les mêmes fonctions.
 | `GET /cases` | les affaires, de la plus récente à la plus ancienne ; chacune porte `imageUrl` (chemin du site, ex. `/demo/inondation-2019.png`, ou adresse complète) ou `null` |
 | `GET /cases/:id` | le dossier : `versions` (chacune avec son `imagePath` éventuel), `links`, `evidence` |
 | `POST /cases/:id/what-if` | What If ? : `{ kind, versions[], takeaway, source }` |
-| `POST /assistant` | `{ question, pathname?, history? }` renvoie `{ answer, citations[], source }` |
+| `POST /assistant` | `{ question, pathname?, history? }` renvoie `{ answer, citations[], proposals[], source }` ; `proposals` : au plus trois actions `{ type, label, href }` que la personne confirme d'un clic (l'assistant n'exécute rien), `href` étant un chemin du site |
 | `POST /check` | vérification rapide d'un texte ou d'un lien (`{ text }` ou `{ url }`), sans compte |
 | `GET /cases/:id/seal` | le sceau de la conclusion : `{ code, url }` (le QR mène à `url`), ou `null` |
 | `GET /seal/check?code=VY-…` ou `?c=&s=` | vérifier un sceau, sans compte : `{ status: genuine\|mismatch\|unknown, content?, code? }` |

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { embedMissingCases } from '@/features/court/embeddings';
 import { readDanger, readTone } from '@/features/signals/wording';
 import {
   CERTAINTY_LABELS,
@@ -56,6 +57,7 @@ export async function POST(request: Request) {
     );
   }
 
+  await embedMissingCases();
   const [vectors, checks] = await Promise.all([
     embedTexts([text]),
     findFactChecks(text.slice(0, 500)),

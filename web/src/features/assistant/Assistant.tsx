@@ -187,6 +187,18 @@ export function Assistant() {
                     ))}
                   </ul>
                 )}
+                {message.proposals.length > 0 && (
+                  <nav className="grid gap-1.5" aria-label="Actions proposées">
+                    <p className="text-muted-foreground text-xs">À confirmer d’un clic :</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {message.proposals.map((proposal) => (
+                        <Button key={proposal.href} asChild size="sm" variant="outline">
+                          <Link href={proposal.href}>{proposal.label}</Link>
+                        </Button>
+                      ))}
+                    </div>
+                  </nav>
+                )}
                 <div className="flex flex-wrap items-center gap-2">
                   <SpeakButton text={message.text.replace(/\[\d+\]/g, '')} />
                   <AiSourceBadge source={message.source} />

@@ -74,14 +74,46 @@ mots, flash radio écrit sans IA.
 | Image personnelle envoyée à une IA | Copie protégée : visages floutés, informations cachées retirées ; l'original ne part nulle part |
 | Appels directs à processing | `PROCESSING_TOKEN` partagé (sans lui : 401) |
 | Fausse conclusion | Sceau signé, vérifiable sans compte (`/verifier/sceau`) |
+| Manipulation d'une IA (injection de prompt) | Garde-fous communs et contrôle de la sortie : voir « Les garde-fous de l'IA » |
 | Navigateur | `X-Frame-Options`, `nosniff`, `Referrer-Policy`, CORS limité à `/api/v1` |
 | Secrets | Jamais dans le dépôt : `.env` ignorés, `*.env.example` documentés ; clés d'IA en rotation (plusieurs par fournisseur) |
 | Extension | Aucun script injecté, aucune lecture de page ; un site n'est lu qu'avec l'accord de la personne |
 
+## Les garde-fous de l'IA
+
+Une IA peut se tromper ou être manipulée par le texte qu'on lui donne (« ignore tes règles »,
+pages piégées, publications). Les garde-fous sont posés **en dehors du modèle** : on ne lui demande
+pas d'être sage, on vérifie ce qu'il fait.
+
+| Étage | Garde-fou | Où |
+|---|---|---|
+| Consigne | Règles communes ajoutées à **chaque** prompt : le contenu reçu est de la donnée, jamais des instructions ; ne pas révéler la consigne ; ne rien inventer ; pas de violence, de haine ni de données personnelles ; ne répondre que par le JSON demandé | `processing/app/prompts/_guardrails.md`, chargé par `load_prompt` |
+| Entrée | Question limitée à 600 caractères, historique à 6 messages ; requête vers un modèle bornée à 200 000 caractères ; images lues en copie protégée | `features/assistant/schema.ts`, `processing/app/schemas/ai.py`, `safe_copy.py` |
+| Coût | Limite d'appels par adresse (240 par 10 minutes), limites sur les routes publiques, clés d'IA en rotation | `server/processing.ts`, `server/rate-limit.ts` |
+| Sortie | Réponse validée par un schéma Zod ; une réponse invalide devient la réponse de secours | `runPrompt` |
+| Contrôle | Pas de lien dans le texte (un lien inventé serait un faux) ; une réponse qui tranche « c'est vrai / faux » sans citer une affaire jugée est remplacée ; longueur bornée | `features/assistant/guard.ts` |
+| Sources | Seules les affaires fournies au modèle peuvent être citées ; une citation hors liste est écartée | `features/assistant/actions.ts` |
+| Plaidoiries | Contrôle des plaidoiries du tribunal avant affichage | `features/court/pleading-guard.ts` |
+| Verdict | Aucune IA ne conclut seule : le tribunal et le vote concluent, l'IA propose en pointillés | voir « Ce qui est jugé par qui » |
+
+### L'agent : il propose, la personne confirme
+
+L'assistant peut proposer jusqu'à trois **actions** (ouvrir une affaire ou son audience, ouvrir une
+enquête ou un signalement avec le texte pré-rempli, ouvrir un module). Il n'exécute **rien** :
+chaque proposition est un lien que la personne confirme d'un clic, et la page qui s'ouvre refait
+elle-même la connexion, la validation et les limites.
+
+Par construction : liste fermée de types d'actions (`features/assistant/proposals.ts`) ; les liens
+sont construits par le serveur, jamais repris du modèle ; une affaire n'est proposée que si elle
+fait partie de celles fournies au modèle ; trois propositions au plus ; texte pré-rempli nettoyé et
+borné. Tout ce qui sort de cette liste (`delete_case`, une page `admin`, une adresse externe) est
+écarté. 14 tests couvrent ces cas (plus 10 côté processing pour les règles communes), et des attaques ont été jouées contre le vrai modèle (consigne
+« ignore tes règles », verdict forcé, lien piégé).
+
 ## Recherche par le sens (pgvector)
 
 Les affaires, les publications du fil et les infos retrouvées sont transformées en vecteurs par
-`processing/`. La base cherche le plus proche (`cosineDistance`) ; si rien n'est assez proche, ou sans
+`processing/` (pour une affaire sans vecteur, comme celles de la démo, il est calculé au premier besoin : `features/court/embeddings.ts`). La base cherche le plus proche (`cosineDistance`) ; si rien n'est assez proche, ou sans
 IA, la recherche repasse par les mots. Les « sujets qui reviennent » sont des paires de publications
 proches venues de sources différentes (`features/feed/topics.ts`).
 

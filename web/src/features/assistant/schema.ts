@@ -12,4 +12,6 @@ export const assistantQuestionSchema = z.object({
 export const assistantAnswerSchema = z.object({
   answer: z.string(),
   cited: z.array(z.number().int()).max(12).default([]),
+  // Propositions d'actions du modèle, non fiables : chacune est validée une à une (proposals.ts).
+  actions: z.array(z.unknown()).max(6).default([]),
 });
