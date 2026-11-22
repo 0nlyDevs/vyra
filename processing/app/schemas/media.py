@@ -65,3 +65,7 @@ class VideoReportResponse(_CamelModel):
     height: int | None
     frames: list[VideoFrame]
     audio: VideoAudio | None
+
+
+class FingerprintResponse(_CamelModel):
+    fingerprint: str = Field(pattern=r"^[01]{64}$")
