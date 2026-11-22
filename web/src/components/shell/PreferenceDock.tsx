@@ -15,12 +15,13 @@ export function PreferenceDock({ kitHref }: { kitHref?: string }) {
   const { eco, canShrink, canGrow, changeSize, toggleEco } = useReadingPreferences();
   return (
     <div className="dock" role="toolbar" aria-label="Préférences" aria-orientation="vertical">
-      <button type="button" className="dock-btn" onClick={flip}>
+      <button type="button" className="dock-btn" data-ripple onClick={flip}>
         <ThemeFace flag />
       </button>
       <button
         type="button"
         className="dock-btn"
+        data-ripple
         disabled={!canGrow}
         onClick={() => changeSize(1)}
         aria-label={READING_LABELS.larger}
@@ -38,6 +39,7 @@ export function PreferenceDock({ kitHref }: { kitHref?: string }) {
       <button
         type="button"
         className="dock-btn"
+        data-ripple
         disabled={!canShrink}
         onClick={() => changeSize(-1)}
         aria-label={READING_LABELS.smaller}
@@ -55,6 +57,7 @@ export function PreferenceDock({ kitHref }: { kitHref?: string }) {
       <button
         type="button"
         className="dock-btn"
+        data-ripple
         aria-pressed={eco}
         onClick={toggleEco}
         aria-label={READING_LABELS.eco}
