@@ -35,7 +35,7 @@ import { PostCard } from './PostCard';
 import type { RunInput } from './schema';
 
 type Ratings = Partial<Record<ClueKind, ClueRating>>;
-type PlayableScenario = Pick<
+export type PlayableScenario = Pick<
   Scenario,
   | 'id'
   | 'title'
@@ -256,7 +256,7 @@ function SeriesProgress({ labels, current }: { labels: string[]; current: number
 
 // Le conseil personnalisé du coach (IA, ou réponse préparée hors ligne). Il complète l'explication
 // écrite, qui reste affichée : si l'IA ne répond pas du tout, rien ne manque au jeu.
-function CoachAdvice({ debrief, pending }: { debrief: Debrief | null; pending: boolean }) {
+export function CoachAdvice({ debrief, pending }: { debrief: Debrief | null; pending: boolean }) {
   if (debrief) {
     return (
       <div className="grid gap-2" aria-live="polite">
@@ -279,7 +279,7 @@ function CoachAdvice({ debrief, pending }: { debrief: Debrief | null; pending: b
 }
 
 // Fin de série : le score, le grade, et les réflexes de la série.
-function RunSummary({
+export function RunSummary({
   result,
   scenarios,
   answers,
