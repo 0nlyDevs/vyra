@@ -1,5 +1,5 @@
 import 'server-only';
-import { asc, desc, eq, max } from 'drizzle-orm';
+import { asc, desc, eq, isNotNull, max } from 'drizzle-orm';
 import { db } from '@/server/db';
 import { cases, caseVersions, evidence, versionLinks } from '@/server/db/schema';
 
@@ -18,6 +18,21 @@ const caseColumns = {
 
 export function listCases() {
   return db.select(caseColumns).from(cases).orderBy(desc(cases.createdAt), asc(cases.title));
+}
+
+// La première image trouvée pour chaque affaire (celle de sa plus ancienne version illustrée), par
+// identifiant d'affaire. Un chemin de web/public ou une adresse complète.
+export async function listCaseImages() {
+  const rows = await db
+    .select({ caseId: caseVersions.caseId, imagePath: caseVersions.imagePath })
+    .from(caseVersions)
+    .where(isNotNull(caseVersions.imagePath))
+    .orderBy(asc(caseVersions.position));
+  const images = new Map<string, string>();
+  for (const row of rows) {
+    if (row.imagePath && !images.has(row.caseId)) images.set(row.caseId, row.imagePath);
+  }
+  return images;
 }
 
 // L'affaire avec ses versions (de la plus ancienne à la plus récente), ses liens et ses pièces.
