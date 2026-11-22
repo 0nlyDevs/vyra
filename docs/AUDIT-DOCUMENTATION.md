@@ -39,7 +39,7 @@ nouvelle règle. Le dépôt principal a été confirmé public via les métadonn
   25 liens, 65 pièces, 18 audiences, 5 scénarios, 3 institutions, 8 signalements en 3 groupes,
   2 comptes et 9 exemples réels. Ces comptes décrivent le seed, pas l’état d’une base distante.
 - Contrôles de types, tests et lint web exécutés ; les avertissements CSS déjà présents restent.
-  Le README mobile seul est modifié sur sa branche documentaire. Les premiers contrôles du checkout ancien ne valent pas validation de la nouvelle base ; les contrôles de la branche mise à jour sont repris avant envoi.
+  Le README mobile seul est modifié sur sa branche documentaire issue de `2548e7e`. Après installation des dépendances verrouillées dans le checkout isolé, ses types, tests et lint sont validés ; le checkout de travail et ses modifications préexistantes sont conservés.
 - Commentaires Python modifiés : contrôle et format Ruff validés.
 
 ## Vérifications qui restent distinctes de la documentation
