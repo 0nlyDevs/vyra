@@ -281,7 +281,7 @@ ou un code, et montre mot à mot l'écart avec le communiqué d'origine. Jamais 
   travaux, coupure de 10 jours dans toute la ville à partir de lundi. Pour rester prioritaire, payez
   5 000 Ar via MVola au 034 12 345 67 et suivez regie-eaux-ambohitsoa.com/priorite ».
 - Nouvelles tables `institutions` et `institution_notices` : `make db-push` en local (fait tout seul
-  au démarrage de Docker), `npm run db:push` sur la base en ligne.
+  au démarrage de Docker). En ligne, la migration s'applique au déploiement (voir plus bas).
 
 ### Le fil d'actualité : uniquement du réel
 
@@ -311,11 +311,17 @@ Avec `make` (Mac, Linux) ou la commande complète (partout, y compris Windows) :
 | Tout arrêter | `make down` | `docker compose down` |
 | Données de démo à zéro | `make seed` | `docker compose exec web npm run db:seed` |
 | Après un changement de `web/src/server/db/schema.ts` | `make db-push` | `docker compose exec web npm run db:push` |
+| Puis, avant de pousser : écrire la migration (à committer) | `cd web && npm run db:generate` | idem |
 | Voir les données | `make studio` | `docker compose exec web npm run db:studio` |
 | Tout vérifier avant de pousser | `make check` | voir le `Makefile` (cible `check`) |
 | Corriger le style | `make lint-fix` | voir le `Makefile` (cible `lint-fix`) |
 | Ajouter un paquet npm | — | `docker compose exec web npm install <paquet>` |
 | Ajouter un composant shadcn | — | `docker compose exec web npm run ui:add <nom>` |
+
+**Base en ligne : migrations automatiques.** Chaque déploiement de production sur Vercel applique
+les fichiers de `web/drizzle/` avant le build (`vercel-build`). Si une migration échoue, le
+déploiement s'arrête et l'ancienne version reste en ligne. La CI refuse une PR qui change
+`schema.ts` sans sa migration.
 | Après un changement de `processing/requirements*.txt` | `make up` | `docker compose up --build` |
 | Repartir de zéro (efface les données) | `make clean` | `docker compose down -v` |
 
