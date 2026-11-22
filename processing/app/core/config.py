@@ -57,6 +57,10 @@ class Settings(BaseSettings):
     groq_api_keys: CsvSecrets = []
     gemini_api_keys: CsvSecrets = []
     deepseek_api_keys: CsvSecrets = []
+    # Adresses des API (changer de région, passer par un proxy ou un serveur compatible).
+    gemini_base_url: str = "https://generativelanguage.googleapis.com/v1beta/models"
+    groq_base_url: str = "https://api.groq.com/openai/v1"
+    deepseek_base_url: str = "https://api.deepseek.com"
     groq_model: str = "openai/gpt-oss-120b"
     deepseek_model: str = "deepseek-flash"
     # Mise de côté d'une clé : limite de débit (429 sans autre précision), puis quota du jour,
@@ -111,6 +115,11 @@ class Settings(BaseSettings):
     def _csv(cls, value: object) -> object:
         return _split_csv(value)
 
+    @field_validator("gemini_base_url", "groq_base_url", "deepseek_base_url")
+    @classmethod
+    def _no_trailing_slash(cls, value: str) -> str:
+        return value.strip().rstrip("/")
+
     @field_validator("ai_providers")
     @classmethod
     def _known_providers(cls, value: list[str]) -> list[str]:
@@ -134,6 +143,14 @@ class Settings(BaseSettings):
     def _empty_as_missing(cls, value: object) -> object:
         # Une variable déclarée mais vide vaut « non configurée ».
         return None if value == "" else value
+
+    def base_url_for(self, provider: str) -> str:
+        """L'adresse de l'API d'un fournisseur (sans « / » final)."""
+        return {
+            "groq": self.groq_base_url,
+            "gemini": self.gemini_base_url,
+            "deepseek": self.deepseek_base_url,
+        }[provider]
 
     def keys_for(self, provider: str) -> list[str]:
         """Les clés d'un fournisseur, dans l'ordre, sans doublon (clé unique de Gemini à la fin)."""
