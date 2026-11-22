@@ -12,7 +12,13 @@ import {
 import { ERRORS } from '@/lib/errors';
 import { formatDate } from '@/lib/format';
 import { getCaseFile } from '@/server/dal/cases';
-import { concludeHearing, createHearing, findJudgedCase, getHearing } from '@/server/dal/court';
+import {
+  concludeHearing,
+  createHearing,
+  findJudgedCase,
+  getHearing,
+  getLatestHearing,
+} from '@/server/dal/court';
 import type { Hearing } from '@/server/db/schema';
 import { demoVariantForCase } from '@/server/demo/variants';
 import { embedTexts, runPrompt } from '@/server/processing';
@@ -84,6 +90,10 @@ export async function openHearing(caseId: string): Promise<ActionResult<HearingV
 
   const file = await getCaseFile(parsed.data.caseId);
   if (!file) return fail(ERRORS.NOT_FOUND);
+  // Une audience existe déjà (double clic, autre onglet, affaire jugée) : on la reprend. En créer
+  // une autre rouvrirait une affaire conclue et la retirerait de « déjà jugé ».
+  const existing = await getLatestHearing(file.id);
+  if (existing) return ok(toView(existing));
 
   const payload = { claim: file.claim, evidence: piecesForAi(file, false) };
   const options = { fallbackVariant: demoVariantForCase(file.id) };

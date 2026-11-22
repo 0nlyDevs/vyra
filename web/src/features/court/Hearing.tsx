@@ -58,7 +58,7 @@ export function Hearing({
         return;
       }
       setHearing(result.data);
-      setStep(1);
+      setStep(initialStep(result.data));
     });
   }
 

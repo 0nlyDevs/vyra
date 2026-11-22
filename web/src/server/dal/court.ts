@@ -29,6 +29,15 @@ export async function createHearing(input: {
   pleadingsSource: AiSource;
 }) {
   return db.transaction(async (tx) => {
+    // Verrou sur l'affaire : deux ouvertures simultanées donnent une seule audience.
+    await tx.select({ id: cases.id }).from(cases).where(eq(cases.id, input.caseId)).for('update');
+    const [existing] = await tx
+      .select()
+      .from(hearings)
+      .where(eq(hearings.caseId, input.caseId))
+      .orderBy(desc(hearings.createdAt))
+      .limit(1);
+    if (existing) return existing;
     const [hearing] = await tx.insert(hearings).values(input).returning();
     await tx.update(cases).set({ status: 'in_hearing' }).where(eq(cases.id, input.caseId));
     return hearing;
@@ -61,8 +70,13 @@ export async function concludeHearing(input: {
         verdictSource: input.verdictSource,
         concludedAt: new Date(),
       })
-      .where(eq(hearings.id, input.hearingId))
+      // Deux jurés au même moment : seul le premier vote conclut, le second reçoit ce verdict.
+      .where(and(eq(hearings.id, input.hearingId), ne(hearings.status, 'concluded')))
       .returning();
+    if (!hearing) {
+      const [current] = await tx.select().from(hearings).where(eq(hearings.id, input.hearingId));
+      return current;
+    }
     await tx
       .update(cases)
       .set({

@@ -1,6 +1,7 @@
 import 'server-only';
 import { asc, eq, inArray, isNotNull, max } from 'drizzle-orm';
 import type { AiSource, MediaKind, ScanOutcome } from '@/lib/domain';
+import { lockCase } from '@/server/dal/cases';
 import { db } from '@/server/db';
 import {
   type AlreadySeen,
@@ -76,12 +77,19 @@ export async function getScan(id: string) {
 }
 
 // Verse des indices au dossier d'une affaire : chaque indice devient une pièce numérotée.
+// null si l'affaire n'existe pas ; 0 si ce scan y est déjà versé (double clic, nouvel essai).
 export async function addScanEvidence(
   scanId: string,
   caseId: string,
   pieces: Omit<typeof evidence.$inferInsert, 'caseId' | 'number'>[],
 ) {
   return db.transaction(async (tx) => {
+    if (!(await lockCase(tx, caseId))) return null;
+    const [scan] = await tx
+      .select({ caseId: scans.caseId })
+      .from(scans)
+      .where(eq(scans.id, scanId));
+    if (scan?.caseId === caseId) return 0;
     const [last] = await tx
       .select({ number: max(evidence.number) })
       .from(evidence)
@@ -98,6 +106,13 @@ export async function addScanEvidence(
 // Ouvre une affaire à partir d'un vocal transcrit.
 export async function createCaseFromScan(scanId: string, input: { title: string; claim: string }) {
   return db.transaction(async (tx) => {
+    // Le scan a déjà ouvert une affaire (double clic, nouvel essai de l'appli) : on la reprend.
+    const [scan] = await tx
+      .select({ caseId: scans.caseId })
+      .from(scans)
+      .where(eq(scans.id, scanId))
+      .for('update');
+    if (scan?.caseId) return scan.caseId;
     const [created] = await tx
       .insert(cases)
       .values({ title: input.title, claim: input.claim, kind: 'real', status: 'open' })

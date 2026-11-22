@@ -8,12 +8,15 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "vercel-build": "if [ \"$VERCEL_ENV\" = production ]; then drizzle-kit migrate; fi && next build",
     "start": "next start",
     "lint": "biome check .",
     "lint:fix": "biome check --write .",
     "typecheck": "next typegen && tsc --noEmit",
     "ui:add": "shadcn add",
     "db:push": "drizzle-kit push --force",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
     "db:seed": "tsx --conditions=react-server scripts/seed.ts",
     "db:studio": "drizzle-kit studio"
   },

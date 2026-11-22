@@ -13,6 +13,7 @@ import {
   getAccount,
   setPassword,
 } from '@/server/dal/accounts';
+import { isUniqueViolation } from '@/server/db';
 import { clientIp, signInAllowed, withinLimit } from '@/server/rate-limit';
 import { getCurrentProfile, startSession } from '@/server/session';
 import { sendPasswordResetEmail, sendVerificationEmail } from './links';
@@ -36,11 +37,18 @@ export async function signUp(
   }
   if (await findAccountByEmail(parsed.data.email)) return fail(ERRORS.EMAIL_TAKEN);
 
-  const profile = await createAccount({
-    name: parsed.data.name,
-    email: parsed.data.email,
-    passwordHash: await hashPassword(parsed.data.password),
-  });
+  let profile: Awaited<ReturnType<typeof createAccount>>;
+  try {
+    profile = await createAccount({
+      name: parsed.data.name,
+      email: parsed.data.email,
+      passwordHash: await hashPassword(parsed.data.password),
+    });
+  } catch (error) {
+    // Deux envois rapides : le second bute sur l'unicité de l'e-mail.
+    if (isUniqueViolation(error)) return fail(ERRORS.EMAIL_TAKEN);
+    throw error;
+  }
   // L'e-mail de confirmation part sans bloquer : on peut utiliser l'application tout de suite.
   await sendVerificationEmail(profile, parsed.data.email);
   await startSession(profile.id);

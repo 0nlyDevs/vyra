@@ -74,10 +74,18 @@ jobs:
         run: |
           npm run lint
           npm run typecheck
-      - name: Initialiser la base de test
+      - name: Vérifier que chaque changement de schéma a sa migration
+        run: |
+          npm run db:generate
+          if [ -n "$(git status --porcelain drizzle)" ]; then
+            echo "::error::schema.ts a changé sans migration : lancer « npm run db:generate » et committer web/drizzle."
+            git status --porcelain drizzle
+            exit 1
+          fi
+      - name: Initialiser la base de test avec les migrations (comme en production)
         run: |
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f ../docker/initdb/01-extensions.sql
-          npm run db:push
+          npm run db:migrate
       - name: Construire toutes les pages
         run: npm run build
       - name: Vérifier que l’accueil et une page pré-rendue répondent
