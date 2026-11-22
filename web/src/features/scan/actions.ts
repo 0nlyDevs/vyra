@@ -339,6 +339,7 @@ export async function addScanToCase(
   if (pieces.length === 0) return fail(ERRORS.NOTHING_TO_ADD);
 
   const added = await addScanEvidence(scan.id, parsed.data.caseId, pieces);
+  if (added === null) return fail(ERRORS.NOT_FOUND);
   revalidatePath(`/cases/${parsed.data.caseId}`);
   revalidatePath(`/court/${parsed.data.caseId}`);
   return ok({ caseId: parsed.data.caseId, added });

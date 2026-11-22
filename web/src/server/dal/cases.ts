@@ -56,12 +56,26 @@ export async function getCaseFile(id: string) {
 export type CaseSummary = Awaited<ReturnType<typeof listCases>>[number];
 export type CaseFile = NonNullable<Awaited<ReturnType<typeof getCaseFile>>>;
 
+type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
+
+// Verrouille l'affaire jusqu'à la fin de la transaction : deux ajouts simultanés de pièces
+// attendent leur tour au lieu de prendre le même numéro. false si l'affaire n'existe pas.
+export async function lockCase(tx: Tx, caseId: string) {
+  const [found] = await tx
+    .select({ id: cases.id })
+    .from(cases)
+    .where(eq(cases.id, caseId))
+    .for('update');
+  return Boolean(found);
+}
+
 // Verse des pièces au dossier, numérotées à la suite des pièces existantes.
 export async function addEvidence(
   caseId: string,
   pieces: Omit<typeof evidence.$inferInsert, 'caseId' | 'number'>[],
 ) {
   return db.transaction(async (tx) => {
+    if (!(await lockCase(tx, caseId))) return 0;
     const [last] = await tx
       .select({ number: max(evidence.number) })
       .from(evidence)
