@@ -6,7 +6,15 @@ from fastapi.testclient import TestClient
 from app.schemas.ai import MAX_PAYLOAD_CHARS
 from app.services import ai_service
 
-PROMPTS = ["assistant", "judge", "what-if", "same-information", "read-image", "transcribe"]
+PROMPTS = [
+    "assistant",
+    "court-relevance",
+    "judge",
+    "what-if",
+    "same-information",
+    "read-image",
+    "transcribe",
+]
 
 
 @pytest.mark.parametrize("name", PROMPTS)

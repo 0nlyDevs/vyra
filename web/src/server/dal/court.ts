@@ -104,7 +104,7 @@ const MAX_MEANING_DISTANCE = 0.25;
 
 // Recherche thématique plus large que « est-ce la même affirmation ? ». Le minimum des
 // distances laisse chaque sujet retrouver ses propres affaires, sans correspondance textuelle.
-export function searchJudgedCasesByMeaning(embeddings: number[][], limit = 8) {
+export function searchJudgedCasesByMeaning(embeddings: number[][], limit = 16) {
   if (embeddings.length === 0) return Promise.resolve([]);
   const distances = embeddings.map((embedding) => cosineDistance(cases.embedding, embedding));
   const distance = sql<number>`least(${sql.join(distances, sql`, `)})`;
