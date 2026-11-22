@@ -9,3 +9,9 @@
   par l'équipe (`web/src/features/game3d/`).
 - **Effets sonores et ambiance** : synthétisés dans le navigateur avec la Web Audio API
   (`web/src/features/game3d/audio.ts`), aucun fichier audio tiers.
+
+## Vidéos de l'accueil connecté
+
+Trois courts extraits muets de Wikimedia Commons (marché malgache, rocade d'Antananarivo de nuit,
+image satellite d'un délestage), sous licence CC BY-SA 4.0 ou dans le domaine public. Détail par
+fichier dans `web/public/reels/CREDITS.md`.

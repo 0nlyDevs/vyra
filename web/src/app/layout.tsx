@@ -4,6 +4,7 @@ import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
 import { READING_PREFERENCES_SCRIPT } from '@/components/shell/ReadingControls';
 import { RippleListener } from '@/components/shell/Ripple';
+import { ScrollState } from '@/components/shell/ScrollState';
 import { ThemeProvider } from '@/components/shell/ThemeProvider';
 import { Toaster } from '@/components/ui/sonner';
 import { publicEnv } from '@/lib/env';
@@ -31,6 +32,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           {children}
           <Toaster position="bottom-center" />
           <RippleListener />
+          <ScrollState />
         </ThemeProvider>
         <Analytics />
       </body>
