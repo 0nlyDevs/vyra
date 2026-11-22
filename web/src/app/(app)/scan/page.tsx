@@ -1,27 +1,38 @@
 import { AiNotice } from '@/components/common/AiNotice';
 import { PageHeader } from '@/components/common/PageHeader';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Directory } from '@/features/impersonation/Directory';
+import { ImpersonationCheck } from '@/features/impersonation/ImpersonationCheck';
 import { AudioScanner } from '@/features/scan/AudioScanner';
 import { ImageScanner } from '@/features/scan/ImageScanner';
 import { LinkScanner } from '@/features/scan/LinkScanner';
+import { isVerifier } from '@/lib/domain';
 import { listCases } from '@/server/dal/cases';
+import { listDirectory } from '@/server/dal/institutions';
 import { listKnownImages } from '@/server/dal/scans';
+import { requireProfile } from '@/server/session';
 
 export default async function ScanPage() {
-  const [knownImages, caseList] = await Promise.all([listKnownImages(), listCases()]);
+  const [profile, knownImages, caseList, directory] = await Promise.all([
+    requireProfile(),
+    listKnownImages(),
+    listCases(),
+    listDirectory(),
+  ]);
 
   return (
     <div className="grid gap-8">
       <PageHeader
         eyebrow="Module 1 · fonction complémentaire"
         title="Scan d’image, de vocal et de lien"
-        description="Importer une image, un vocal ou un lien et relever des indices. Jamais de verdict « IA ou pas » : les détecteurs se trompent trop."
+        description="Importer une image, un vocal ou un lien et relever des indices, ou vérifier qu’un message vient bien de l’institution qu’il cite. Jamais de verdict « IA ou pas » : les détecteurs se trompent trop."
       />
       <Tabs defaultValue="image" className="gap-6">
         <TabsList>
           <TabsTrigger value="image">Image</TabsTrigger>
           <TabsTrigger value="audio">Vocal</TabsTrigger>
           <TabsTrigger value="link">Lien</TabsTrigger>
+          <TabsTrigger value="source">Est-ce bien eux ?</TabsTrigger>
         </TabsList>
         <TabsContent value="image">
           <ImageScanner
@@ -34,6 +45,10 @@ export default async function ScanPage() {
         </TabsContent>
         <TabsContent value="link">
           <LinkScanner />
+        </TabsContent>
+        <TabsContent value="source" className="grid gap-10">
+          <ImpersonationCheck />
+          <Directory entries={directory} canEdit={isVerifier(profile.role)} />
         </TabsContent>
       </Tabs>
       <AiNotice>
