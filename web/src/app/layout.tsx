@@ -28,8 +28,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       <body>
         <ThemeProvider>
           {children}
-          <Toaster position="top-right" />
-          <div className="grain" aria-hidden />
+          <Toaster position="bottom-center" />
         </ThemeProvider>
         <Analytics />
       </body>

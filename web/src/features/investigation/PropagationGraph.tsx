@@ -273,7 +273,7 @@ export function PropagationGraph({
                       ? 'border-primary bg-primary text-primary-foreground'
                       : isCenter || isRoot
                         ? 'border-primary bg-card text-primary'
-                        : 'border-border bg-card text-foreground group-hover:border-primary/60',
+                        : 'border-border bg-card text-foreground group-hover:border-foreground',
                   )}
                   style={{ width: radius * 2, height: radius * 2 }}
                 >
@@ -345,7 +345,7 @@ export function PropagationGraph({
                   styles.edge,
                   'absolute z-10 -translate-x-1/2 -translate-y-1/2 rounded-full outline-none transition-transform duration-150',
                   'hover:scale-105 active:scale-95 focus-visible:ring-[3px] focus-visible:ring-ring/50',
-                  active && 'ring-2 ring-primary ring-offset-2 ring-offset-background',
+                  active && 'ring-2 ring-foreground ring-offset-2 ring-offset-background',
                 )}
                 style={
                   {

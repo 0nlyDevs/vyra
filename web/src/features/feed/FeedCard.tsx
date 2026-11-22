@@ -139,7 +139,7 @@ export function FeedCard({
           {topic && (
             <Link
               href={`/feed?sujet=${topic.id}`}
-              className="inline-flex items-center gap-1.5 justify-self-start rounded-full bg-primary/10 px-3 py-1 font-medium text-primary text-sm transition-colors hover:bg-primary/15"
+              className="inline-flex items-center gap-1.5 justify-self-start rounded-full bg-raised px-3 py-1 font-medium text-foreground text-sm transition-colors hover:bg-active"
             >
               <Layers aria-hidden className="size-4" />
               Repris par {topic.sources} sources

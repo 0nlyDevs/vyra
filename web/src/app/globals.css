@@ -4,29 +4,33 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/* Thème Vyra, issu de « Nuit rouge » (MindStack) et habillé en encre neutre, papier,
-   Bricolage Grotesque. Le rouge de MindStack reste l'accent. Ancienne description :
-   « Nuit rouge » : une nuit teintée de rouge, un seul accent (le rouge de la
-   marque), un texte couleur os. La nuit est le thème par défaut ; le clair reste au choix.
+/* Thème Vyra : « encre et papier ». Un fond papier, une encre ;
+   la couleur ne sert qu'aux états et aux conclusions (vrai, trompeur, faux, invérifiable), chacun
+   avec son encre, son lavis et son aplat. Bricolage Grotesque pour tout, Cormorant Garamond
+   italique pour les citations mot pour mot.
    Trois couches de jetons :
-   1. primitives : les valeurs brutes (nuancier rouge, gris teintés, couleurs d'état) ;
+   1. primitives : les valeurs brutes ;
    2. sémantiques : le rôle de chaque couleur (fond, texte, primaire, succès…) ;
-   3. composants : ce qui est propre à un composant (barre latérale).
+   3. composants : ce qui est propre à un composant (île de navigation, toast…).
    Dans une page ou un composant, on n'utilise QUE les classes des couches 2 et 3
    (bg-primary, text-muted-foreground, bg-success-soft…), jamais une couleur écrite en dur.
-   Pour changer le rouge de toute l'application : modifier le nuancier --red-* ci-dessous. */
+   Chaque fond plein a son texte : primary / primary-foreground, nav / nav-foreground…
+   L'accueil (.landing) garde sa direction « Nuit rouge » : ses jetons sont en bas du fichier. */
 
 @theme inline {
   --font-sans:
     "Bricolage Grotesque Variable", "Helvetica Neue", ui-sans-serif, system-ui, -apple-system,
     "Segoe UI", Roboto, sans-serif;
   --font-serif: "Cormorant Garamond", Georgia, serif;
+  --font-quote: "Cormorant Garamond", Georgia, serif;
   --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
   --font-heading: var(--font-sans);
   --font-display: var(--font-sans);
   --ease-out-strong: cubic-bezier(0.23, 1, 0.32, 1);
   --ease-in-out-strong: cubic-bezier(0.77, 0, 0.175, 1);
   --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -35,6 +39,7 @@
   --color-popover-foreground: var(--popover-foreground);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
+  --color-primary-hover: var(--primary-hover);
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);
@@ -45,6 +50,12 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+  --color-rule: var(--rule);
+  --color-raised: var(--raised);
+  --color-active: var(--active);
+
+  /* États : chacun est une famille de conclusion (succès = vrai, attention = trompeur,
+     info = invérifiable, danger = faux). */
   --color-success: var(--success);
   --color-success-soft: var(--success-soft);
   --color-warning: var(--warning);
@@ -53,16 +64,52 @@
   --color-info-soft: var(--info-soft);
   --color-danger: var(--danger);
   --color-danger-soft: var(--danger-soft);
+
+  --color-verdict-true: var(--verdict-true);
+  --color-verdict-true-on: var(--verdict-true-on);
+  --color-verdict-true-soft: var(--verdict-true-soft);
+  --color-verdict-true-ink: var(--verdict-true-ink);
+  --color-verdict-misleading: var(--verdict-misleading);
+  --color-verdict-misleading-on: var(--verdict-misleading-on);
+  --color-verdict-misleading-soft: var(--verdict-misleading-soft);
+  --color-verdict-misleading-ink: var(--verdict-misleading-ink);
+  --color-verdict-false: var(--verdict-false);
+  --color-verdict-false-on: var(--verdict-false-on);
+  --color-verdict-false-soft: var(--verdict-false-soft);
+  --color-verdict-false-ink: var(--verdict-false-ink);
+  --color-verdict-unverifiable: var(--verdict-unverifiable);
+  --color-verdict-unverifiable-on: var(--verdict-unverifiable-on);
+  --color-verdict-unverifiable-soft: var(--verdict-unverifiable-soft);
+  --color-verdict-unverifiable-ink: var(--verdict-unverifiable-ink);
+
+  /* L'île d'encre et sa pilule papier, le tag inversé, le toast, le panneau « en direct ». */
+  --color-nav: var(--nav);
+  --color-nav-foreground: var(--nav-foreground);
+  --color-nav-hover: var(--nav-hover);
+  --color-nav-active: var(--nav-active);
+  --color-nav-active-foreground: var(--nav-active-foreground);
+  --color-tag-inverted: var(--tag-inverted);
+  --color-tag-inverted-foreground: var(--tag-inverted-foreground);
+  --color-toast: var(--toast);
+  --color-toast-foreground: var(--toast-foreground);
+  --color-live: var(--live);
+  --color-live-foreground: var(--live-foreground);
+  --color-live-muted: var(--live-muted);
+  --color-live-border: var(--live-border);
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-active: var(--sidebar-active);
   --color-sidebar-active-foreground: var(--sidebar-active-foreground);
-  --radius-sm: calc(var(--radius) * 0.6);
-  --radius-md: calc(var(--radius) * 0.8);
+
+  /* Les multiplicateurs sont des variables : l'accueil garde les siens (voir .landing). */
+  --radius-sm: calc(var(--radius) * var(--k-sm, 0.5));
+  --radius-md: calc(var(--radius) * var(--k-md, 0.75));
   --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) * 1.4);
-  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-xl: calc(var(--radius) * var(--k-xl, 1));
+  --radius-2xl: calc(var(--radius) * var(--k-2xl, 1.2));
+  --radius-3xl: calc(var(--radius) * 2.5);
+  --radius-4xl: calc(var(--radius) * 3);
 }
 
 :root {
@@ -71,7 +118,7 @@
     "Bricolage Grotesque Variable", "Helvetica Neue", ui-sans-serif, system-ui, sans-serif;
   --font-serif: "Cormorant Garamond", Georgia, serif;
 
-  /* 1. Primitives */
+  /* 1. Primitives : le rouge et les gris de l'accueil (« Nuit rouge »), lus par .landing. */
   --red-50: oklch(0.975 0.012 20);
   --red-100: oklch(0.94 0.03 20);
   --red-200: oklch(0.885 0.06 20);
@@ -83,113 +130,174 @@
   --red-800: oklch(0.4 0.15 24);
   --red-900: oklch(0.33 0.11 24);
   --red-950: oklch(0.22 0.07 24);
-
-  /* Gris légèrement teintés de rouge : ils s'accordent avec la couleur de marque. */
   --ink-0: oklch(1 0 0);
-  --ink-50: oklch(0.985 0.003 95);
-  --ink-100: oklch(0.965 0.004 95);
-  --ink-200: oklch(0.925 0.005 95);
-  --ink-300: oklch(0.87 0.005 95);
-  --ink-400: oklch(0.71 0.006 95);
-  --ink-500: oklch(0.55 0.006 95);
-  --ink-600: oklch(0.44 0.006 95);
-  --ink-700: oklch(0.36 0.006 95);
-  --ink-800: oklch(0.26 0.004 95);
   --ink-850: oklch(0.215 0.004 95);
   --ink-900: oklch(0.18 0.004 95);
   --ink-950: oklch(0.145 0.003 95);
   --ink-1000: oklch(0.12 0.003 95);
-
-  --green-100: oklch(0.95 0.045 155);
   --green-400: oklch(0.8 0.18 153);
-  --green-600: oklch(0.5 0.13 155);
   --green-900: oklch(0.3 0.06 155);
-  --amber-100: oklch(0.955 0.055 85);
   --amber-400: oklch(0.82 0.16 78);
-  --amber-600: oklch(0.52 0.12 65);
   --amber-900: oklch(0.32 0.06 65);
-  --blue-100: oklch(0.95 0.03 250);
   --blue-400: oklch(0.66 0.19 257);
-  --blue-600: oklch(0.5 0.15 255);
   --blue-900: oklch(0.3 0.07 255);
 
-  /* 2. Sémantiques (clair) */
-  --background: oklch(0.965 0.005 95);
-  --foreground: var(--ink-950);
-  --card: var(--ink-0);
-  --card-foreground: var(--ink-950);
-  --popover: var(--ink-0);
-  --popover-foreground: var(--ink-950);
-  --primary: var(--red-600);
-  --primary-foreground: var(--ink-0);
-  --secondary: var(--ink-100);
-  --secondary-foreground: var(--ink-900);
-  --muted: var(--ink-100);
-  --muted-foreground: var(--ink-600);
-  --accent: var(--red-50);
-  --accent-foreground: var(--red-800);
-  --destructive: var(--red-700);
-  --border: oklch(0.2 0.02 22 / 9%);
-  --input: oklch(0.2 0.02 22 / 14%);
-  --ring: var(--red-400);
-  --success: var(--green-600);
-  --success-soft: var(--green-100);
-  --warning: var(--amber-600);
-  --warning-soft: var(--amber-100);
-  --info: var(--blue-600);
-  --info-soft: var(--blue-100);
-  --danger: var(--red-700);
-  --danger-soft: var(--red-100);
-  --radius: 1.1rem;
-  /* Lumière de la marque (halos, lueurs) et reflet du haut des surfaces. */
-  --glow: var(--red-500);
-  --sheen: oklch(1 0 0 / 70%);
+  /* 2. Sémantiques (clair) : le papier et l'encre. */
+  --radius: 1.25rem;
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-theme: cubic-bezier(0.65, 0, 0.35, 1);
+
+  --background: #f3f2ee;
+  --foreground: #0a0a0b;
+  --card: #fbfaf7;
+  --card-foreground: #0a0a0b;
+  --popover: #fbfaf7;
+  --popover-foreground: #0a0a0b;
+  --primary: #0a0a0b;
+  --primary-foreground: #f3f2ee;
+  --primary-hover: #1f1f22;
+  --raised: #e9e8e2;
+  --active: #e2e1da;
+  --secondary: var(--raised);
+  --secondary-foreground: #0a0a0b;
+  --muted: var(--raised);
+  --muted-foreground: #55544e;
+  --accent: var(--active);
+  --accent-foreground: #0a0a0b;
+  --destructive: #b3231a;
+  --border: rgba(10, 10, 11, 0.1);
+  --input: rgba(10, 10, 11, 0.24);
+  --ring: #0a0a0b;
+  --rule: rgba(10, 10, 11, 0.07);
+  --shadow-float: 0 1px 2px rgba(10, 10, 11, 0.1), 0 10px 30px -12px rgba(10, 10, 11, 0.3);
+  /* Plus de lueur ni de reflet hors de l'accueil : la profondeur vient du ton et du filet. */
+  --glow: transparent;
+  --sheen: transparent;
+  /* Le dessin des titres (`display`) et des petites lignes (`eyebrow`). */
+  --display-weight: 800;
+  --display-tracking: -0.03em;
+  --display-leading: 1;
+  --eyebrow-size: 0.875rem;
+  --eyebrow-weight: 600;
+  --eyebrow-tracking: normal;
+  --eyebrow-case: none;
+
+  --verdict-true: #0b6b3a;
+  --verdict-true-on: #ffffff;
+  --verdict-true-soft: #e1f3e8;
+  --verdict-true-ink: #0b6b3a;
+  --verdict-misleading: #8a5700;
+  --verdict-misleading-on: #ffffff;
+  --verdict-misleading-soft: #f9ecd2;
+  --verdict-misleading-ink: #8a5700;
+  --verdict-false: #b3231a;
+  --verdict-false-on: #ffffff;
+  --verdict-false-soft: #fbe3e0;
+  --verdict-false-ink: #b3231a;
+  --verdict-unverifiable: #1d58c4;
+  --verdict-unverifiable-on: #ffffff;
+  --verdict-unverifiable-soft: #e0eafb;
+  --verdict-unverifiable-ink: #1d58c4;
+
+  --success: var(--verdict-true-ink);
+  --success-soft: var(--verdict-true-soft);
+  --warning: var(--verdict-misleading-ink);
+  --warning-soft: var(--verdict-misleading-soft);
+  --info: var(--verdict-unverifiable-ink);
+  --info-soft: var(--verdict-unverifiable-soft);
+  --danger: var(--verdict-false-ink);
+  --danger-soft: var(--verdict-false-soft);
 
   /* 3. Composants */
-  --sidebar: oklch(0.968 0.006 28);
-  --sidebar-foreground: var(--ink-700);
-  --sidebar-border: oklch(0.2 0.02 22 / 8%);
-  --sidebar-active: var(--ink-0);
-  --sidebar-active-foreground: var(--red-700);
+  --nav: #0a0a0b;
+  --nav-foreground: #b9b8b2;
+  --nav-hover: #1f1f22;
+  --nav-active: #f3f2ee;
+  --nav-active-foreground: #0a0a0b;
+  --tag-inverted: #0a0a0b;
+  --tag-inverted-foreground: #f3f2ee;
+  --toast: #0a0a0b;
+  --toast-foreground: #f3f2ee;
+  --live: #0a0a0b;
+  --live-foreground: #f3f2ee;
+  --live-muted: #b9b8b2;
+  --live-border: #2a2a2e;
+  --sidebar: var(--nav);
+  --sidebar-foreground: var(--nav-foreground);
+  --sidebar-border: rgba(243, 242, 238, 0.12);
+  --sidebar-active: var(--nav-active);
+  --sidebar-active-foreground: var(--nav-active-foreground);
 }
 
 .dark {
-  /* 2. Sémantiques (nuit) */
-  --background: var(--ink-950);
-  --foreground: oklch(0.955 0.006 95);
-  --card: var(--ink-900);
-  --card-foreground: oklch(0.955 0.006 95);
-  --popover: var(--ink-850);
-  --popover-foreground: oklch(0.955 0.007 30);
-  --primary: oklch(0.64 0.215 24);
-  --primary-foreground: var(--ink-0);
-  --secondary: var(--ink-850);
-  --secondary-foreground: oklch(0.955 0.007 30);
-  --muted: var(--ink-850);
-  --muted-foreground: oklch(0.72 0.016 24);
-  --accent: oklch(0.25 0.055 22);
-  --accent-foreground: var(--red-100);
-  --destructive: var(--red-400);
-  --border: oklch(0.955 0.006 95 / 11%);
-  --input: oklch(1 0 0 / 12%);
-  --ring: var(--red-400);
-  --glow: oklch(0.6 0.23 24);
-  --sheen: oklch(1 0 0 / 7%);
-  --success: var(--green-400);
-  --success-soft: var(--green-900);
-  --warning: var(--amber-400);
-  --warning-soft: var(--amber-900);
-  --info: var(--blue-400);
-  --info-soft: var(--blue-900);
-  --danger: var(--red-300);
-  --danger-soft: var(--red-900);
+  --background: #0a0a0b;
+  --foreground: #f3f2ee;
+  --card: #111113;
+  --card-foreground: #f3f2ee;
+  --popover: #111113;
+  --popover-foreground: #f3f2ee;
+  --primary: #f3f2ee;
+  --primary-foreground: #0a0a0b;
+  --primary-hover: #e2e1da;
+  --raised: #19191c;
+  --active: #232327;
+  --secondary: var(--raised);
+  --secondary-foreground: #f3f2ee;
+  --muted: var(--raised);
+  --muted-foreground: #a6a5a0;
+  --accent: var(--active);
+  --accent-foreground: #f3f2ee;
+  --destructive: #ff6a5f;
+  --border: rgba(243, 242, 238, 0.1);
+  --input: rgba(243, 242, 238, 0.26);
+  --ring: #f3f2ee;
+  --rule: rgba(243, 242, 238, 0.07);
+  --shadow-float: 0 1px 2px rgba(0, 0, 0, 0.5), 0 10px 30px -12px rgba(0, 0, 0, 0.7);
 
-  /* 3. Composants */
-  --sidebar: var(--ink-1000);
-  --sidebar-foreground: oklch(0.78 0.014 24);
-  --sidebar-border: oklch(1 0 0 / 7%);
-  --sidebar-active: oklch(1 0 0 / 6%);
-  --sidebar-active-foreground: oklch(0.97 0.006 30);
+  --verdict-true: #3ddc84;
+  --verdict-true-on: #0a0a0b;
+  --verdict-true-soft: #0f2219;
+  --verdict-true-ink: #3ddc84;
+  --verdict-misleading: #ffb224;
+  --verdict-misleading-on: #0a0a0b;
+  --verdict-misleading-soft: #29200c;
+  --verdict-misleading-ink: #ffb224;
+  --verdict-false: #ff6a5f;
+  --verdict-false-on: #0a0a0b;
+  --verdict-false-soft: #2a1311;
+  --verdict-false-ink: #ff6a5f;
+  --verdict-unverifiable: #6aa8ff;
+  --verdict-unverifiable-on: #0a0a0b;
+  --verdict-unverifiable-soft: #101a2b;
+  --verdict-unverifiable-ink: #6aa8ff;
+
+  --success: var(--verdict-true-ink);
+  --success-soft: var(--verdict-true-soft);
+  --warning: var(--verdict-misleading-ink);
+  --warning-soft: var(--verdict-misleading-soft);
+  --info: var(--verdict-unverifiable-ink);
+  --info-soft: var(--verdict-unverifiable-soft);
+  --danger: var(--verdict-false-ink);
+  --danger-soft: var(--verdict-false-soft);
+
+  --nav: #1c1c1f;
+  --nav-foreground: #b4b3ad;
+  --nav-hover: #2a2a2e;
+  --nav-active: #f3f2ee;
+  --nav-active-foreground: #0a0a0b;
+  --tag-inverted: #f3f2ee;
+  --tag-inverted-foreground: #0a0a0b;
+  --toast: #f3f2ee;
+  --toast-foreground: #0a0a0b;
+  --live: #19191c;
+  --live-foreground: #f3f2ee;
+  --live-muted: #a6a5a0;
+  --live-border: #232327;
+  --sidebar: var(--nav);
+  --sidebar-foreground: var(--nav-foreground);
+  --sidebar-border: rgba(243, 242, 238, 0.12);
+  --sidebar-active: var(--nav-active);
+  --sidebar-active-foreground: var(--nav-active-foreground);
 }
 
 @layer base {
@@ -197,6 +305,8 @@
      de la salle). Tailwind compte en rem : ce réglage agrandit toute l'interface d'un coup. */
   html {
     font-size: 112.5%;
+    -webkit-tap-highlight-color: transparent;
+    scrollbar-color: var(--input) transparent;
   }
 
   /* Taille du texte choisie avec A− / A+ (composant ReadingControls). */
@@ -217,6 +327,11 @@
   body {
     @apply bg-background font-sans text-foreground antialiased;
   }
+  /* En grand texte, un mot long passe à la ligne au lieu de pousser la page de côté. */
+  html[data-text="large"] body,
+  html[data-text="xlarge"] body {
+    overflow-wrap: anywhere;
+  }
 
   h1,
   h2,
@@ -225,91 +340,1122 @@
   }
 
   ::selection {
-    background: oklch(0.63 0.21 23 / 55%);
-    color: var(--ink-0);
+    background: var(--primary);
+    color: var(--primary-foreground);
+  }
+
+  input,
+  textarea {
+    caret-color: var(--foreground);
+  }
+  input[type="checkbox"],
+  input[type="radio"],
+  input[type="range"] {
+    accent-color: var(--primary);
   }
 
   :focus-visible {
     outline: 2px solid var(--ring);
     outline-offset: 3px;
   }
-}
 
-/* ─── Langage visuel « Nuit rouge » (repris du site Kovity, aux couleurs de MindStack) ─── */
+  a {
+    text-underline-offset: 3px;
+  }
 
-/* Titres : l'interlettrage se resserre quand le corps grandit. */
-@utility display {
-  font-family: var(--font-display);
-  font-weight: 700;
-  letter-spacing: -0.04em;
-  line-height: 1.02;
-  text-wrap: balance;
-}
+  /* Le surlignage jaune du navigateur est une couleur hors des états. */
+  mark {
+    background: transparent;
+    color: inherit;
+  }
 
-/* Petite ligne au-dessus d'un titre : capitales espacées, couleur de la marque. */
-@utility eyebrow {
-  font-size: 0.7rem;
-  font-weight: 500;
-  letter-spacing: 0.28em;
-  text-transform: uppercase;
-  color: var(--primary);
-}
-
-/* Cadre double : une coque fine autour d'un cœur, comme une pièce usinée. */
-@utility bezel {
-  border-radius: 1.5rem;
-  padding: 0.375rem;
-  background: color-mix(in oklch, var(--foreground) 3.5%, transparent);
-  box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--foreground) 8%, transparent);
-}
-
-@utility bezel-core {
-  border-radius: calc(1.5rem - 0.375rem);
-  background: var(--card);
-  box-shadow: inset 0 1px 0 var(--sheen);
-  overflow: hidden;
-}
-
-/* Surface : une carte avec son reflet en haut et un filet fin, sans bordure dure. */
-@utility surface {
-  border-radius: 1.35rem;
-  background: var(--card);
-  box-shadow:
-    inset 0 1px 0 var(--sheen),
-    inset 0 0 0 1px color-mix(in oklch, var(--foreground) 8%, transparent);
-}
-
-/* Verre : réservé à ce qui flotte (barre du haut, panneaux, boutons au-dessus d'une image). */
-@utility glass {
-  background: color-mix(in oklch, var(--background) 68%, transparent);
-  backdrop-filter: blur(22px) saturate(160%);
-  -webkit-backdrop-filter: blur(22px) saturate(160%);
-  box-shadow:
-    inset 0 1px 0 var(--sheen),
-    inset 0 0 0 1px color-mix(in oklch, var(--foreground) 7%, transparent);
-}
-
-@media (prefers-reduced-transparency: reduce) {
-  .glass {
-    background: var(--background);
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
+  /* Heures, nombres et références s'alignent en colonnes. */
+  time,
+  .tabular {
+    font-variant-numeric: tabular-nums;
   }
 }
 
-/* Grain : un seul calque fixe, au-dessus de tout, qui ne capte jamais les clics. */
+/* ─── Langage visuel « encre et papier » ─── */
+
+/* Titres : Bricolage Grotesque, lourd et serré. */
+@utility display {
+  font-family: var(--font-display);
+  font-weight: var(--display-weight);
+  letter-spacing: var(--display-tracking);
+  line-height: var(--display-leading);
+  text-wrap: balance;
+}
+
+/* Le titre de chaque page (H1). Les précisions viennent dessous. */
+.page-title {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: clamp(2rem, 1.5rem + 1.6vw, 2.9rem);
+  line-height: 1;
+  letter-spacing: -0.03em;
+  text-wrap: balance;
+}
+
+/* Petite ligne au-dessus ou au-dessous d'un titre : en minuscules, discrète (pas de capitales
+   espacées hors de l'accueil). */
+@utility eyebrow {
+  font-size: var(--eyebrow-size);
+  font-weight: var(--eyebrow-weight);
+  letter-spacing: var(--eyebrow-tracking);
+  text-transform: var(--eyebrow-case);
+  color: var(--eyebrow-color, var(--muted-foreground));
+}
+
+/* Cadre double : un filet autour d'un cœur, pour mettre un bloc en avant. */
+@utility bezel {
+  border-radius: calc(var(--radius) + 0.375rem);
+  padding: 0.375rem;
+  background: var(--raised);
+}
+
+@utility bezel-core {
+  border-radius: var(--radius);
+  background: var(--card);
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+
+/* Surface : une carte, fond papier clair et filet fin, sans ombre (l'ombre veut dire « flotte »). */
+@utility surface {
+  border-radius: var(--radius);
+  background: var(--card);
+  border: 1px solid var(--border);
+}
+
+/* Ce qui flotte (barre du haut, panneaux) : le fond de la page, plein. */
+@utility glass {
+  background: var(--background);
+}
+
+/* Une phrase relevée dans un message : soulignée dans la couleur du texte, 2 px, 3 px dessous. */
+.signal-mark {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-color: var(--foreground);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
+}
+
+/* Citations mot pour mot (une source, un témoin, une plaidoirie citée) : Cormorant italique. */
+.quote {
+  font-family: var(--font-quote);
+  font-style: italic;
+  font-weight: 500;
+}
+
+/* La ligne numérotée : l'étape en cours respire, les autres restent immobiles. */
+@keyframes step-breathe {
+  50% {
+    box-shadow: 0 0 0 7px color-mix(in srgb, var(--primary) 35%, transparent);
+  }
+}
+.step-active {
+  animation: step-breathe 1.6s ease-in-out infinite;
+}
+/* Ce qui arrive (une source, une ligne du journal) monte une fois, puis reste en place. */
+@keyframes arrive {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+.arrive {
+  animation: arrive 0.45s var(--ease-out-expo) both;
+  animation-delay: calc(var(--i, 0) * 90ms);
+}
+/* La conclusion se pose une fois : un tassement court et ferme. */
+@keyframes verdict-land {
+  from {
+    opacity: 0;
+    transform: scale(1.04);
+  }
+}
+.verdict-land {
+  animation: verdict-land 0.5s var(--ease-out-expo) both;
+}
+
+/* ─── La coquille de l'espace connecté ─── */
+
+/* Le retrait de 24 px de la barre est celui des coins : le logo au-dessus des préférences,
+   l'avatar au-dessus de l'assistant. Sous 900 px, 16 px. */
+:root {
+  --inset: 24px;
+  --corner-x: max(var(--inset), env(safe-area-inset-right));
+  --corner-y: max(var(--inset), env(safe-area-inset-bottom));
+}
+@media (max-width: 900px) {
+  :root {
+    --inset: 16px;
+  }
+}
+/* Sur téléphone, la barre d'encre prend le bas : l'assistant se pose au-dessus. */
+@media (max-width: 640px) {
+  [data-scope="desk"] {
+    --corner-y: calc(66px + 14px + env(safe-area-inset-bottom));
+  }
+}
+
+html:has([data-desk-bar]) {
+  scroll-padding-top: 84px;
+}
+@media (max-width: 900px) {
+  html:has([data-desk-bar]) {
+    scroll-padding-top: 140px;
+  }
+}
+
+/* La barre du haut : logo à gauche, l'île d'encre au centre, l'avatar à droite. */
+.desk-bar {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 20px;
+  padding: 14px var(--inset);
+  background: var(--background);
+}
+.bar-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.bar-word {
+  flex: none;
+  border-radius: 10px;
+}
+.bar-word:focus-visible,
+.bar-avatar:focus-visible {
+  outline: 2px solid var(--foreground);
+  outline-offset: 3px;
+}
+.bar-right {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 6px;
+}
+.bar-avatar {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  overflow: hidden;
+  border-radius: 50%;
+  background: var(--primary);
+  color: var(--primary-foreground);
+  font-size: 13px;
+  font-weight: 700;
+}
+.bar-avatar:hover,
+.bar-avatar[aria-expanded="true"] {
+  background: var(--primary-hover);
+  color: var(--primary-foreground);
+}
+
+/* L'île d'encre et sa pilule papier (0,5 s, --ease-out). Le libellé sur la pilule est l'encre. */
+.tab-wrap {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  min-width: 0;
+  overflow-x: clip;
+}
+.tab-island {
+  position: relative;
+  width: max-content;
+  max-width: 100%;
+  padding: 5px;
+  border-radius: 999px;
+  background: var(--nav);
+  overflow: hidden;
+}
+.tab-list {
+  position: relative;
+  display: flex;
+  gap: 2px;
+}
+.tab-pill {
+  position: absolute;
+  z-index: 0;
+  top: 5px;
+  left: 0;
+  width: 0;
+  height: 38px;
+  border-radius: 999px;
+  background: var(--nav-active);
+  opacity: 0;
+  transition:
+    transform 0.5s var(--ease-out),
+    width 0.5s var(--ease-out);
+}
+.tab {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 38px;
+  padding: 0 14px;
+  overflow: hidden;
+  border-radius: 999px;
+  color: var(--nav-foreground);
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.tab:hover,
+.tab[aria-expanded="true"] {
+  background: var(--nav-hover);
+  color: var(--nav-active);
+}
+.tab[data-current]:hover,
+.tab[data-current][aria-expanded="true"] {
+  background: transparent;
+}
+.tab-island[data-pill] .tab:hover,
+.tab-island[data-pill] .tab[aria-expanded="true"] {
+  background: transparent;
+}
+/* Le libellé passe à l'encre seulement quand la pilule papier est dessous (`data-lit`). */
+.tab[data-lit],
+.tab-island:not([data-pill]) .tab[data-current] {
+  color: var(--nav-active-foreground);
+}
+.tab-island:not([data-pill]) .tab[data-current] {
+  background: var(--nav-active);
+}
+.tab:focus-visible {
+  outline: 2px solid var(--nav-active);
+  outline-offset: -4px;
+}
+.tab[data-lit]:focus-visible,
+.tab-island:not([data-pill]) .tab[data-current]:focus-visible {
+  outline-color: var(--nav-active-foreground);
+}
+.tab-icon {
+  width: 18px;
+  height: 18px;
+  flex: none;
+}
+.tab-caret {
+  width: 14px;
+  height: 14px;
+  flex: none;
+  transition: transform 0.3s var(--ease-out);
+}
+.tab[aria-expanded="true"] .tab-caret {
+  transform: rotate(180deg);
+}
+.tab-ghost {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: flex;
+  visibility: hidden;
+  pointer-events: none;
+  white-space: nowrap;
+}
+.tab-ghost > .tab {
+  flex: none;
+}
+/* « Plus » : les entrées repliées ; l'entrée en cours garde la pilule d'encre. */
+.tab-menu {
+  min-width: 220px;
+  padding: 6px;
+  border-radius: 18px;
+  box-shadow: var(--shadow-float);
+}
+.tab-menu [role="menuitem"] {
+  gap: 10px;
+  height: 40px;
+  padding: 0 12px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 500;
+}
+.tab-menu [role="menuitem"] svg {
+  width: 18px;
+  height: 18px;
+}
+.tab-menu [role="menuitem"][aria-current="page"],
+.tab-menu [role="menuitem"][aria-current="page"]:focus {
+  background: var(--primary);
+  color: var(--primary-foreground);
+}
+
+/* La page : des marges de retrait + 84 px dès 901 px, pour que les coins ne couvrent jamais le
+   contenu. En dessous, les coins passent par-dessus et la page laisse de la place en bas. */
+.desk-main {
+  min-width: 0;
+  padding-bottom: 112px;
+}
+@media (min-width: 901px) {
+  .desk-main {
+    padding-inline: calc(var(--inset) + 84px);
+    padding-bottom: 24px;
+  }
+}
+@media (max-width: 900px) {
+  .desk-bar {
+    grid-template-columns: minmax(0, 1fr) auto;
+    row-gap: 10px;
+  }
+  .desk-bar .tab-wrap {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    justify-content: flex-start;
+  }
+  .dock .dock-opt,
+  .dock .dock-sep {
+    display: none;
+  }
+}
+
+/* En bas à gauche : les préférences, un seul objet flottant ; les libellés sortent au survol. */
+.dock {
+  position: fixed;
+  z-index: 40;
+  left: max(var(--inset), env(safe-area-inset-left));
+  bottom: var(--corner-y);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px;
+  border-radius: 30px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-float);
+}
+.dock-btn {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  border-radius: 50%;
+  color: var(--foreground);
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+.dock-btn:hover,
+.dock-btn:focus-visible {
+  background: var(--raised);
+  color: var(--foreground);
+}
+.dock-btn:focus-visible {
+  outline: 2px solid var(--foreground);
+  outline-offset: 3px;
+}
+.dock-btn:disabled {
+  color: var(--muted-foreground);
+  background: transparent;
+  cursor: default;
+}
+.dock-btn[aria-pressed="true"] {
+  background: var(--primary);
+  color: var(--primary-foreground);
+}
+.dock-icon {
+  grid-area: 1 / 1;
+  width: 22px;
+  height: 22px;
+}
+.dock-flag {
+  position: absolute;
+  left: calc(100% + 14px);
+  top: 50%;
+  padding: 7px 14px;
+  border-radius: 999px;
+  background: var(--primary);
+  color: var(--primary-foreground);
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-8px, -50%) scale(0.96);
+  transform-origin: left center;
+  transition:
+    transform 0.35s var(--ease-out),
+    opacity 0.2s;
+}
+.dock-btn:hover .dock-flag,
+.dock-btn:focus-visible .dock-flag {
+  opacity: 1;
+  transform: translate(0, -50%);
+}
+.dock-sep {
+  height: 1px;
+  margin: 2px 10px;
+  background: var(--rule);
+}
+
+/* Sous 640 px : les onglets deviennent la barre d'encre au pouce, les préférences partent
+   (elles sont dans le menu de l'avatar), l'assistant flotte au-dessus de la barre. */
+.tab-bar {
+  display: none;
+}
+@media (max-width: 640px) {
+  .desk-bar {
+    padding-bottom: 10px;
+  }
+  .desk-bar .tab-wrap,
+  .dock {
+    display: none;
+  }
+  .desk-main {
+    padding-bottom: 170px;
+  }
+  .tab-bar {
+    display: block;
+    position: fixed;
+    z-index: 35;
+    inset: auto 0 0 0;
+    padding: 6px 8px calc(6px + env(safe-area-inset-bottom));
+    background: var(--nav);
+  }
+  .tab-bar ul {
+    display: grid;
+    gap: 2px;
+  }
+  .tab-bar-item {
+    position: relative;
+    display: grid;
+    place-items: center;
+    align-content: center;
+    gap: 3px;
+    width: 100%;
+    height: 54px;
+    overflow: hidden;
+    border-radius: 16px;
+    color: var(--nav-foreground);
+    font-size: 11.5px;
+    font-weight: 500;
+    transition:
+      background-color 0.3s var(--ease-out),
+      color 0.3s;
+  }
+  .tab-bar-item span {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .tab-bar-item:hover {
+    background: var(--nav-hover);
+    color: var(--nav-active);
+  }
+  .tab-bar-item[aria-current="page"],
+  .tab-bar-item[data-current] {
+    background: var(--nav-active);
+    color: var(--nav-active-foreground);
+    font-weight: 600;
+  }
+  .tab-bar-item:focus-visible {
+    outline: 2px solid var(--nav-active);
+    outline-offset: -3px;
+  }
+  .tab-bar-item[aria-current="page"]:focus-visible,
+  .tab-bar-item[data-current]:focus-visible {
+    outline-color: var(--nav-active-foreground);
+  }
+}
+
+/* Un bouton rond et discret de barre (thème, taille du texte). */
+.site-round {
+  display: inline-grid;
+  place-items: center;
+  min-width: 40px;
+  height: 40px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--foreground);
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 700;
+  transition:
+    background-color 0.2s,
+    transform 0.25s var(--ease-out);
+}
+.site-round:hover {
+  background: var(--raised);
+  color: var(--foreground);
+}
+.site-round:active {
+  transform: scale(0.94);
+}
+.site-round:disabled {
+  color: var(--muted-foreground);
+  background: var(--card);
+  transform: none;
+}
+.site-round:focus-visible {
+  outline: 2px solid var(--foreground);
+  outline-offset: 3px;
+}
+.site-round[aria-pressed="true"] {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: var(--primary-foreground);
+}
+.site-round .dock-icon {
+  width: 20px;
+  height: 20px;
+}
+.site-round-group {
+  display: flex;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--card);
+}
+.site-round-group .site-round {
+  min-width: 34px;
+  height: 32px;
+  border: 0;
+  background: transparent;
+}
+.site-round-group .site-round:hover {
+  background: var(--raised);
+}
+.site-round-group .site-round[aria-pressed="true"] {
+  background: var(--primary);
+  color: var(--primary-foreground);
+}
+
+/* Les toasts ne passent jamais sous les coins : au-dessus de la barre et de l'assistant. */
+@media (max-width: 640px) {
+  :root:has([data-app-shell]) [data-sonner-toaster][data-y-position="bottom"] {
+    /* biome-ignore lint/complexity/noImportantStyles: sonner écrit sa position dans un style en ligne. */
+    bottom: calc(66px + 84px + env(safe-area-inset-bottom)) !important;
+  }
+}
+
+/* En bas à droite : le bouton de l'assistant, 60 px ; son libellé glisse à gauche au survol. */
+.assist-fab {
+  position: fixed;
+  z-index: 40;
+  right: var(--corner-x);
+  bottom: var(--corner-y);
+  display: flex;
+  align-items: center;
+  height: 60px;
+  padding: 0;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--primary);
+  color: var(--primary-foreground);
+  box-shadow: var(--shadow-float);
+  cursor: pointer;
+  transition:
+    transform 0.2s var(--ease-out),
+    background-color 0.2s;
+}
+.assist-fab:hover {
+  background: var(--primary-hover);
+  color: var(--primary-foreground);
+}
+.assist-fab:active {
+  transform: scale(0.96);
+}
+.assist-fab:focus-visible {
+  outline: 2px solid var(--foreground);
+  outline-offset: 3px;
+}
+.assist-fab-icon {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 60px;
+  height: 60px;
+}
+/* biome-ignore lint/style/noDescendingSpecificity: autre élément que les icônes du menu « Plus ». */
+.assist-fab-icon svg {
+  width: 26px;
+  height: 26px;
+}
+.assist-fab-label {
+  display: grid;
+  grid-template-columns: 0fr;
+  transition: grid-template-columns 0.4s var(--ease-out);
+}
+.assist-fab-label > span {
+  min-width: 0;
+  overflow: hidden;
+}
+.assist-fab-label b {
+  display: block;
+  padding-left: 22px;
+  font-size: 15px;
+  font-weight: 600;
+  white-space: nowrap;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+.assist-fab:hover .assist-fab-label,
+.assist-fab:focus-visible .assist-fab-label {
+  grid-template-columns: 1fr;
+}
+.assist-fab:hover .assist-fab-label b,
+.assist-fab:focus-visible .assist-fab-label b {
+  opacity: 1;
+  transition-delay: 0.1s;
+}
+.assist-fab[data-state="open"] .assist-fab-label {
+  grid-template-columns: 0fr;
+}
+@media (max-width: 640px) {
+  .assist-fab {
+    height: 56px;
+  }
+  .assist-fab-icon {
+    width: 56px;
+    height: 56px;
+  }
+}
+
+/* ─── Les pages publiques et les portes de connexion ─── */
+
+/* La barre publique : le fond de la page, légèrement flouté. */
+.site-bar {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  background: color-mix(in srgb, var(--background) 88%, transparent);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+}
+.site-bar-in {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 16px;
+  max-width: 88rem;
+  margin-inline: auto;
+  padding: 12px 16px;
+}
+@media (min-width: 1024px) {
+  .site-bar-in {
+    padding: 14px 40px;
+  }
+}
+.site-word {
+  flex: none;
+  border-radius: 12px;
+}
+.site-nav {
+  margin-inline: auto;
+}
+.site-tools {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+@media (max-width: 767px) {
+  .site-tools {
+    margin-left: auto;
+  }
+  .site-nav {
+    order: 3;
+    width: 100%;
+  }
+  .site-nav .tab-island {
+    width: 100%;
+  }
+  .site-nav .tab-list {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .site-nav .tab {
+    width: 100%;
+    justify-content: center;
+    padding: 0 6px;
+    font-size: 13px;
+  }
+  .site-nav .tab-icon {
+    display: none;
+  }
+}
+@media (max-width: 639px) {
+  .site-tools .site-hide-sm {
+    display: none;
+  }
+}
+
+/* L'interrupteur segmenté : une pilule d'encre glisse sous le choix. */
+.seg {
+  position: relative;
+  display: inline-flex;
+  padding: 3px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--card);
+}
+.seg-pill {
+  position: absolute;
+  z-index: 0;
+  top: 3px;
+  bottom: 3px;
+  left: 0;
+  width: 0;
+  border-radius: 999px;
+  background: var(--foreground);
+  opacity: 0;
+  transition:
+    transform 0.5s var(--ease-out),
+    width 0.5s var(--ease-out);
+}
+.seg-item {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  height: 32px;
+  min-width: 38px;
+  padding: 0 10px;
+  border-radius: 999px;
+  color: var(--foreground);
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+.seg-item[data-lit],
+.seg:not([data-pill]) .seg-item[data-current] {
+  color: var(--background);
+}
+.seg:not([data-pill]) .seg-item[data-current] {
+  background: var(--foreground);
+}
+.seg-item:focus-visible {
+  outline: 2px solid var(--foreground);
+  outline-offset: 2px;
+}
+.seg-item[data-lit]:focus-visible {
+  outline-offset: -4px;
+  outline-color: var(--background);
+}
+.seg-lg .seg-item {
+  height: 40px;
+  padding: 0 16px;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+.seg-fill {
+  display: flex;
+}
+.seg-fill .seg-item {
+  flex: 1 1 0;
+}
+
+/* Les grands titres : Bricolage, un mot dans l'italique de l'accueil (avec un <em>). Pas de marge
+   ici : elles se règlent là où le titre sert. */
+.pub-display,
+.pub-title,
+.pub-h2 {
+  font-family: var(--font-display);
+  font-weight: 800;
+  text-wrap: balance;
+}
+.pub-display {
+  font-size: clamp(2.6rem, 1.2rem + 4.2vw, 5.2rem);
+  line-height: 0.95;
+  letter-spacing: -0.04em;
+}
+.pub-title {
+  font-size: clamp(2.1rem, 1.3rem + 2.4vw, 3.6rem);
+  line-height: 1;
+  letter-spacing: -0.035em;
+}
+.pub-h2 {
+  font-size: clamp(1.75rem, 1.3rem + 1.4vw, 2.6rem);
+  line-height: 1;
+  letter-spacing: -0.03em;
+}
+.pub-display em,
+.pub-title em,
+.pub-h2 em {
+  font-family: var(--font-quote);
+  font-style: italic;
+  font-weight: 500;
+  font-size: 1.08em;
+  letter-spacing: -0.01em;
+  padding-right: 0.04em;
+}
+.pub-lead {
+  max-width: 52ch;
+  color: var(--muted-foreground);
+  font-size: clamp(1.05rem, 1rem + 0.3vw, 1.25rem);
+  line-height: 1.55;
+  text-wrap: pretty;
+}
+
+/* Des lignes qui montent de leur propre masque, une fois (le titre de l'accueil). */
+.lines {
+  display: block;
+}
+.lines > span {
+  display: block;
+  overflow: hidden;
+  padding-bottom: 0.16em;
+  margin-bottom: -0.1em;
+}
+.lines > span > span {
+  display: block;
+  animation: line-up 0.95s var(--ease-out) both;
+  animation-delay: calc(var(--l, 0) * 80ms);
+}
+@keyframes line-up {
+  from {
+    transform: translateY(110%);
+  }
+}
+.rise {
+  animation: rise 0.8s var(--ease-out) both;
+  animation-delay: var(--d, 0s);
+}
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+}
+
+/* /login, /signup… : une rédaction en vidéo à côté du formulaire. */
+.auth-doors {
+  display: grid;
+  min-height: 100dvh;
+}
+@media (min-width: 1024px) {
+  .auth-doors {
+    grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+  }
+}
+/* Le côté vidéo est d'encre dans les deux thèmes : un texte papier fixe dessus. */
+.auth-side {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 40px;
+  min-height: 360px;
+  margin: 12px;
+  padding: 28px;
+  overflow: hidden;
+  border-radius: 28px;
+  background: #0a0a0b;
+  color: #f3f2ee;
+}
+@media (min-width: 1024px) {
+  .auth-side {
+    position: sticky;
+    top: 12px;
+    height: calc(100dvh - 24px);
+    padding: 36px;
+  }
+}
+@media (max-width: 1023px) {
+  .auth-side {
+    min-height: 300px;
+  }
+}
+.auth-video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0.72;
+  animation: auth-ken 24s ease-in-out infinite alternate;
+}
+@keyframes auth-ken {
+  from {
+    transform: scale(1.04);
+  }
+  to {
+    transform: scale(1.14) translate(-2%, -1%);
+  }
+}
+.auth-shade {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(10, 10, 11, 0.6) 0%,
+    rgba(10, 10, 11, 0.12) 38%,
+    rgba(10, 10, 11, 0.94) 100%
+  );
+}
+.auth-word,
+.auth-promise {
+  position: relative;
+}
+.auth-word {
+  align-self: flex-start;
+  border-radius: 12px;
+  color: #f3f2ee;
+}
+.auth-word:focus-visible {
+  outline: 2px solid #f3f2ee;
+  outline-offset: 3px;
+}
+.auth-title {
+  max-width: 13ch;
+  color: #f3f2ee;
+}
+.auth-lead {
+  max-width: 44ch;
+  margin-top: 20px;
+  color: #d4d3cd;
+  font-size: 1.125rem;
+  line-height: 1.55;
+}
+.auth-points {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 22px;
+  padding: 0;
+  list-style: none;
+  color: #d4d3cd;
+  font-size: 1.0625rem;
+}
+.auth-points li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.auth-credits {
+  display: inline-block;
+  margin-top: 24px;
+  color: #b9b8b2;
+  font-size: 0.8125rem;
+}
+.auth-credits:hover {
+  color: #f3f2ee;
+  text-decoration: underline;
+}
+.auth-panel {
+  display: flex;
+  flex-direction: column;
+  padding: 20px 16px 28px;
+}
+@media (min-width: 1024px) {
+  .auth-panel {
+    padding: 28px clamp(32px, 5vw, 80px) 32px;
+  }
+}
+.auth-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.auth-box {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+  width: 100%;
+  max-width: 460px;
+  margin: auto 0;
+  padding: 48px 0;
+}
+@media (min-width: 1024px) {
+  .auth-box {
+    margin-inline: auto;
+  }
+}
+.auth-made {
+  max-width: 52ch;
+  color: var(--muted-foreground);
+  font-size: 0.8125rem;
+}
+
+/* ─── L'accueil (.landing) : la direction « Nuit rouge », inchangée ─── */
+
+/* Ses jetons : toujours la nuit, le rouge de la marque en accent. Ils ne valent que dans
+   l'accueil ; le reste de l'application est en encre et papier. */
+.landing,
+.landing.dark {
+  --background: var(--ink-950);
+  --foreground: oklch(0.955 0.006 95);
+  --card: var(--ink-900);
+  --card-foreground: oklch(0.955 0.006 95);
+  --popover: var(--ink-850);
+  --popover-foreground: oklch(0.955 0.007 30);
+  --primary: oklch(0.64 0.215 24);
+  --primary-foreground: var(--ink-0);
+  --primary-hover: oklch(0.69 0.2 24);
+  --secondary: var(--ink-850);
+  --secondary-foreground: oklch(0.955 0.007 30);
+  --muted: var(--ink-850);
+  --muted-foreground: oklch(0.72 0.016 24);
+  --accent: oklch(0.25 0.055 22);
+  --accent-foreground: var(--red-100);
+  --destructive: var(--red-400);
+  --border: oklch(0.955 0.006 95 / 11%);
+  --input: oklch(1 0 0 / 12%);
+  --ring: var(--red-400);
+  --radius: 1.1rem;
+  --glow: oklch(0.6 0.23 24);
+  --sheen: oklch(1 0 0 / 7%);
+  --success: var(--green-400);
+  --success-soft: var(--green-900);
+  --warning: var(--amber-400);
+  --warning-soft: var(--amber-900);
+  --info: var(--blue-400);
+  --info-soft: var(--blue-900);
+  --danger: var(--red-300);
+  --danger-soft: var(--red-900);
+}
+.landing {
+  /* Les titres et petites lignes de l'accueil gardent leur dessin d'origine. */
+  --display-weight: 700;
+  --display-tracking: -0.04em;
+  --display-leading: 1.02;
+  --eyebrow-size: 0.7rem;
+  --eyebrow-weight: 500;
+  --eyebrow-tracking: 0.28em;
+  --eyebrow-case: uppercase;
+  --eyebrow-color: var(--primary);
+  --k-sm: 0.6;
+  --k-md: 0.8;
+  --k-xl: 1.4;
+  --k-2xl: 1.8;
+}
+.landing ::selection {
+  background: oklch(0.63 0.21 23 / 55%);
+  color: var(--ink-0);
+}
+
+/* Grain : un seul calque fixe, au-dessus de l'accueil, qui ne capte jamais les clics. */
 .grain {
   position: fixed;
   inset: 0;
   z-index: 70;
   pointer-events: none;
-  opacity: 0.03;
+  opacity: 0.055;
   mix-blend-mode: overlay;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-}
-.dark .grain,
-.dark.grain {
-  opacity: 0.055;
 }
 
 @layer components {
@@ -438,7 +1584,8 @@
 }
 
 /* Mode éco : pas d'animation, pas de flou ni de grain, pas d'illustration décorative. Moins de
-   calcul pour les petits téléphones, et rien d'inutile à charger. Hors couche (@layer) : ces règles passent devant Tailwind sans !important. */
+   calcul pour les petits téléphones, et rien d'inutile à charger. Hors couche (@layer) : ces
+   règles passent devant Tailwind sans !important. */
 html[data-eco="on"] *,
 html[data-eco="on"] *::before,
 html[data-eco="on"] *::after {
@@ -449,7 +1596,8 @@ html[data-eco="on"] *::after {
 }
 html[data-eco="on"] .grain,
 html[data-eco="on"] .hero-glow,
-html[data-eco="on"] .hero-figure {
+html[data-eco="on"] .hero-figure,
+html[data-eco="on"] .auth-video {
   display: none;
 }
 
@@ -460,5 +1608,8 @@ html[data-eco="on"] .hero-figure {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     scroll-behavior: auto !important;
+  }
+  .auth-video {
+    display: none;
   }
 }
