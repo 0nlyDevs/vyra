@@ -22,8 +22,6 @@ from app.services.llm_common import AiUnavailableError, extract_json
 
 logger = logging.getLogger(__name__)
 
-GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models"
-
 
 def _keys(settings: Settings) -> list[str]:
     keys = settings.keys_for("gemini")
@@ -101,7 +99,7 @@ def generate_json(
         last = index == len(models) - 1
         timeout = remaining if last else min(remaining, settings.gemini_attempt_timeout_seconds)
         try:
-            url = f"{GEMINI_URL}/{model}:generateContent"
+            url = f"{settings.gemini_base_url}/{model}:generateContent"
             data = _post(settings, url, body, transport, timeout=timeout)
             parts = data["candidates"][0]["content"]["parts"]
             # Un modèle qui « réfléchit » peut renvoyer des parties de réflexion : on les saute.
@@ -143,7 +141,7 @@ def embed_texts(
             for text in texts
         ]
     }
-    url = f"{GEMINI_URL}/{model}:batchEmbedContents"
+    url = f"{settings.gemini_base_url}/{model}:batchEmbedContents"
     try:
         data = _post(settings, url, body, transport)
         vectors = [list(map(float, item["values"])) for item in data["embeddings"]]

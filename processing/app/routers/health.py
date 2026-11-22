@@ -28,4 +28,4 @@ def get_health(settings: SettingsDep) -> HealthResponse:
         ai = "not-configured"
     else:
         ai = "+".join(configured)
-    return HealthResponse(status="ok", service="mindstack-processing", ai=ai)
+    return HealthResponse(status="ok", service="vyra-processing", ai=ai)
