@@ -344,21 +344,28 @@ export async function addScanToCase(
   return ok({ caseId: parsed.data.caseId, added });
 }
 
-// Un vocal (ou la bande son d'une vidéo) transcrit ouvre une affaire, puis on part sur son enquête.
-export async function openCaseFromAudio(formData: FormData) {
+// Un vocal (ou la bande son d'une vidéo) transcrit ouvre une affaire. Utilisé par le site (puis on
+// part sur l'enquête) et par l'application mobile (`/api/v1/scans/:id/open-case`).
+export async function openCaseFromScan(scanId: unknown): Promise<ActionResult<{ caseId: string }>> {
   const profile = await getCurrentProfile();
-  if (!profile) redirect('/login');
-  const parsed = scanIdSchema.safeParse({ scanId: formData.get('scanId') });
-  if (!parsed.success) return;
+  if (!profile) return fail(ERRORS.UNAUTHORIZED);
+  const parsed = scanIdSchema.safeParse({ scanId });
+  if (!parsed.success) return fail(ERRORS.VALIDATION_FAILED, parsed.error);
 
   const scan = await getScan(parsed.data.scanId);
-  if (!scan || scan.profileId !== profile.id || !scan.transcript) return;
+  if (!scan || scan.profileId !== profile.id || !scan.transcript) return fail(ERRORS.NOT_FOUND);
   const claim = scan.transcript.claim || scan.transcript.transcript;
   const words = claim.split(/\s+/).slice(0, 6).join(' ');
   const prefix = scan.kind === 'video' ? 'Vidéo' : 'Vocal';
   const caseId = await createCaseFromScan(scan.id, { title: `${prefix} : ${words}…`, claim });
-  if (!caseId) return;
+  if (!caseId) return fail(ERRORS.INTERNAL);
   revalidatePath('/cases');
   revalidatePath('/dashboard');
-  redirect(`/cases/${caseId}`);
+  return ok({ caseId });
+}
+
+export async function openCaseFromAudio(formData: FormData) {
+  const result = await openCaseFromScan(formData.get('scanId'));
+  if (!result.ok && result.error.code === 'UNAUTHORIZED') redirect('/login');
+  if (result.ok) redirect(`/cases/${result.data.caseId}`);
 }

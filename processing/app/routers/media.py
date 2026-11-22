@@ -8,6 +8,7 @@ from fastapi import APIRouter
 
 from app.core.errors import AppError
 from app.schemas.media import (
+    FingerprintResponse,
     MediaInspectRequest,
     MediaReportResponse,
     SafeCopyResponse,
@@ -17,6 +18,7 @@ from app.schemas.media import (
     VideoReportResponse,
 )
 from app.services import video
+from app.services.fingerprint import image_fingerprint
 from app.services.media_inspect import inspect_image
 from app.services.safe_copy import UnreadableImageError, make_safe_copy
 
@@ -45,6 +47,15 @@ def safe_copy(body: MediaInspectRequest) -> SafeCopyResponse:
         metadata_removed=copy.metadata_removed,
         first_frame_only=copy.first_frame_only,
     )
+
+
+@router.post("/fingerprint", operation_id="imageFingerprint")
+def fingerprint(body: MediaInspectRequest) -> FingerprintResponse:
+    """L'empreinte « dHash » d'une image, pour retrouver une image déjà vue (application mobile)."""
+    try:
+        return FingerprintResponse(fingerprint=image_fingerprint(_decode(body.data)))
+    except UnreadableImageError as exc:
+        raise AppError("FILE_NOT_SUPPORTED", 422, "Cette image ne se lit pas.") from exc
 
 
 @router.post("/video", operation_id="inspectVideo")
